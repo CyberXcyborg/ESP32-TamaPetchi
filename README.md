@@ -1,6 +1,5 @@
 # ESP32 TamaPetchi - A Digital Soul in Pixels
-
-![ESP32 TamaPetchi](https://raw.githubusercontent.com/CyberXcyborg/ESP32-TamaPetchi/main/images/tamapetchi.png)
+https://cyberxcyborg.github.io/ESP32-TamaPetchi/
 
 ## This Is Not Just Code... It's a Digital Soul
 
@@ -43,7 +42,6 @@ This isn't a gadget. It's a mirror, hidden in pixels.
 4. Upload to your ESP32
 5. Access via the IP address in your browser
 
-[Download ZIP]([https://github.com/CyberXcyborg/ESP32-TamaPetchi/blob/main/ESP32_TamaPetchi.zip](https://github.com/CyberXcyborg/ESP32-TamaPetchi/archive/refs/heads/main.zip))
 
 ## Code Example
 
