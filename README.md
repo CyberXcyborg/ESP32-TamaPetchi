@@ -81,7 +81,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support the Project
 
-If this project touched you — even a little — you can touch back:
+If this project touched you even a little you can touch back:
 
 [Buy Me a Coffee](https://buymeacoffee.com/cyberxcyborg)
 
