@@ -20,6 +20,11 @@ void savePetData(const Pet &pet) {
   jsonDoc["isAlive"]     = pet.isAlive;
   jsonDoc["state"]       = pet.state;
 
+  // Phase 2: persist new fields
+  jsonDoc["stage"]          = (int)pet.stage;
+  jsonDoc["isNight"]        = pet.isNight;
+  jsonDoc["virtualMinutes"] = pet.virtualMinutes;
+
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
   }
@@ -53,6 +58,11 @@ void loadPetData(Pet &pet) {
     pet.age         = jsonDoc["age"];
     pet.isAlive     = jsonDoc["isAlive"];
     pet.state       = jsonDoc["state"].as<String>();
+
+    // Phase 2: load new fields (with defaults for backward compatibility)
+    pet.stage          = (PetStage)(int)jsonDoc["stage"] | (PetStage)0;
+    pet.isNight        = jsonDoc["isNight"] | false;
+    pet.virtualMinutes = jsonDoc["virtualMinutes"] | (6 * VIRTUAL_MINUTES_PER_HOUR);
   }
 
   file.close();

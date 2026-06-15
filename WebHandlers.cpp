@@ -72,6 +72,19 @@ static void handleGetPet() {
   jsonDoc["isAlive"]     = g_pet->isAlive;
   jsonDoc["state"]       = g_pet->state;
 
+  // Phase 2: new fields
+  // Convert stage enum to string
+  const char* stageStr = "baby";
+  switch (g_pet->stage) {
+    case BABY:  stageStr = "baby";  break;
+    case CHILD: stageStr = "child"; break;
+    case ADULT: stageStr = "adult"; break;
+    case ELDER: stageStr = "elder"; break;
+  }
+  jsonDoc["stage"]          = stageStr;
+  jsonDoc["isNight"]        = g_pet->isNight;
+  jsonDoc["virtualMinutes"] = g_pet->virtualMinutes;
+
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
@@ -87,6 +100,7 @@ static void handleFeed() {
 static void handlePlay() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
+  if (g_pet->state == "dying") { sendJsonResponse(false, "Pet is too weak to play"); return; }
   playPet(*g_pet);
   savePetData(*g_pet);
   sendJsonResponse(true);

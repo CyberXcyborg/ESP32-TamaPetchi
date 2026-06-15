@@ -25,6 +25,9 @@ unsigned long lastUpdateTime = 0;
 void setup() {
   Serial.begin(115200);
 
+  // Initialize random seed
+  randomSeed(analogRead(0));
+
   // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
     Serial.println("SPIFFS initialization failed!");
@@ -46,7 +49,7 @@ void setup() {
   previousState = pet.state;
 
   // Register web server routes
-  setupWebServer(server, pet, showWakeMessage, wakeMessageStartTime, previousState);
+  registerHandlers(server, pet);
 
   // Start server
   server.begin();
