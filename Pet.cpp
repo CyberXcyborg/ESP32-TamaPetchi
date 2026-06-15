@@ -39,6 +39,7 @@ void updatePet(Pet &pet) {
     if (pet.energy >= STAT_MAX) {
       pet.state          = "normal";
       pet.stateChangeTime = millis();
+      if (pet.soundEnabled) soundWake();
       Serial.println("Pet woke up automatically after full rest");
     }
   } else {
@@ -93,6 +94,8 @@ void feedPet(Pet &pet) {
   pet.stateChangeTime    = millis();
   pet.lastInteractionTime = millis();
 
+  if (pet.soundEnabled) soundFeed();
+
   // If very hungry, improve health too
   if (pet.hunger < HEALTH_DECAY_THRESHOLD) {
     pet.health = clampStat(pet.health + FEED_HEALTH_BONUS);
@@ -109,6 +112,8 @@ void playPet(Pet &pet) {
   pet.state     = "playing";
   pet.stateChangeTime     = millis();
   pet.lastInteractionTime = millis();
+
+  if (pet.soundEnabled) soundPlay();
 }
 
 void cleanPet(Pet &pet) {
@@ -141,4 +146,35 @@ void healPet(Pet &pet) {
 
 void resetPet(Pet &pet) {
   initPet(pet);
+}
+
+
+// ============================================================
+// Sound Effects (Buzzer)
+// ============================================================
+
+void soundFeed() {
+  tone(BUZZER_PIN, 1000, 200);
+}
+
+void soundPlay() {
+  tone(BUZZER_PIN, 800, 100);
+  delay(150);
+  tone(BUZZER_PIN, 1200, 100);
+}
+
+void soundDeath() {
+  for (int freq = 1000; freq >= 200; freq -= 100) {
+    tone(BUZZER_PIN, freq, 50);
+    delay(60);
+  }
+  noTone(BUZZER_PIN);
+}
+
+void soundWake() {
+  for (int freq = 200; freq <= 1000; freq += 200) {
+    tone(BUZZER_PIN, freq, 60);
+    delay(80);
+  }
+  noTone(BUZZER_PIN);
 }

@@ -24,6 +24,13 @@ struct Pet {
 void initPet(Pet &pet);
 void updatePet(Pet &pet);
 
+// --- Sound Helpers ---
+void soundFeed();
+void soundPlay();
+void soundDeath();
+void soundWake();
+void soundEnabledToggle();
+
 // --- Actions ---
 void feedPet(Pet &pet);
 void playPet(Pet &pet);

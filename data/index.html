@@ -285,9 +285,12 @@
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
             <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
                 <i class="fas fa-heart text-pink-300"></i>
-                ESP32 TamaPetchi
+                <span id="header-name">ESP32 TamaPetchi</span>
                 <i class="fas fa-star text-yellow-300"></i>
             </h1>
+            <div id="pet-name-display" class="text-sm mt-1 opacity-80" style="display:none;">
+                Meet <span id="pet-name-text" class="font-bold"></span>!
+            </div>
         </div>
         
         <!-- Message Area -->
@@ -378,13 +381,37 @@
                 </div>
             </div>
             
-            <!-- Age -->
+            <!-- Age & Stage -->
             <div class="text-center text-gray-600 mt-4">
                 <i class="fas fa-clock text-purple-500"></i>
                 Age: <span id="age-value" class="font-bold">0</span> minutes
+                <span id="stage-badge" class="ml-2 px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">Baby</span>
+            </div>
+            <div id="day-night-indicator" class="text-center text-sm mt-1">
+                <i id="day-night-icon" class="fas fa-sun text-yellow-500"></i>
+                <span id="day-night-text">Day</span>
             </div>
         </div>
         
+        <!-- Pet Naming -->
+        <div class="px-6 pb-2">
+            <div class="flex gap-2">
+                <input type="text" id="name-input" placeholder="Enter pet name..." maxlength="16"
+                    class="flex-1 border-2 border-purple-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                <button id="name-btn" class="game-button px-4 py-2 text-purple-600 text-sm">
+                    <i class="fas fa-pen"></i> Rename
+                </button>
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div id="achievements-section" class="px-6 pb-2" style="display:none;">
+            <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
+                <h3 class="text-sm font-bold text-yellow-700 mb-2"><i class="fas fa-trophy"></i> Achievements</h3>
+                <div id="achievements-grid" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="p-6 grid grid-cols-2 gap-3">
             <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700">
@@ -417,19 +444,31 @@
                 <span>Reset</span>
             </button>
         </div>
+
+        <!-- Sound Toggle -->
+        <div class="px-6 pb-4">
+            <button id="mute-btn" class="game-button w-full p-2 flex items-center justify-center gap-2 text-gray-600 text-sm">
+                <i id="mute-icon" class="fas fa-volume-up"></i>
+                <span id="mute-text">Sound: ON</span>
+            </button>
+        </div>
     </div>
 
     <script>
         // Pet state management
         let pet = {
-            hunger: 100,
-            happiness: 100,
-            health: 100,
+            hunger: 50,
+            happiness: 50,
+            health: 80,
             energy: 100,
-            cleanliness: 100,
+            cleanliness: 80,
             age: 0,
             isAlive: true,
-            state: "normal"
+            state: "normal",
+            name: "Tama",
+            stage: "baby",
+            isNight: false,
+            achievements: []
         };
         
         let updateInterval;
@@ -450,6 +489,86 @@
             document.getElementById('sleep-btn').addEventListener('click', () => performAction('sleep'));
             document.getElementById('heal-btn').addEventListener('click', () => performAction('heal'));
             document.getElementById('reset-btn').addEventListener('click', resetPet);
+            document.getElementById('mute-btn').addEventListener('click', toggleMute);
+            document.getElementById('name-btn').addEventListener('click', setPetName);
+            document.getElementById('name-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') setPetName();
+            });
+        }
+
+        function toggleMute() {
+            fetch('/mute', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const icon = document.getElementById('mute-icon');
+                    const text = document.getElementById('mute-text');
+                    if (d.soundEnabled) {
+                        icon.className = 'fas fa-volume-up';
+                        text.textContent = 'Sound: ON';
+                    } else {
+                        icon.className = 'fas fa-volume-mute';
+                        text.textContent = 'Sound: OFF';
+                    }
+                    pet.soundEnabled = d.soundEnabled;
+                }
+            })
+            .catch(() => showMessage('Error toggling sound', 'error'));
+        }
+
+        function setPetName() {
+            const input = document.getElementById('name-input');
+            const name = input.value.trim();
+            if (!name) { showMessage('Please enter a name', 'error'); return; }
+            fetch('/name', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name.substring(0, 16)})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showMessage(`Name changed to "${name}"!`, 'success');
+                    input.value = '';
+                    updatePetData();
+                } else {
+                    showMessage(d.message || 'Failed to set name', 'error');
+                }
+            })
+            .catch(() => showMessage('Error setting name', 'error'));
+        }
+
+        function renderAchievements() {
+            const section = document.getElementById('achievements-section');
+            const grid = document.getElementById('achievements-grid');
+            if (!pet.achievements || pet.achievements.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            const icons = {
+                survived_1h: '<i class="fas fa-hourglass-half"></i>',
+                survived_24h: '<i class="fas fa-hourglass-end"></i>',
+                fed_10x: '<i class="fas fa-utensils"></i>',
+                played_10x: '<i class="fas fa-gamepad"></i>',
+                named_pet: '<i class="fas fa-signature"></i>',
+                reached_elder: '<i class="fas fa-crown"></i>'
+            };
+            const titles = {
+                survived_1h: 'Survived 1h',
+                survived_24h: 'Survived 24h',
+                fed_10x: 'Fed 10x',
+                played_10x: 'Played 10x',
+                named_pet: 'Named Pet',
+                reached_elder: 'Elder Pet'
+            };
+            grid.innerHTML = '';
+            pet.achievements.forEach(a => {
+                const badge = document.createElement('span');
+                badge.className = 'px-2 py-1 bg-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-1';
+                badge.innerHTML = (icons[a] || '<i class="fas fa-star"></i>') + ' ' + (titles[a] || a);
+                grid.appendChild(badge);
+            });
         }
         
         // Fetch pet data from server
@@ -502,6 +621,7 @@
             updateStatBars();
             updatePetSprite();
             updateButtons();
+            renderAchievements();
             
             if (!pet.isAlive) {
                 showMessage('Your pet has passed away. Click Reset to start over.', 'error');
@@ -511,10 +631,47 @@
         function updateStatBars() {
             const stats = ['hunger', 'happiness', 'health', 'energy', 'cleanliness'];
             stats.forEach(stat => {
-                document.getElementById(`${stat}-bar`).style.width = `${pet[stat]}%`;
-                document.getElementById(`${stat}-value`).textContent = `${pet[stat]}%`;
+                const val = Math.max(0, Math.min(100, pet[stat]));
+                document.getElementById(`${stat}-bar`).style.width = `${val}%`;
+                document.getElementById(`${stat}-value`).textContent = `${val}%`;
             });
             document.getElementById('age-value').textContent = pet.age;
+
+            // Update stage badge
+            const stageNames = {baby: 'Baby', child: 'Child', adult: 'Adult', elder: 'Elder'};
+            document.getElementById('stage-badge').textContent = stageNames[pet.stage] || 'Baby';
+
+            // Update day/night indicator
+            if (typeof pet.isNight !== 'undefined') {
+                document.getElementById('day-night-icon').className = pet.isNight
+                    ? 'fas fa-moon text-blue-400' : 'fas fa-sun text-yellow-500';
+                document.getElementById('day-night-text').textContent = pet.isNight ? 'Night' : 'Day';
+            }
+
+            // Update mute button
+            if (typeof pet.soundEnabled !== 'undefined') {
+                const muteIcon = document.getElementById('mute-icon');
+                const muteText = document.getElementById('mute-text');
+                if (pet.soundEnabled) {
+                    muteIcon.className = 'fas fa-volume-up';
+                    muteText.textContent = 'Sound: ON';
+                } else {
+                    muteIcon.className = 'fas fa-volume-mute';
+                    muteText.textContent = 'Sound: OFF';
+                }
+            }
+
+            // Update pet name in header
+            if (typeof pet.name !== 'undefined') {
+                document.getElementById('header-name').textContent = `ESP32 ${pet.name}`;
+                const nameDisplay = document.getElementById('pet-name-display');
+                document.getElementById('pet-name-text').textContent = pet.name;
+                if (pet.name && pet.name !== 'Tama') {
+                    nameDisplay.style.display = 'block';
+                } else {
+                    nameDisplay.style.display = 'none';
+                }
+            }
         }
         
         function updatePetSprite() {

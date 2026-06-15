@@ -57,4 +57,8 @@
 // --- Serial ---
 #define SERIAL_BAUD  115200
 
+// --- Buzzer ---
+#define BUZZER_PIN    25
+#define BUZZER_CHANNEL 0
+
 #endif // CONFIG_H

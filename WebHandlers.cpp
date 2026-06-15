@@ -122,3 +122,44 @@ static void handleReset() {
 static void handleUpdate() {
   handleGetPet();
 }
+
+static void handleMute() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+
+  g_pet->soundEnabled = !g_pet->soundEnabled;
+  savePetData(*g_pet);
+
+  DynamicJsonDocument jsonDoc(256);
+  jsonDoc["success"] = true;
+  jsonDoc["soundEnabled"] = g_pet->soundEnabled;
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+static void handleSetName() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError error = deserializeJson(jsonDoc, body);
+
+  if (error) {
+    sendJsonResponse(false, "Invalid JSON");
+    return;
+  }
+
+  String newName = jsonDoc["name"] | "";
+  newName.trim();
+  if (newName.length() == 0) {
+    sendJsonResponse(false, "Name cannot be empty");
+    return;
+  }
+  if (newName.length() > 16) {
+    newName = newName.substring(0, 16);
+  }
+
+  g_pet->name = newName;
+  savePetData(*g_pet);
+  sendJsonResponse(true);
+}
