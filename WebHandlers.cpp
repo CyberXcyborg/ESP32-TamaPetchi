@@ -1,3 +1,4 @@
+/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory
 #include "WebHandlers.h"
 #include "Pet.h"
 #include "Storage.h"
@@ -32,7 +33,11 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/sleep",  HTTP_POST, handleSleep);
   server.on("/heal",   HTTP_POST, handleHeal);
   server.on("/reset",  HTTP_POST, handleReset);
-  server.on("/update", HTTP_GET,  handleUpdate);
+  server.on("/update",      HTTP_GET,  handleUpdate);
+  server.on("/name",        HTTP_POST, handleSetName);
+  server.on("/mute",        HTTP_POST, handleMute);
+  server.on("/achievements", HTTP_GET, handleAchievements);
+  server.on("/type",        HTTP_POST, handleSetType);
 }
 
 // ============================================================
