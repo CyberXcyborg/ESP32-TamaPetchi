@@ -98,6 +98,7 @@ void initPet(Pet &pet) {
   // Phase 3 init
   pet.name            = "Tama";
   pet.soundEnabled    = true;
+  pet.type            = BLOB;
 
   // Achievement tracking init
   pet.feedCount       = 0;

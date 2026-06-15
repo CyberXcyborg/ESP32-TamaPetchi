@@ -85,9 +85,16 @@ static void handleGetPet() {
   jsonDoc["isNight"]        = g_pet->isNight;
   jsonDoc["virtualMinutes"] = g_pet->virtualMinutes;
 
-  // Phase 3: name + sound
+  // Phase 3: name + sound + type
   jsonDoc["name"]         = g_pet->name;
   jsonDoc["soundEnabled"] = g_pet->soundEnabled;
+  const char* typeStr = "blob";
+  switch (g_pet->type) {
+    case BLOB: typeStr = "blob"; break;
+    case CAT:  typeStr = "cat";  break;
+    case DOG:  typeStr = "dog";  break;
+  }
+  jsonDoc["type"] = typeStr;
 
   // Phase 3: achievements array
   String achJson = getAchievementsJson(*g_pet);
@@ -154,6 +161,42 @@ static void handleReset() {
 
 static void handleUpdate() {
   handleGetPet();
+}
+
+static void handleSetType() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError error = deserializeJson(jsonDoc, body);
+
+  if (error) {
+    // Also support plain text body
+    body = g_server->arg("plain");
+    if (body.length() == 0) {
+      // Try to get from form data
+    }
+  }
+
+  String typeStr = jsonDoc["type"] | "";
+  typeStr.toLowerCase();
+  typeStr.trim();
+
+  PetType newType = BLOB;
+  if (typeStr == "cat") {
+    newType = CAT;
+  } else if (typeStr == "dog") {
+    newType = DOG;
+  } else {
+    newType = BLOB;
+  }
+
+  // Reset pet with new type
+  g_pet->type = newType;
+  initPet(*g_pet);
+  g_pet->type = newType; // preserve type after reset
+  savePetData(*g_pet);
+  sendJsonResponse(true);
 }
 
 static void handleAchievements() {

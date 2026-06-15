@@ -25,9 +25,10 @@ void savePetData(const Pet &pet) {
   jsonDoc["isNight"]        = pet.isNight;
   jsonDoc["virtualMinutes"] = pet.virtualMinutes;
 
-  // Phase 3: persist name + sound
+  // Phase 3: persist name + sound + type
   jsonDoc["name"]         = pet.name;
   jsonDoc["soundEnabled"] = pet.soundEnabled;
+  jsonDoc["type"]         = (int)pet.type;
 
   // Phase 3: persist achievement tracking
   jsonDoc["feedCount"]     = pet.feedCount;
@@ -74,9 +75,10 @@ void loadPetData(Pet &pet) {
     pet.isNight        = jsonDoc["isNight"] | false;
     pet.virtualMinutes = jsonDoc["virtualMinutes"] | (6UL * VIRTUAL_MINUTES_PER_HOUR);
 
-    // Phase 3: load name + sound (with defaults)
+    // Phase 3: load name + sound + type (with defaults)
     pet.name         = jsonDoc["name"] | "Tama";
     pet.soundEnabled = jsonDoc["soundEnabled"] | true;
+    pet.type         = (PetType)(int)jsonDoc["type"] | BLOB;
 
     // Phase 3: load achievement tracking (with defaults)
     pet.feedCount     = jsonDoc["feedCount"]     | 0;

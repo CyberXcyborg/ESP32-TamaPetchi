@@ -9,6 +9,11 @@
 enum PetStage { BABY, CHILD, ADULT, ELDER };
 
 // ============================================================
+// Pet Types (different sprite sets)
+// ============================================================
+enum PetType { BLOB, CAT, DOG };
+
+// ============================================================
 // Pet State
 // ============================================================
 
@@ -32,6 +37,7 @@ struct Pet {
   // --- Phase 3 fields ---
   String name;           // pet name (max 16 chars)
   bool soundEnabled;     // buzzer on/off
+  PetType type;          // pet sprite type (BLOB, CAT, DOG)
 
   // --- Achievement tracking ---
   int  feedCount;        // total times fed
