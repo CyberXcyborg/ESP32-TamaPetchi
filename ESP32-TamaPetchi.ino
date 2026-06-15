@@ -8,6 +8,11 @@
 #include "Storage.h"
 #include "WebHandlers.h"
 
+// OLED display (optional - enable with -DENABLE_OLED)
+#ifdef ENABLE_OLED
+#include "OLED.h"
+#endif
+
 // Web server
 WebServer server(WEB_SERVER_PORT);
 
@@ -50,6 +55,11 @@ void setup() {
 
   // Start server
   server.begin();
+
+  // Initialize OLED
+#ifdef ENABLE_OLED
+  setupOLED();
+#endif
 }
 
 void loop() {
@@ -61,5 +71,9 @@ void loop() {
     lastUpdateTime = currentMillis;
     updatePet(pet);
     savePetData(pet);
+
+#ifdef ENABLE_OLED
+    updateOLED(pet);
+#endif
   }
 }

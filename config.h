@@ -61,4 +61,10 @@
 #define BUZZER_PIN    25
 #define BUZZER_CHANNEL 0
 
+// --- OLED (SSD1306) ---
+// Enable with: -DENABLE_OLED in platformio.ini or build flags
+#define OLED_SDA    21
+#define OLED_SCL    22
+#define OLED_ADDRESS 0x3C
+
 #endif // CONFIG_H
