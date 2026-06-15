@@ -3,7 +3,9 @@
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 
-// Replace with your network credentials
+// ============================================================
+// IMPORTANT: Replace with your own network credentials before uploading!
+// ============================================================
 const char* ssid = "TEST";
 const char* password = "TEST";
 
@@ -14,11 +16,6 @@ WebServer server(80);
 unsigned long lastUpdateTime = 0;
 const unsigned long updateInterval = 60000;  // Update pet stats every minute
 
-// Add this global variable to track wake-up message display
-bool showWakeMessage = false;
-unsigned long wakeMessageStartTime = 0;
-String previousState = "";
-
 // Pet stats (0-100)
 struct {
   int hunger = 50;
@@ -28,7 +25,7 @@ struct {
   int cleanliness = 80;
   int age = 0;  // Age in minutes
   bool isAlive = true;
-  String state = "normal";  // normal, eating, playing, sleeping, sick, dead
+  String state = "normal";  // normal, eating, playing, sleeping, sick, dead, hungry
   unsigned long stateChangeTime = 0;
   unsigned long lastInteractionTime = 0;
 } pet;
@@ -46,6 +43,7 @@ void handleHeal();
 void handleReset();
 void handleUpdate();
 void feedPet();
+void updatePet();
 void sendJsonResponse(bool success, String message);
 
 void setup() {
@@ -70,9 +68,6 @@ void setup() {
 
   // Try to load pet data from SPIFFS
   loadPetData();
-  
-  // Store initial state
-  previousState = pet.state;
 
   // Define web server routes
   server.on("/", handleRoot);
@@ -102,9 +97,6 @@ void loop() {
 }
 
 void updatePet() {
-  // Store previous state before any updates
-  previousState = pet.state;
-  
   if (!pet.isAlive) return;
 
   // Handle different stat decreases based on sleep state
@@ -122,9 +114,6 @@ void updatePet() {
     if (pet.energy >= 100) {
       pet.state = "normal";
       pet.stateChangeTime = millis();
-      // Set flag to show wake message
-      showWakeMessage = true;
-      wakeMessageStartTime = millis();
       Serial.println("Pet woke up automatically after full rest");
     }
   } else {
@@ -140,21 +129,39 @@ void updatePet() {
     pet.health = max(0, pet.health - 5);
   }
 
-  // Check if pet is sick
-  if (pet.health < 30 && pet.state != "sick" && pet.state != "dead" && pet.state != "sleeping") {
+  // Health recovery: if hunger and cleanliness are good, slowly recover health
+  if (pet.hunger >= 50 && pet.cleanliness >= 50 && pet.health < 100) {
+    pet.health = min(100, pet.health + 1);
+  }
+
+  // Check if pet should transition out of sick state
+  if (pet.state == "sick" && pet.health >= 50) {
+    pet.state = "normal";
+    pet.stateChangeTime = millis();
+  }
+
+  // Check if pet is sick (only when awake and alive)
+  else if (pet.health < 30 && pet.state != "sick" && pet.state != "dead" && pet.state != "sleeping") {
     pet.state = "sick";
     pet.stateChangeTime = millis();
   }
 
-  // Check if pet is hungry
+  // Check if pet is hungry (only when not already sick/dead/sleeping)
   else if (pet.hunger < 20 && pet.state != "sick" && pet.state != "dead" && pet.state != "sleeping") {
     pet.state = "hungry";
     pet.stateChangeTime = millis();
   }
 
-  // Return to normal state after some time
+  // Check if hungry state should clear (hunger restored)
+  else if (pet.state == "hungry" && pet.hunger >= 40) {
+    pet.state = "normal";
+    pet.stateChangeTime = millis();
+  }
+
+  // Return to normal state after some time for eating/playing
   else if ((pet.state == "eating" || pet.state == "playing") && millis() - pet.stateChangeTime > 5000) {
     pet.state = "normal";
+    pet.stateChangeTime = millis();
   }
 
   // Check if pet died
@@ -366,6 +373,10 @@ void handleRoot() {
         .environment-dead {
             background: linear-gradient(145deg, #e0e0e0, #b0b0b0);
         }
+
+        .environment-hungry {
+            background: linear-gradient(145deg, #fff0d0, #ffd0a0);
+        }
         
         /* Particles */
         .particle {
@@ -485,10 +496,10 @@ void handleRoot() {
                 <div class="flex-1">
                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                         <span>Hunger</span>
-                        <span id="hunger-value">100%</span>
+                        <span id="hunger-value">50%</span>
                     </div>
                     <div class="stat-bar h-4">
-                        <div id="hunger-bar" class="stat-fill hunger-fill" style="width: 100%"></div>
+                        <div id="hunger-bar" class="stat-fill hunger-fill" style="width: 50%"></div>
                     </div>
                 </div>
             </div>
@@ -499,10 +510,10 @@ void handleRoot() {
                 <div class="flex-1">
                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                         <span>Happiness</span>
-                        <span id="happiness-value">100%</span>
+                        <span id="happiness-value">50%</span>
                     </div>
                     <div class="stat-bar h-4">
-                        <div id="happiness-bar" class="stat-fill happiness-fill" style="width: 100%"></div>
+                        <div id="happiness-bar" class="stat-fill happiness-fill" style="width: 50%"></div>
                     </div>
                 </div>
             </div>
@@ -513,10 +524,10 @@ void handleRoot() {
                 <div class="flex-1">
                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                         <span>Health</span>
-                        <span id="health-value">100%</span>
+                        <span id="health-value">80%</span>
                     </div>
                     <div class="stat-bar h-4">
-                        <div id="health-bar" class="stat-fill health-fill" style="width: 100%"></div>
+                        <div id="health-bar" class="stat-fill health-fill" style="width: 80%"></div>
                     </div>
                 </div>
             </div>
@@ -541,10 +552,10 @@ void handleRoot() {
                 <div class="flex-1">
                     <div class="flex justify-between text-sm text-gray-600 mb-1">
                         <span>Cleanliness</span>
-                        <span id="cleanliness-value">100%</span>
+                        <span id="cleanliness-value">80%</span>
                     </div>
                     <div class="stat-bar h-4">
-                        <div id="cleanliness-bar" class="stat-fill cleanliness-fill" style="width: 100%"></div>
+                        <div id="cleanliness-bar" class="stat-fill cleanliness-fill" style="width: 80%"></div>
                     </div>
                 </div>
             </div>
@@ -593,18 +604,18 @@ void handleRoot() {
     <script>
         // Pet state management
         let pet = {
-            hunger: 100,
-            happiness: 100,
-            health: 100,
+            hunger: 50,
+            happiness: 50,
+            health: 80,
             energy: 100,
-            cleanliness: 100,
+            cleanliness: 80,
             age: 0,
             isAlive: true,
             state: "normal"
         };
         
         let updateInterval;
-        let previousState = "";
+        let previousState = "normal";
         let animationTimeouts = [];
         
         // Initialize the game
@@ -682,8 +693,9 @@ void handleRoot() {
         function updateStatBars() {
             const stats = ['hunger', 'happiness', 'health', 'energy', 'cleanliness'];
             stats.forEach(stat => {
-                document.getElementById(`${stat}-bar`).style.width = `${pet[stat]}%`;
-                document.getElementById(`${stat}-value`).textContent = `${pet[stat]}%`;
+                const val = Math.max(0, Math.min(100, pet[stat]));
+                document.getElementById(`${stat}-bar`).style.width = `${val}%`;
+                document.getElementById(`${stat}-value`).textContent = `${val}%`;
             });
             document.getElementById('age-value').textContent = pet.age;
         }
@@ -925,7 +937,7 @@ void handleRoot() {
                     <!-- Belly -->
                     <ellipse cx="50" cy="60" rx="12" ry="16" fill="#D1E5A0" />
                     
-                    <!-- Sick eyes (X eyes or spiral) -->
+                    <!-- Sick eyes (X eyes) -->
                     <circle cx="40" cy="42" r="5" fill="white" />
                     <circle cx="60" cy="42" r="5" fill="white" />
                     <path d="M37,39 L43,45 M37,45 L43,39" stroke="red" stroke-width="2" />
@@ -1040,7 +1052,9 @@ void handleRoot() {
             
             // Update sleep button text
             const sleepBtn = document.getElementById('sleep-text');
-            sleepBtn.textContent = pet.state === 'sleeping' ? 'Wake' : 'Sleep';
+            if (sleepBtn) {
+                sleepBtn.textContent = pet.state === 'sleeping' ? 'Wake' : 'Sleep';
+            }
         }
         
         // Particle effects
@@ -1194,6 +1208,7 @@ void handleRoot() {
                         if (data.success) {
                             showMessage('Welcome to your new pet! 🐣', 'success');
                             clearAnimationTimeouts();
+                            previousState = "normal";
                             updatePetData();
                         } else {
                             showMessage(data.message || 'Failed to reset pet', 'error');
@@ -1254,6 +1269,9 @@ void feedPet() {
     return;
   }
 
+  // FIX: Check if pet was very hungry BEFORE feeding (for health bonus)
+  bool wasVeryHungry = (pet.hunger < 20);
+
   pet.hunger = min(100, pet.hunger + 20);
   pet.energy = max(0, pet.energy - 5);
   pet.state = "eating";
@@ -1261,7 +1279,7 @@ void feedPet() {
   pet.lastInteractionTime = millis();
 
   // If very hungry, improve health too
-  if (pet.hunger < 20) {
+  if (wasVeryHungry) {
     pet.health = min(100, pet.health + 5);
   }
 
@@ -1315,13 +1333,13 @@ void handleSleep() {
     return;
   }
 
-   if (pet.state == "sleeping") {
+  if (pet.state == "sleeping") {
     pet.state = "normal";
   } else {
     pet.state = "sleeping";
-    pet.stateChangeTime = millis();
   }
-
+  // FIX: Always update stateChangeTime on sleep/wake toggle
+  pet.stateChangeTime = millis();
   pet.lastInteractionTime = millis();
   savePetData();
   sendJsonResponse(true, "");
@@ -1335,6 +1353,7 @@ void handleHeal() {
 
   pet.health = 100;
   pet.state = "normal";
+  pet.stateChangeTime = millis();
   pet.lastInteractionTime = millis();
 
   savePetData();
