@@ -1,6 +1,7 @@
 #include "WebHandlers.h"
 #include "Pet.h"
 #include "Storage.h"
+#include "Achievements.h"
 #include "config.h"
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
@@ -72,6 +73,28 @@ static void handleGetPet() {
   jsonDoc["isAlive"]     = g_pet->isAlive;
   jsonDoc["state"]       = g_pet->state;
 
+  // Phase 2: new fields
+  const char* stageStr = "baby";
+  switch (g_pet->stage) {
+    case BABY:  stageStr = "baby";  break;
+    case CHILD: stageStr = "child"; break;
+    case ADULT: stageStr = "adult"; break;
+    case ELDER: stageStr = "elder"; break;
+  }
+  jsonDoc["stage"]          = stageStr;
+  jsonDoc["isNight"]        = g_pet->isNight;
+  jsonDoc["virtualMinutes"] = g_pet->virtualMinutes;
+
+  // Phase 3: name + sound
+  jsonDoc["name"]         = g_pet->name;
+  jsonDoc["soundEnabled"] = g_pet->soundEnabled;
+
+  // Phase 3: achievements array
+  String achJson = getAchievementsJson(*g_pet);
+  DynamicJsonDocument achDoc(512);
+  deserializeJson(achDoc, achJson);
+  jsonDoc["achievements"] = achDoc["achievements"];
+
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
@@ -81,6 +104,8 @@ static void handleFeed() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   feedPet(*g_pet);
   savePetData(*g_pet);
+  checkAchievements(*g_pet);
+  saveAchievements(*g_pet);
   sendJsonResponse(true);
 }
 
@@ -89,6 +114,8 @@ static void handlePlay() {
   if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
   playPet(*g_pet);
   savePetData(*g_pet);
+  checkAchievements(*g_pet);
+  saveAchievements(*g_pet);
   sendJsonResponse(true);
 }
 
@@ -115,12 +142,23 @@ static void handleHeal() {
 
 static void handleReset() {
   initPet(*g_pet);
+  // Reset achievement tracking
+  g_pet->feedCount     = 0;
+  g_pet->playCount     = 0;
+  g_pet->hasBeenNamed  = false;
+  g_pet->elderAchieved = false;
   savePetData(*g_pet);
+  saveAchievements(*g_pet);
   sendJsonResponse(true);
 }
 
 static void handleUpdate() {
   handleGetPet();
+}
+
+static void handleAchievements() {
+  String achJson = getAchievementsJson(*g_pet);
+  g_server->send(200, "application/json", achJson);
 }
 
 static void handleMute() {
@@ -160,6 +198,9 @@ static void handleSetName() {
   }
 
   g_pet->name = newName;
+  g_pet->hasBeenNamed = true;
   savePetData(*g_pet);
+  saveAchievements(*g_pet);
+  checkAchievements(*g_pet);
   sendJsonResponse(true);
 }

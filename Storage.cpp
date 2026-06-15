@@ -20,6 +20,21 @@ void savePetData(const Pet &pet) {
   jsonDoc["isAlive"]     = pet.isAlive;
   jsonDoc["state"]       = pet.state;
 
+  // Phase 2: persist new fields
+  jsonDoc["stage"]          = (int)pet.stage;
+  jsonDoc["isNight"]        = pet.isNight;
+  jsonDoc["virtualMinutes"] = pet.virtualMinutes;
+
+  // Phase 3: persist name + sound
+  jsonDoc["name"]         = pet.name;
+  jsonDoc["soundEnabled"] = pet.soundEnabled;
+
+  // Phase 3: persist achievement tracking
+  jsonDoc["feedCount"]     = pet.feedCount;
+  jsonDoc["playCount"]     = pet.playCount;
+  jsonDoc["hasBeenNamed"]  = pet.hasBeenNamed;
+  jsonDoc["elderAchieved"] = pet.elderAchieved;
+
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
   }
@@ -53,6 +68,21 @@ void loadPetData(Pet &pet) {
     pet.age         = jsonDoc["age"];
     pet.isAlive     = jsonDoc["isAlive"];
     pet.state       = jsonDoc["state"].as<String>();
+
+    // Phase 2: load new fields (with defaults for backward compatibility)
+    pet.stage          = (PetStage)(int)jsonDoc["stage"] | (PetStage)0;
+    pet.isNight        = jsonDoc["isNight"] | false;
+    pet.virtualMinutes = jsonDoc["virtualMinutes"] | (6UL * VIRTUAL_MINUTES_PER_HOUR);
+
+    // Phase 3: load name + sound (with defaults)
+    pet.name         = jsonDoc["name"] | "Tama";
+    pet.soundEnabled = jsonDoc["soundEnabled"] | true;
+
+    // Phase 3: load achievement tracking (with defaults)
+    pet.feedCount     = jsonDoc["feedCount"]     | 0;
+    pet.playCount     = jsonDoc["playCount"]     | 0;
+    pet.hasBeenNamed  = jsonDoc["hasBeenNamed"]  | false;
+    pet.elderAchieved = jsonDoc["elderAchieved"] | false;
   }
 
   file.close();
