@@ -3,6 +3,9 @@
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
 
+// Phase 6: Watchdog timer
+#include <esp_task_wdt.h>
+
 #include "config.h"
 #include "Pet.h"
 #include "Storage.h"
@@ -28,8 +31,15 @@ String previousState = "";
 // Timing
 unsigned long lastUpdateTime = 0;
 
+// Phase 6: Watchdog configuration
+#define WDT_TIMEOUT 10  // 10 seconds without feed → reset
+
 void setup() {
   Serial.begin(SERIAL_BAUD);
+
+  // Phase 6: Initialize watchdog timer
+  esp_task_wdt_init(WDT_TIMEOUT, true); // panic=true → reset on timeout
+  esp_task_wdt_add(NULL); // Add current task to WDT
 
   // Initialize random seed
   randomSeed(analogRead(0));
@@ -65,9 +75,14 @@ void setup() {
 #ifdef ENABLE_OLED
   setupOLED();
 #endif
+
+  Serial.println("TamaPetchi initialized — WDT active");
 }
 
 void loop() {
+  // Phase 6: Feed the watchdog
+  esp_task_wdt_reset();
+
   server.handleClient();
 
   // Update pet stats every interval

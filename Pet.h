@@ -68,6 +68,9 @@ struct Pet {
 void initPet(Pet &pet);
 void updatePet(Pet &pet);
 
+// --- Persistence (Phase 6: force save for critical events) ---
+extern void savePetDataForce(const Pet &pet);
+
 // --- Evolution ---
 void updateStage(Pet &pet);
 int  getStageDecayMultiplier(Pet &pet);

@@ -93,4 +93,7 @@
 #define CRITICAL_HEALTH_MAX 30     // health 11-30 → critical state
 #define CRITICAL_HEALTH_MIN 11
 
+// --- Phase 6: Wear Leveling ---
+#define MIN_SAVE_INTERVAL   300000UL  // 5 minutes minimum between SPIFFS saves
+
 #endif // CONFIG_H

@@ -50,6 +50,10 @@ void registerHandlers(WebServer &server, Pet &pet) {
 // Utility
 // ============================================================
 static void sendJsonResponse(bool success, const String &message = "") {
+  if (!g_server) {
+    Serial.println("ERROR: g_server is null in sendJsonResponse");
+    return;
+  }
   DynamicJsonDocument jsonDoc(256);
   jsonDoc["success"] = success;
   if (message.length() > 0) {
@@ -64,6 +68,7 @@ static void sendJsonResponse(bool success, const String &message = "") {
 // Route Handlers
 // ============================================================
 static void handleRoot() {
+  if (!g_server) { Serial.println("ERROR: g_server null in handleRoot"); return; }
   File file = SPIFFS.open("/index.html", "r");
   if (!file) {
     g_server->send(500, "text/plain", "Failed to open index.html");
@@ -74,6 +79,11 @@ static void handleRoot() {
 }
 
 static void handleGetPet() {
+  if (!g_pet || !g_server) {
+    Serial.println("ERROR: null pointer in handleGetPet");
+    if (g_server) g_server->send(500, "text/plain", "Internal error");
+    return;
+  }
   DynamicJsonDocument jsonDoc(1024);
   jsonDoc["hunger"]      = g_pet->hunger;
   jsonDoc["happiness"]   = g_pet->happiness;
@@ -129,7 +139,10 @@ static void handleGetPet() {
 }
 
 static void handleFeed() {
+  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  // Phase 6: Clamp stat before action to prevent overflow
+  g_pet->hunger = constrain(g_pet->hunger, STAT_MIN, STAT_MAX);
   feedPet(*g_pet);
   savePetData(*g_pet);
   checkAchievements(*g_pet);
@@ -185,6 +198,7 @@ static void handleUpdate() {
 }
 
 static void handleGameStart() {
+  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
   if (g_pet->energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
@@ -192,9 +206,12 @@ static void handleGameStart() {
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
   DeserializationError error = deserializeJson(jsonDoc, body);
-  int gameType = jsonDoc["game"] | 0;
+  if (error) { sendJsonResponse(false, "Invalid JSON body"); return; }
 
-  if (gameType < 1 || gameType > 3) { sendJsonResponse(false, "Invalid game type"); return; }
+  // Phase 6: Validate game type is an integer in valid range
+  if (!jsonDoc["game"].is<int>()) { sendJsonResponse(false, "Game type must be an integer"); return; }
+  int gameType = jsonDoc["game"].as<int>();
+  if (gameType < 1 || gameType > 3) { sendJsonResponse(false, "Invalid game type — must be 1, 2, or 3"); return; }
   startGame(*g_pet, gameType);
   savePetData(*g_pet);
 
@@ -272,15 +289,22 @@ static void handleSetMusic() {
 }
 
 static void handleSetDifficulty() {
+  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
   DeserializationError error = deserializeJson(jsonDoc, body);
   String diffStr = jsonDoc["difficulty"] | "normal";
   diffStr.toLowerCase();
+  diffStr.trim();
 
+  // Phase 6: Validate difficulty is one of the expected values
   if (diffStr == "easy") g_pet->difficulty = 0;
   else if (diffStr == "hard") g_pet->difficulty = 2;
-  else g_pet->difficulty = 1;
+  else if (diffStr == "normal") g_pet->difficulty = 1;
+  else {
+    sendJsonResponse(false, "Invalid difficulty: use easy, normal, or hard");
+    return;
+  }
 
   savePetData(*g_pet);
   DynamicJsonDocument resp(256);
@@ -305,6 +329,7 @@ static void handleRevive() {
 }
 
 static void handleSetType() {
+  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
@@ -312,24 +337,25 @@ static void handleSetType() {
   DeserializationError error = deserializeJson(jsonDoc, body);
 
   if (error) {
-    // Also support plain text body
-    body = g_server->arg("plain");
-    if (body.length() == 0) {
-      // Try to get from form data
-    }
+    sendJsonResponse(false, "Invalid JSON");
+    return;
   }
 
   String typeStr = jsonDoc["type"] | "";
   typeStr.toLowerCase();
   typeStr.trim();
 
+  // Phase 6: Validate type is one of the expected values
   PetType newType = BLOB;
   if (typeStr == "cat") {
     newType = CAT;
   } else if (typeStr == "dog") {
     newType = DOG;
-  } else {
+  } else if (typeStr == "blob") {
     newType = BLOB;
+  } else {
+    sendJsonResponse(false, "Invalid type — must be blob, cat, or dog");
+    return;
   }
 
   // Reset pet with new type
@@ -381,7 +407,21 @@ static void handleSetName() {
     newName = newName.substring(0, 16);
   }
 
-  g_pet->name = newName;
+  // Phase 6: Sanitize name — remove control characters and HTML special chars
+  String sanitized = "";
+  for (unsigned int i = 0; i < newName.length(); i++) {
+    char c = newName[i];
+    // Allow printable ASCII (32-126) only
+    if (c >= 32 && c <= 126) {
+      sanitized += c;
+    }
+  }
+  if (sanitized.length() == 0) {
+    sendJsonResponse(false, "Name contains only invalid characters");
+    return;
+  }
+
+  g_pet->name = sanitized;
   g_pet->hasBeenNamed = true;
   savePetData(*g_pet);
   saveAchievements(*g_pet);

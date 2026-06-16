@@ -20,8 +20,9 @@ void loadAchievements(Pet &pet) {
   if (error) {
     Serial.println("Failed to parse achievements file");
   } else {
-    pet.feedCount     = jsonDoc["feedCount"]     | 0;
-    pet.playCount     = jsonDoc["playCount"]     | 0;
+    // Phase 6: Bounds-check loaded values
+    pet.feedCount     = constrain((int)jsonDoc["feedCount"]     | 0, 0, 99999);
+    pet.playCount     = constrain((int)jsonDoc["playCount"]     | 0, 0, 99999);
     pet.hasBeenNamed  = jsonDoc["hasBeenNamed"]  | false;
     pet.elderAchieved = jsonDoc["elderAchieved"] | false;
   }
@@ -30,6 +31,14 @@ void loadAchievements(Pet &pet) {
 }
 
 void saveAchievements(const Pet &pet) {
+  // Phase 6: Wear leveling — throttle achievement saves
+  static unsigned long lastAchSaveTime = 0;
+  unsigned long now = millis();
+  if (now - lastAchSaveTime < MIN_SAVE_INTERVAL && lastAchSaveTime != 0) {
+    return; // Skip this save — too soon
+  }
+  lastAchSaveTime = now;
+
   File file = SPIFFS.open(ACHIEVEMENTS_FILE, "w");
   if (!file) {
     Serial.println("Failed to open achievements file for writing");

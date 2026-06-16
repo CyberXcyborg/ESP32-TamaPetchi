@@ -438,6 +438,8 @@ void revivePet(Pet &pet) {
   pet.lastReviveTime = millis();
   if (pet.soundEnabled) soundWake();
   Serial.println("Pet revived!");
+  // Phase 6: Force save on critical event
+  savePetDataForce(pet);
 }
 
 // ============================================================

@@ -3,7 +3,19 @@
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
+// ============================================================
+// Phase 6: Wear leveling — limit save frequency
+// ============================================================
+static unsigned long lastPetSaveTime = 0;
+
 void savePetData(const Pet &pet) {
+  // Phase 6: Wear leveling — throttle saves to once per 5 min max
+  unsigned long now = millis();
+  if (now - lastPetSaveTime < MIN_SAVE_INTERVAL && lastPetSaveTime != 0) {
+    return; // Skip this save — too soon
+  }
+  lastPetSaveTime = now;
+
   File file = SPIFFS.open(PET_DATA_FILE, "w");
   if (!file) {
     Serial.println("Failed to open pet data file for writing");
@@ -51,6 +63,12 @@ void savePetData(const Pet &pet) {
   file.close();
 }
 
+// Force save — bypasses wear leveling (for critical events like death/revive)
+void savePetDataForce(const Pet &pet) {
+  lastPetSaveTime = 0; // Reset timer
+  savePetData(pet);
+}
+
 void loadPetData(Pet &pet) {
   if (!SPIFFS.exists(PET_DATA_FILE)) {
     Serial.println("No pet data file found, using defaults");
@@ -69,28 +87,49 @@ void loadPetData(Pet &pet) {
   if (error) {
     Serial.println("Failed to parse pet data file");
   } else {
-    pet.hunger      = jsonDoc["hunger"];
-    pet.happiness   = jsonDoc["happiness"];
-    pet.health      = jsonDoc["health"];
-    pet.energy      = jsonDoc["energy"];
-    pet.cleanliness = jsonDoc["cleanliness"];
-    pet.age         = jsonDoc["age"];
-    pet.isAlive     = jsonDoc["isAlive"];
-    pet.state       = jsonDoc["state"].as<String>();
+    // Phase 6: Bounds-check all loaded values to prevent malformed data crashes
+    pet.hunger      = constrain((int)jsonDoc["hunger"], STAT_MIN, STAT_MAX);
+    pet.happiness   = constrain((int)jsonDoc["happiness"], STAT_MIN, STAT_MAX);
+    pet.health      = constrain((int)jsonDoc["health"], STAT_MIN, STAT_MAX);
+    pet.energy      = constrain((int)jsonDoc["energy"], STAT_MIN, STAT_MAX);
+    pet.cleanliness = constrain((int)jsonDoc["cleanliness"], STAT_MIN, STAT_MAX);
+    pet.age         = jsonDoc["age"] | 0;
+
+    bool isAlive = jsonDoc["isAlive"] | true;
+    pet.isAlive = isAlive;
+
+    // Validate state string — only accept known states
+    String loadedState = jsonDoc["state"].as<String>();
+    if (loadedState == "normal" || loadedState == "eating" || loadedState == "playing" ||
+        loadedState == "sleeping" || loadedState == "sick" || loadedState == "hungry" ||
+        loadedState == "critical" || loadedState == "dying" || loadedState == "dead" ||
+        loadedState == "evolving") {
+      pet.state = loadedState;
+    } else {
+      pet.state = "normal"; // fallback for malformed state
+      Serial.println("Warning: Unknown state in save file, defaulting to normal");
+    }
 
     // Phase 2: load new fields (with defaults for backward compatibility)
-    pet.stage          = (PetStage)(int)jsonDoc["stage"] | (PetStage)0;
+    // Validate stage enum range
+    int stageVal = jsonDoc["stage"] | 0;
+    if (stageVal < BABY || stageVal > ELDER) stageVal = BABY;
+    pet.stage          = (PetStage)(int)stageVal;
     pet.isNight        = jsonDoc["isNight"] | false;
     pet.virtualMinutes = jsonDoc["virtualMinutes"] | (6UL * VIRTUAL_MINUTES_PER_HOUR);
 
     // Phase 3: load name + sound + type (with defaults)
     pet.name         = jsonDoc["name"] | "Tama";
     pet.soundEnabled = jsonDoc["soundEnabled"] | true;
-    pet.type         = (PetType)(int)jsonDoc["type"] | BLOB;
 
-    // Phase 3: load achievement tracking (with defaults)
-    pet.feedCount     = jsonDoc["feedCount"]     | 0;
-    pet.playCount     = jsonDoc["playCount"]     | 0;
+    // Validate type enum range
+    int typeVal = (int)jsonDoc["type"] | BLOB;
+    if (typeVal < BLOB || typeVal > DOG) typeVal = BLOB;
+    pet.type         = (PetType)(int)typeVal;
+
+    // Phase 3: load achievement tracking (with bounds)
+    pet.feedCount     = constrain((int)jsonDoc["feedCount"]     | 0, 0, 99999);
+    pet.playCount     = constrain((int)jsonDoc["playCount"]     | 0, 0, 99999);
     pet.hasBeenNamed  = jsonDoc["hasBeenNamed"]  | false;
     pet.elderAchieved = jsonDoc["elderAchieved"] | false;
 
@@ -99,8 +138,16 @@ void loadPetData(Pet &pet) {
     pet.dyingStartTime = jsonDoc["dyingStartTime"] | 0;
     pet.lastReviveTime = jsonDoc["lastReviveTime"] | 0;
     pet.musicEnabled   = jsonDoc["musicEnabled"]   | true;
-    pet.difficulty     = jsonDoc["difficulty"]     | 1;
-    pet.weather        = jsonDoc["weather"]        | 0;
+
+    // Validate difficulty range
+    int diff = jsonDoc["difficulty"] | 1;
+    if (diff < 0 || diff > 2) diff = 1;
+    pet.difficulty     = diff;
+
+    // Validate weather range
+    int w = jsonDoc["weather"] | 0;
+    if (w < 0 || w > 4) w = 0;
+    pet.weather        = w;
   }
 
   file.close();
