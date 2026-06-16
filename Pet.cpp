@@ -1,4 +1,3 @@
-/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory
 #include "Pet.h"
 #include "config.h"
 
@@ -7,6 +6,72 @@ static int clampStat(int value) {
   if (value < STAT_MIN) return STAT_MIN;
   if (value > STAT_MAX) return STAT_MAX;
   return value;
+}
+
+// ============================================================
+// Randomness
+// ============================================================
+
+int randomVariation(int base) {
+  if (base == 0) return 0;
+  int variation = base * 20 / 100;  // 20%
+  if (variation == 0) variation = 1;
+  return base + random(-variation, variation + 1);
+}
+
+// ============================================================
+// Evolution Stages
+// ============================================================
+
+void updateStage(Pet &pet) {
+  if (pet.age <= BABY_MAX_MINUTES) {
+    pet.stage = BABY;
+  } else if (pet.age <= CHILD_MAX_MINUTES) {
+    pet.stage = CHILD;
+  } else if (pet.age <= ADULT_MAX_MINUTES) {
+    pet.stage = ADULT;
+  } else {
+    pet.stage = ELDER;
+  }
+}
+
+int getStageDecayMultiplier(Pet &pet) {
+  switch (pet.stage) {
+    case BABY:  return BABY_DECAY_MULT;
+    case CHILD: return CHILD_DECAY_MULT;
+    case ADULT: return ADULT_DECAY_MULT;
+    case ELDER: return ELDER_DECAY_MULT;
+    default:    return 100;
+  }
+}
+
+// ============================================================
+// Day/Night Cycle
+// ============================================================
+
+void updateDayNightCycle(Pet &pet) {
+  pet.virtualMinutes += PET_UPDATE_INTERVAL / 1000;
+  if (pet.virtualMinutes >= VIRTUAL_MINUTES_PER_DAY) {
+    pet.virtualMinutes = pet.virtualMinutes % VIRTUAL_MINUTES_PER_DAY;
+  }
+
+  bool wasNight = pet.isNight;
+  pet.isNight = isNightTime(pet.virtualMinutes);
+
+  if (pet.isNight && !wasNight) {
+    Serial.println("Night has fallen...");
+  }
+
+  if (pet.isNight && pet.energy < 50 && pet.state != "sleeping" && pet.state != "dead") {
+    pet.state = "sleeping";
+    pet.stateChangeTime = millis();
+    Serial.println("Pet went to sleep (night time, low energy)");
+  }
+}
+
+bool isNightTime(unsigned long virtualMin) {
+  unsigned long hour = (virtualMin / VIRTUAL_MINUTES_PER_HOUR) % 24;
+  return (hour >= NIGHT_START_HOUR || hour < DAY_START_HOUR);
 }
 
 // ============================================================
@@ -24,28 +89,71 @@ void initPet(Pet &pet) {
   pet.state           = "normal";
   pet.stateChangeTime      = millis();
   pet.lastInteractionTime  = millis();
+
+  // Phase 2 init
+  pet.stage           = BABY;
+  pet.isNight         = false;
+  pet.virtualMinutes  = 6 * VIRTUAL_MINUTES_PER_HOUR; // Start at 6:00 (morning)
+
+  // Phase 3 init
+  pet.name            = "Tama";
+  pet.soundEnabled    = true;
+  pet.type            = BLOB;
+
+  // Achievement tracking init
+  pet.feedCount       = 0;
+  pet.playCount       = 0;
+  pet.hasBeenNamed    = false;
+  pet.elderAchieved   = false;
 }
 
 void updatePet(Pet &pet) {
   if (!pet.isAlive) return;
 
+  // Update day/night cycle
+  updateDayNightCycle(pet);
+
+  // Update evolution stage
+  updateStage(pet);
+
+  // Get stage multiplier for decay rates
+  int mult = getStageDecayMultiplier(pet);
+
   if (pet.state == "sleeping") {
-    pet.hunger      = clampStat(pet.hunger      - HUNGER_DECAY_SLEEP);
-    pet.happiness   = clampStat(pet.happiness   - HAPPINESS_DECAY_SLEEP);
-    pet.energy      = clampStat(pet.energy      + ENERGY_REGEN_SLEEP);
-    pet.cleanliness = clampStat(pet.cleanliness - CLEANLINESS_DECAY_SLEEP);
+    int hungerDecay = randomVariation((HUNGER_DECAY_SLEEP * mult) / 100);
+    int happyDecay  = randomVariation(HAPPINESS_DECAY_SLEEP);
+    int energyRegen = randomVariation(ENERGY_REGEN_SLEEP);
+    int cleanDecay  = randomVariation(CLEANLINESS_DECAY_SLEEP);
+
+    pet.hunger      = clampStat(pet.hunger      - hungerDecay);
+    pet.happiness   = clampStat(pet.happiness   - happyDecay);
+    pet.energy      = clampStat(pet.energy      + energyRegen);
+    pet.cleanliness = clampStat(pet.cleanliness - cleanDecay);
 
     // Auto wake-up when energy is full
     if (pet.energy >= STAT_MAX) {
       pet.state          = "normal";
       pet.stateChangeTime = millis();
+      if (pet.soundEnabled) soundWake();
       Serial.println("Pet woke up automatically after full rest");
     }
+    // Wake up if it's daytime and energy >= 80
+    else if (!pet.isNight && pet.energy >= 80) {
+      pet.state          = "normal";
+      pet.stateChangeTime = millis();
+      if (pet.soundEnabled) soundWake();
+      Serial.println("Pet woke up with the sunrise");
+    }
   } else {
-    pet.hunger      = clampStat(pet.hunger      - HUNGER_DECAY_NORMAL);
-    pet.happiness   = clampStat(pet.happiness   - HAPPINESS_DECAY_NORMAL);
-    pet.energy      = clampStat(pet.energy      - ENERGY_DECAY_NORMAL);
-    pet.cleanliness = clampStat(pet.cleanliness - CLEANLINESS_DECAY_NORMAL);
+    int hungerDecay = randomVariation((HUNGER_DECAY_NORMAL * mult) / 100);
+    int happyDecay  = randomVariation((HAPPINESS_DECAY_NORMAL * mult) / 100);
+    int energyDecay = randomVariation((ENERGY_DECAY_NORMAL * mult) / 100);
+    int cleanDecay  = randomVariation((CLEANLINESS_DECAY_NORMAL * mult) / 100);
+
+    pet.hunger      = clampStat(pet.hunger      - hungerDecay);
+    pet.happiness   = clampStat(pet.happiness   - happyDecay);
+    pet.energy      = clampStat(pet.energy      - energyDecay);
+    pet.cleanliness = clampStat(pet.cleanliness - cleanDecay);
   }
 
   // Health decreases if hunger or cleanliness too low
@@ -53,28 +161,46 @@ void updatePet(Pet &pet) {
     pet.health = clampStat(pet.health - HEALTH_DECAY_AMOUNT);
   }
 
-  // Check if pet is sick
-  if (pet.health < SICK_THRESHOLD && pet.state != "sick" &&
-      pet.state != "dead" && pet.state != "sleeping") {
-    pet.state          = "sick";
+  // Warning States & State Transitions
+  if (pet.health <= 0) {
+    pet.health = 0;
+    pet.isAlive = false;
+    pet.state   = "dead";
+    if (pet.soundEnabled) soundDeath();
+    return;
+  }
+
+  if (pet.health <= DYING_HEALTH_MAX && pet.health >= DYING_HEALTH_MIN && pet.isAlive) {
+    if (pet.state != "sleeping") {
+      pet.state = "dying";
+      pet.stateChangeTime = millis();
+    }
+  }
+  else if (pet.health <= CRITICAL_HEALTH_MAX && pet.health >= CRITICAL_HEALTH_MIN) {
+    if (pet.state != "sick" && pet.state != "sleeping") {
+      pet.state = "critical";
+      pet.stateChangeTime = millis();
+    }
+  }
+  else if (pet.health < SICK_THRESHOLD && pet.state != "sleeping") {
+    pet.state = "sick";
     pet.stateChangeTime = millis();
   }
-  // Check if pet is hungry
   else if (pet.hunger < HEALTH_DECAY_THRESHOLD && pet.state != "sick" &&
-           pet.state != "dead" && pet.state != "sleeping") {
-    pet.state          = "hungry";
+           pet.state != "sleeping") {
+    pet.state = "hungry";
     pet.stateChangeTime = millis();
   }
-  // Return to normal after eating / playing timeout
   else if ((pet.state == "eating" || pet.state == "playing") &&
            millis() - pet.stateChangeTime > PET_STATE_TIMEOUT) {
     pet.state = "normal";
   }
-
-  // Check if pet died
-  if (pet.health <= 0) {
-    pet.isAlive = false;
-    pet.state   = "dead";
+  else if ((pet.state == "hungry" || pet.state == "critical") &&
+           pet.hunger >= HEALTH_DECAY_THRESHOLD && pet.health > CRITICAL_HEALTH_MAX) {
+    pet.state = "normal";
+  }
+  else if (pet.state == "sick" && pet.health >= SICK_THRESHOLD) {
+    pet.state = "normal";
   }
 
   pet.age++;
@@ -93,6 +219,11 @@ void feedPet(Pet &pet) {
   pet.stateChangeTime    = millis();
   pet.lastInteractionTime = millis();
 
+  // Phase 3: track feed count for achievements
+  pet.feedCount++;
+
+  if (pet.soundEnabled) soundFeed();
+
   // If very hungry, improve health too
   if (pet.hunger < HEALTH_DECAY_THRESHOLD) {
     pet.health = clampStat(pet.health + FEED_HEALTH_BONUS);
@@ -102,6 +233,7 @@ void feedPet(Pet &pet) {
 void playPet(Pet &pet) {
   if (!pet.isAlive) return;
   if (pet.energy < PLAY_ENERGY_MIN) return;
+  if (pet.state == "dying") return;
 
   pet.happiness = clampStat(pet.happiness + PLAY_HAPPINESS_GAIN);
   pet.energy    = clampStat(pet.energy    - PLAY_ENERGY_COST);
@@ -109,6 +241,11 @@ void playPet(Pet &pet) {
   pet.state     = "playing";
   pet.stateChangeTime     = millis();
   pet.lastInteractionTime = millis();
+
+  // Phase 3: track play count for achievements
+  pet.playCount++;
+
+  if (pet.soundEnabled) soundPlay();
 }
 
 void cleanPet(Pet &pet) {
@@ -141,4 +278,34 @@ void healPet(Pet &pet) {
 
 void resetPet(Pet &pet) {
   initPet(pet);
+}
+
+// ============================================================
+// Sound Effects (Buzzer)
+// ============================================================
+
+void soundFeed() {
+  tone(BUZZER_PIN, 1000, 200);
+}
+
+void soundPlay() {
+  tone(BUZZER_PIN, 800, 100);
+  delay(150);
+  tone(BUZZER_PIN, 1200, 100);
+}
+
+void soundDeath() {
+  for (int freq = 1000; freq >= 200; freq -= 100) {
+    tone(BUZZER_PIN, freq, 50);
+    delay(60);
+  }
+  noTone(BUZZER_PIN);
+}
+
+void soundWake() {
+  for (int freq = 200; freq <= 1000; freq += 200) {
+    tone(BUZZER_PIN, freq, 60);
+    delay(80);
+  }
+  noTone(BUZZER_PIN);
 }

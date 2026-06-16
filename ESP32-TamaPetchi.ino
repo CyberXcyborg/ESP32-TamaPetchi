@@ -7,6 +7,12 @@
 #include "Pet.h"
 #include "Storage.h"
 #include "WebHandlers.h"
+#include "Achievements.h"
+
+// OLED display (optional - enable with -DENABLE_OLED)
+#ifdef ENABLE_OLED
+#include "OLED.h"
+#endif
 
 // Web server
 WebServer server(WEB_SERVER_PORT);
@@ -23,7 +29,10 @@ String previousState = "";
 unsigned long lastUpdateTime = 0;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUD);
+
+  // Initialize random seed
+  randomSeed(analogRead(0));
 
   // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
@@ -43,13 +52,19 @@ void setup() {
 
   // Load pet data from SPIFFS
   loadPetData(pet);
+  loadAchievements(pet);
   previousState = pet.state;
 
   // Register web server routes
-  setupWebServer(server, pet, showWakeMessage, wakeMessageStartTime, previousState);
+  registerHandlers(server, pet);
 
   // Start server
   server.begin();
+
+  // Initialize OLED
+#ifdef ENABLE_OLED
+  setupOLED();
+#endif
 }
 
 void loop() {
@@ -60,6 +75,11 @@ void loop() {
   if (currentMillis - lastUpdateTime >= PET_UPDATE_INTERVAL) {
     lastUpdateTime = currentMillis;
     updatePet(pet);
+    checkAchievements(pet);
     savePetData(pet);
+
+#ifdef ENABLE_OLED
+    updateOLED(pet);
+#endif
   }
 }
