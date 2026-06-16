@@ -102,6 +102,15 @@ void updateOLED(const Pet &pet) {
     case ELDER: display.print("[Elder]"); break;
   }
 
+  // Phase 6: Battery level display (if ADC available)
+  // Read battery voltage from GPIO 35 (common on ESP32 dev boards)
+  int raw = analogRead(35);
+  float voltage = (raw / 4095.0) * 3.3 * 2; // Assuming voltage divider
+  int battPercent = constrain(map((int)(voltage * 100), 330, 420, 0, 100), 0, 100);
+  display.setCursor(90, 62);
+  display.print(battPercent);
+  display.print("%");
+
   display.display();
 }
 

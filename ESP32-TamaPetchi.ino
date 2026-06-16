@@ -11,6 +11,8 @@
 #include "Storage.h"
 #include "WebHandlers.h"
 #include "Achievements.h"
+#include "Buttons.h"
+#include "RGB_LED.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -76,6 +78,12 @@ void setup() {
   setupOLED();
 #endif
 
+  // Initialize buttons
+  setupButtons();
+
+  // Initialize RGB LED
+  setupRGBLED();
+
   Serial.println("TamaPetchi initialized — WDT active");
 }
 
@@ -84,6 +92,9 @@ void loop() {
   esp_task_wdt_reset();
 
   server.handleClient();
+
+  // Phase 6: Check physical buttons
+  checkButtons(pet);
 
   // Update pet stats every interval
   unsigned long currentMillis = millis();
@@ -97,5 +108,8 @@ void loop() {
 #ifdef ENABLE_OLED
     updateOLED(pet);
 #endif
+
+    // Phase 6: Update RGB LED status
+    updateRGBLED(pet);
   }
 }
