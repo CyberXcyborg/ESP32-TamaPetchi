@@ -6,12 +6,13 @@
 - Phase 3 ✅ Merged (Naming, buzzer, OLED, achievements, pet types)
 - Phase 4 ✅ Merged (Evolution anim, death/revive, games, weather, music, settings)
 - Phase 5 ✅ Merged (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
+- Phase 6 🔄 Assigned — Awaiting Kael's implementation
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
 ### Bug Fixes (feature/phase5-bugfixes) ✅
 - Fixed critical g_stats null pointer dereference in WebHandlers.cpp
-- Fixed lambda capture issues in OTA.cpp and WiFiManager.cpp (server not captured)
+- Fixed lambda capture issues in OTA.cpp and WiFiManager.cpp
 - Fixed invalid enum conversions in MultiPet.cpp and Storage.cpp
 - Added missing includes (ArduinoJson.h in Pet.h, Esp.h in OTA.cpp/WiFiManager.cpp)
 - Added missing note frequency definitions (NOTE_D5 through NOTE_G5)
@@ -19,47 +20,53 @@
 - Removed orphaned Statistics.cpp (duplicate of Stats.cpp)
 - Added forward declarations for all WebHandlers
 - Added .gitignore for .pio/ build artifacts
+- Fixed missing config.h constants (15 defines for evolution, day/night, warning states)
 - Compilation: ✅ SUCCESS (RAM 16%, Flash 70.5%)
 
-### 1. OTA (Over-The-Air) Updates ✅
-- ArduinoOTA support with password protection (default: tamapetchi)
-- Web UI status endpoint at GET /ota/status
-- Auto-reboot after successful update
+### Features Implemented
+1. **OTA Updates** — ArduinoOTA + web upload + password protection
+2. **WiFi Manager** — Auto-connect + captive portal + SPIFFS credential storage
+3. **Multi-Pet Support** — Up to 3 pets, CRUD endpoints, pet selector UI
+4. **Statistics Dashboard** — Play time/feeds/plays/sleeps/cleans/heals/deaths/evolutions
+5. **Notification System** — Per-pet notification slots, buzzer patterns, web UI badges
+6. **Power Management** — Deep sleep + battery ADC monitoring + WiFi power reduction
 
-### 2. WiFi Manager ✅
-- Auto-connect to stored WiFi credentials
-- Fallback AP mode: "TamaPetchi-Setup" with captive portal
-- Credentials stored in SPIFFS (/wifi_config.json)
-- POST /wifi/reset to clear credentials and restart
+## Phase 6: Polish & Hardware Integration
 
-### 3. Multi-Pet Support ✅
-- Up to 3 pets stored in SPIFFS (/multi_pet.json)
-- GET /pets — list all pets
-- POST /pets/switch — switch active pet
-- POST /pets/create — create new pet
-- POST /pets/delete — delete a pet
+### 6.1 — Code Quality & Safety
+- [ ] Add bounds checking on all SPIFFS JSON parsing (prevent malformed data crashes)
+- [ ] Add watchdog timer recovery (ESP32 WDT for hang detection)
+- [ ] Implement SPIFFS wear leveling awareness (limit save frequency to once per 5 min max)
+- [ ] Add input validation on all HTTP endpoints (sanitize pet name, clamp stat values)
+- [ ] Review and add nullptr checks on all global pointers (g_pet, g_server, g_stats, g_multiPet)
 
-### 4. Statistics Dashboard ✅
-- Track: total play time, times fed, times played, times slept, high score
-- GET /stats endpoint with full statistics
-- Daily/weekly active minutes tracking
-- Persistent storage in SPIFFS (/stats.json)
+### 6.2 — Web UI Improvements
+- [ ] Add responsive mobile-first CSS (currently desktop-oriented)
+- [ ] Implement WebSocket or Server-Sent Events for real-time pet stat updates (replace polling)
+- [ ] Add pet sprite animations (walk, sleep, eat cycles using CSS/SVG)
+- [ ] Implement dark mode toggle (stored in localStorage + sync with device setting)
+- [ ] Add sound effect toggle and volume control in web UI
 
-### 5. Notification System ✅
-- Distinct buzzer patterns per event type (low health, evolution, achievement, death, etc.)
-- Visual notification badge support
-- GET /notifications endpoint
-- POST /notifications/clear
-- Persistent storage in SPIFFS (/notifications.json)
+### 6.3 — Hardware Features
+- [ ] Add physical button support (GPIO 0 BOOT button for feed/play/clean/sleep)
+- [ ] Implement RGB LED status indicator (green=healthy, yellow=warning, red=critical, blue=sleeping)
+- [ ] Add battery level display on OLED (when ENABLE_OLED is defined)
+- [ ] Implement deep sleep wake-on-button with proper state restore
+- [ ] Add buzzer melody configuration (user-selectable melodies per event)
 
-### 6. Power Management ✅
-- Battery level monitoring via ADC pin (configurable)
-- GET /battery endpoint
-- Low battery warning notification
-- Deep sleep when pet sleeping + energy full (wake on BOOT button)
-- WiFi power reduction when idle
+### 6.4 — Testing & Documentation
+- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
+- [ ] Create hardware wiring diagram (Fritzing or Excalidraw)
+- [ ] Write user setup guide (first WiFi connect, OTA update procedure)
+- [ ] Add README section for each enabled feature with build flags
+- [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
-## Phase 6: Future — Awaiting Nyra's Assignment
+### 6.5 — Performance & Memory
+- [ ] Profile heap usage after 24h runtime (detect memory leaks)
+- [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
+- [ ] Implement HTTP gzip compression for index.html
+- [ ] Reduce WiFi power consumption in idle mode (modem sleep)
+- [ ] Add compile-time feature flags to reduce flash usage when features disabled
 
 ## Implementation Rules
 - Create branch: feature/phase6-xxx
