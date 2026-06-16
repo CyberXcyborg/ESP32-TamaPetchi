@@ -96,4 +96,19 @@
 // --- Phase 6: Wear Leveling ---
 #define MIN_SAVE_INTERVAL   300000UL  // 5 minutes minimum between SPIFFS saves
 
+// --- Phase 6: Compile-Time Feature Flags ---
+// Uncomment to disable features and reduce flash usage
+// #define DISABLE_OTA          // Remove OTA update support
+// #define DISABLE_WIFI_MANAGER // Remove WiFi Manager captive portal
+// #define DISABLE_MULTIPET     // Remove multi-pet support (single pet only)
+// #define DISABLE_STATS        // Remove statistics tracking
+// #define DISABLE_NOTIFICATIONS // Remove notification system
+// #define DISABLE_ACHIEVEMENTS // Remove achievements system
+// #define DISABLE_WEATHER      // Remove weather system
+// #define DISABLE_GAMES        // Remove mini-games
+// #define DISABLE_MUSIC        // Remove buzzer melodies
+// #define DISABLE_OLED         // Remove OLED display support
+// #define DISABLE_BUTTONS      // Remove physical button support
+// #define DISABLE_RGB_LED      // Remove RGB LED indicator
+
 #endif // CONFIG_H
