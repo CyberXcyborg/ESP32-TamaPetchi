@@ -34,23 +34,23 @@
 ## Phase 6: Polish & Hardware Integration
 
 ### 6.1 — Code Quality & Safety
-- [ ] Add bounds checking on all SPIFFS JSON parsing (prevent malformed data crashes)
-- [ ] Add watchdog timer recovery (ESP32 WDT for hang detection)
-- [ ] Implement SPIFFS wear leveling awareness (limit save frequency to once per 5 min max)
-- [ ] Add input validation on all HTTP endpoints (sanitize pet name, clamp stat values)
-- [ ] Review and add nullptr checks on all global pointers (g_pet, g_server, g_stats, g_multiPet)
+- [x] Add bounds checking on all SPIFFS JSON parsing (prevent malformed data crashes)
+- [x] Add watchdog timer recovery (ESP32 WDT for hang detection)
+- [x] Implement SPIFFS wear leveling awareness (limit save frequency to once per 5 min max)
+- [x] Add input validation on all HTTP endpoints (sanitize pet name, clamp stat values)
+- [x] Review and add nullptr checks on all global pointers (g_pet, g_server, g_stats, g_multiPet)
 
 ### 6.2 — Web UI Improvements
-- [ ] Add responsive mobile-first CSS (currently desktop-oriented)
+- [x] Add responsive mobile-first CSS (currently desktop-oriented)
 - [ ] Implement WebSocket or Server-Sent Events for real-time pet stat updates (replace polling)
 - [ ] Add pet sprite animations (walk, sleep, eat cycles using CSS/SVG)
-- [ ] Implement dark mode toggle (stored in localStorage + sync with device setting)
-- [ ] Add sound effect toggle and volume control in web UI
+- [x] Implement dark mode toggle (stored in localStorage + sync with device setting)
+- [x] Add sound effect toggle and volume control in web UI
 
 ### 6.3 — Hardware Features
-- [ ] Add physical button support (GPIO 0 BOOT button for feed/play/clean/sleep)
-- [ ] Implement RGB LED status indicator (green=healthy, yellow=warning, red=critical, blue=sleeping)
-- [ ] Add battery level display on OLED (when ENABLE_OLED is defined)
+- [x] Add physical button support (GPIO 0 BOOT button for feed/play/clean/sleep)
+- [x] Implement RGB LED status indicator (green=healthy, yellow=warning, red=critical, blue=sleeping)
+- [x] Add battery level display on OLED (when ENABLE_OLED is defined)
 - [ ] Implement deep sleep wake-on-button with proper state restore
 - [ ] Add buzzer melody configuration (user-selectable melodies per event)
 
@@ -66,7 +66,7 @@
 - [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
 - [ ] Implement HTTP gzip compression for index.html
 - [ ] Reduce WiFi power consumption in idle mode (modem sleep)
-- [ ] Add compile-time feature flags to reduce flash usage when features disabled
+- [x] Add compile-time feature flags to reduce flash usage when features disabled
 
 ## Implementation Rules
 - Create branch: feature/phase6-xxx
