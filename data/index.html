@@ -288,6 +288,88 @@
                 font-size: 14px;
             }
         }
+
+        /* ============================================================ */
+        /* Phase 6: Dark Mode Styles                                    */
+        /* ============================================================ */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .bg-white {
+            background: #1e1e36 !important;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: #a0a0b0 !important;
+        }
+
+        body.dark-mode .text-gray-700 {
+            color: #c0c0d0 !important;
+        }
+
+        body.dark-mode .game-button {
+            background: linear-gradient(145deg, #2a2a4a, #1e1e36);
+            color: #e0e0e0;
+            box-shadow:
+                6px 6px 12px rgba(0,0,0,0.4),
+                -6px -6px 12px rgba(60,60,90,0.3);
+        }
+
+        body.dark-mode .game-button:hover {
+            box-shadow:
+                8px 8px 16px rgba(0,0,0,0.5),
+                -8px -8px 16px rgba(60,60,90,0.4);
+        }
+
+        body.dark-mode .pet-container {
+            background: linear-gradient(145deg, #1e2a4a, #162040);
+        }
+
+        body.dark-mode .stat-bar {
+            background: linear-gradient(90deg, #2a2a4a, #1e1e36);
+        }
+
+        body.dark-mode .bg-gray-50 {
+            background: #1a1a30 !important;
+            border-color: #2a2a4a !important;
+        }
+
+        body.dark-mode .bg-indigo-50 {
+            background: #1a1a3a !important;
+            border-color: #2a2a5a !important;
+        }
+
+        body.dark-mode .bg-yellow-50 {
+            background: #2a2a1a !important;
+            border-color: #3a3a2a !important;
+        }
+
+        body.dark-mode .bg-green-50 {
+            background: #1a2a1a !important;
+            border-color: #2a3a2a !important;
+        }
+
+        body.dark-mode .border-purple-200 {
+            border-color: #4a3a6a !important;
+        }
+
+        body.dark-mode input[type="text"] {
+            background: #2a2a4a;
+            color: #e0e0e0;
+            border-color: #4a3a6a;
+        }
+
+        body.dark-mode select {
+            background: #2a2a4a;
+            color: #e0e0e0;
+            border-color: #4a3a6a;
+        }
+
+        body.dark-mode .sleep-z {
+            color: #888;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4">
@@ -480,6 +562,18 @@
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-gray-600">Dark Mode:</span>
                         <button id="darkmode-toggle" class="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700">OFF</button>
+                    </div>
+                    <!-- Sound Effects Toggle (Phase 6) -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Sound FX:</span>
+                        <button id="sfx-toggle" class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700">ON</button>
+                    </div>
+                    <!-- Volume Control (Phase 6) -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-16">Volume:</span>
+                        <input type="range" id="volume-slider" min="0" max="100" value="70"
+                            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <span id="volume-value" class="text-xs text-gray-500 w-8">70%</span>
                     </div>
                 </div>
             </div>
@@ -920,6 +1014,40 @@
             document.body.classList.add('dark-mode');
             const btn = document.getElementById('darkmode-toggle');
             if (btn) { btn.textContent = 'ON'; btn.className = 'text-xs px-3 py-1 rounded bg-gray-700 text-white'; }
+        }
+
+        // ============================================================
+        // Phase 6: Sound FX Toggle & Volume Control
+        // ============================================================
+        let sfxEnabled = localStorage.getItem('sfxEnabled') !== 'false';
+        let sfxVolume = parseInt(localStorage.getItem('sfxVolume') || '70');
+
+        const sfxBtn = document.getElementById('sfx-toggle');
+        if (sfxBtn) {
+            sfxBtn.textContent = sfxEnabled ? 'ON' : 'OFF';
+            sfxBtn.className = sfxEnabled ?
+                'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+            sfxBtn.addEventListener('click', function() {
+                sfxEnabled = !sfxEnabled;
+                this.textContent = sfxEnabled ? 'ON' : 'OFF';
+                this.className = sfxEnabled ?
+                    'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                    'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+                localStorage.setItem('sfxEnabled', sfxEnabled ? 'true' : 'false');
+            });
+        }
+
+        const volSlider = document.getElementById('volume-slider');
+        const volValue = document.getElementById('volume-value');
+        if (volSlider) {
+            volSlider.value = sfxVolume;
+            if (volValue) volValue.textContent = sfxVolume + '%';
+            volSlider.addEventListener('input', function() {
+                sfxVolume = parseInt(this.value);
+                if (volValue) volValue.textContent = sfxVolume + '%';
+                localStorage.setItem('sfxVolume', sfxVolume);
+            });
         }
 
         function updateDisplay() {
