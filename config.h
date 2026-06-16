@@ -67,4 +67,30 @@
 #define OLED_SCL    22
 #define OLED_ADDRESS 0x3C
 
+// --- Evolution Stage Thresholds (in minutes) ---
+#define BABY_MAX_MINUTES    60     // 0-60 min = baby
+#define CHILD_MAX_MINUTES   480    // 61-480 min = child
+#define ADULT_MAX_MINUTES   1440   // 481-1440 min = adult
+// > 1440 min = elder
+
+// --- Stage Decay Multipliers (percentage of base rate) ---
+#define BABY_DECAY_MULT     80     // Baby decays slower
+#define CHILD_DECAY_MULT    100    // Normal
+#define ADULT_DECAY_MULT    110    // Slightly faster
+#define ELDER_DECAY_MULT    130    // Decays faster
+
+// --- Virtual Time ---
+#define VIRTUAL_MINUTES_PER_HOUR  60UL
+#define VIRTUAL_MINUTES_PER_DAY   (24UL * VIRTUAL_MINUTES_PER_HOUR)
+
+// --- Day/Night Cycle ---
+#define NIGHT_START_HOUR    22     // Night starts at 22:00
+#define DAY_START_HOUR      6      // Day starts at 06:00
+
+// --- Warning State Thresholds ---
+#define DYING_HEALTH_MAX    10     // health 0-10 → dying state
+#define DYING_HEALTH_MIN    0
+#define CRITICAL_HEALTH_MAX 30     // health 11-30 → critical state
+#define CRITICAL_HEALTH_MIN 11
+
 #endif // CONFIG_H
