@@ -33,13 +33,13 @@ void loadMultiPetState(MultiPetState &state) {
     p.isAlive     = obj["isAlive"] | true;
     p.state       = obj["state"].as<String>();
     if (p.state.length() == 0) p.state = "normal";
-    p.stage           = (PetStage)(int)obj["stage"] | BABY;
+    p.stage           = (PetStage)(int)(obj["stage"] | (int)BABY);
     p.isNight         = obj["isNight"] | false;
     p.virtualMinutes  = obj["virtualMinutes"] | 0UL;
     p.name            = obj["name"].as<String>();
     if (p.name.length() == 0) p.name = "Pet" + String(idx + 1);
     p.soundEnabled    = obj["soundEnabled"] | true;
-    p.type            = (PetType)(int)obj["type"] | BLOB;
+    p.type            = (PetType)(int)(obj["type"] | (int)BLOB);
     p.feedCount       = obj["feedCount"] | 0;
     p.playCount       = obj["playCount"] | 0;
     p.hasBeenNamed    = obj["hasBeenNamed"] | false;

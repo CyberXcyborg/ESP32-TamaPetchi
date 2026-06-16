@@ -442,15 +442,6 @@ void updateBatteryLevel(Pet &pet) {
 #endif
 }
 
-String getBatteryJson(const Pet &pet) {
-  DynamicJsonDocument jsonDoc(256);
-  jsonDoc["batteryLevel"] = pet.batteryLevel;
-  jsonDoc["lowBatteryWarning"] = pet.lowBatteryWarning;
-  jsonDoc["hasBatteryMonitor"] = (pet.batteryLevel >= 0);
-  String result; serializeJson(jsonDoc, result);
-  return result;
-}
-
 // ============================================================
 // Phase 4: Evolution & Death
 // ============================================================
@@ -664,6 +655,10 @@ String getGameStateJSON(const Pet &pet) {
 #define NOTE_A4  440
 #define NOTE_B4  494
 #define NOTE_C5  523
+#define NOTE_D5  587
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_G5  784
 #define NOTE_REST 0
 
 static int melodyHappy[] = {NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5, NOTE_G4, NOTE_E4, NOTE_C4};

@@ -3,6 +3,7 @@
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+#include <Esp.h>
 
 // Module-level state for OTA progress tracking
 static int otaProgress = 0;
@@ -58,7 +59,7 @@ void handleOTA() {
 
 void registerOTARoutes(WebServer &server) {
   // POST /update — firmware upload via multipart form
-  server.on("/update", HTTP_POST, []() {
+  server.on("/update", HTTP_POST, [&server]() {
     if (Update.hasError()) {
       server.send(500, "application/json", "{\"success\":false,\"message\":\"" + otaError + "\"}");
     } else {
@@ -66,7 +67,7 @@ void registerOTARoutes(WebServer &server) {
       delay(1000);
       ESP.restart();
     }
-  }, []() {
+  }, [&server]() {
     HTTPUpload &upload = server.upload();
     if (upload.status == UPLOAD_FILE_START) {
       otaInProgress = true;
@@ -93,7 +94,7 @@ void registerOTARoutes(WebServer &server) {
   });
 
   // GET /ota/status — current OTA progress
-  server.on("/ota/status", HTTP_GET, []() {
+  server.on("/ota/status", HTTP_GET, [&server]() {
     DynamicJsonDocument jsonDoc(256);
     jsonDoc["inProgress"] = otaInProgress;
     jsonDoc["progress"] = otaProgress;

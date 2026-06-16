@@ -91,14 +91,14 @@ void loadPetData(Pet &pet) {
     pet.state       = jsonDoc["state"].as<String>();
 
     // Phase 2: load new fields (with defaults for backward compatibility)
-    pet.stage          = (PetStage)(int)jsonDoc["stage"] | (PetStage)0;
+    pet.stage          = (PetStage)(int)(jsonDoc["stage"] | (int)0);
     pet.isNight        = jsonDoc["isNight"] | false;
     pet.virtualMinutes = jsonDoc["virtualMinutes"] | (6UL * VIRTUAL_MINUTES_PER_HOUR);
 
     // Phase 3: load name + sound + type (with defaults)
     pet.name         = jsonDoc["name"] | "Tama";
     pet.soundEnabled = jsonDoc["soundEnabled"] | true;
-    pet.type         = (PetType)(int)jsonDoc["type"] | BLOB;
+    pet.type         = (PetType)(int)(jsonDoc["type"] | (int)BLOB);
 
     // Phase 3: load achievement tracking (with defaults)
     pet.feedCount     = jsonDoc["feedCount"]     | 0;

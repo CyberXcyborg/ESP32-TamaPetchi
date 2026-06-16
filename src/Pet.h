@@ -2,6 +2,7 @@
 #define PET_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 // ============================================================
 // Pet Evolution Stages
@@ -149,6 +150,5 @@ void resetPet(Pet &pet);
 
 // --- Phase 5: Power Management ---
 void updateBatteryLevel(Pet &pet);
-String getBatteryJson(const Pet &pet);
 
 #endif // PET_H

@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
+#include <Esp.h>
 
 static const char* WIFI_CONFIG_FILE = "/wifi_config.json";
 
@@ -73,7 +74,7 @@ bool saveWiFiCredentials(const String &ssid, const String &password) {
 
 void registerWiFiRoutes(WebServer &server) {
   // POST /wifi/reset — clear stored WiFi config and restart AP mode
-  server.on("/wifi/reset", HTTP_POST, []() {
+  server.on("/wifi/reset", HTTP_POST, [&server]() {
     resetWiFiCredentials();
     DynamicJsonDocument jsonDoc(256);
     jsonDoc["success"] = true;
@@ -86,7 +87,7 @@ void registerWiFiRoutes(WebServer &server) {
   });
 
   // POST /wifi/connect — save new credentials and try to connect
-  server.on("/wifi/connect", HTTP_POST, []() {
+  server.on("/wifi/connect", HTTP_POST, [&server]() {
     String body = server.arg("plain");
     DynamicJsonDocument jsonDoc(256);
     DeserializationError err = deserializeJson(jsonDoc, body);
@@ -112,7 +113,7 @@ void registerWiFiRoutes(WebServer &server) {
   });
 
   // GET /wifi/status — current WiFi connection status
-  server.on("/wifi/status", HTTP_GET, []() {
+  server.on("/wifi/status", HTTP_GET, [&server]() {
     DynamicJsonDocument jsonDoc(256);
     jsonDoc["connected"] = isWiFiConnected();
     jsonDoc["ip"] = getIPAddress();

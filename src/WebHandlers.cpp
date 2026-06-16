@@ -25,11 +25,37 @@ String previousState = "";
 WebServer* getServer() { return g_server; }
 
 // ============================================================
+// Forward Declarations
+// ============================================================
+static void handleRoot();
+static void handleGetPet();
+static void handleFeed();
+static void handlePlay();
+static void handleClean();
+static void handleSleep();
+static void handleHeal();
+static void handleReset();
+static void handleSetName();
+static void handleMute();
+static void handleAchievements();
+static void handleSetType();
+static void handleStats();
+static void handleGetNotifications();
+static void handleClearNotifications();
+static void handleGetPets();
+static void handleSwitchPet();
+static void handleCreatePet();
+static void handleDeletePet();
+static void handleBattery();
+static void handleWiFiReset();
+
+// ============================================================
 // Route Registration
 // ============================================================
-void registerHandlers(WebServer &server, MultiPetState &multiPet) {
+void registerHandlers(WebServer &server, MultiPetState &multiPet, GameStats &stats) {
   g_multiPet = &multiPet;
   g_server   = &server;
+  g_stats    = &stats;
 
   // Core routes
   server.on("/",             HTTP_GET,  handleRoot);
@@ -156,8 +182,7 @@ static void handleFeed() {
   if (!pet) { sendJsonResponse(false, "No active pet"); return; }
   if (!pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   feedPet(*pet);
-  statsOnFeed(*g_stats);
-  saveStats(*g_stats);
+  if (g_stats) { statsOnFeed(*g_stats); saveStats(*g_stats); }
   savePetData(*pet);
   checkAchievements(*pet);
   saveAchievements(*pet);
@@ -171,8 +196,7 @@ static void handlePlay() {
   if (!pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
   playPet(*pet);
-  statsOnPlay(*g_stats);
-  saveStats(*g_stats);
+  if (g_stats) { statsOnPlay(*g_stats); saveStats(*g_stats); }
   savePetData(*pet);
   checkAchievements(*pet);
   saveAchievements(*pet);
@@ -185,8 +209,7 @@ static void handleClean() {
   if (!pet) { sendJsonResponse(false, "No active pet"); return; }
   if (!pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   cleanPet(*pet);
-  statsOnClean(*g_stats);
-  saveStats(*g_stats);
+  if (g_stats) { statsOnClean(*g_stats); saveStats(*g_stats); }
   savePetData(*pet);
   saveMultiPetState(*g_multiPet);
   sendJsonResponse(true);
@@ -197,8 +220,7 @@ static void handleSleep() {
   if (!pet) { sendJsonResponse(false, "No active pet"); return; }
   if (!pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   sleepPet(*pet);
-  statsOnSleep(*g_stats);
-  saveStats(*g_stats);
+  if (g_stats) { statsOnSleep(*g_stats); saveStats(*g_stats); }
   savePetData(*pet);
   saveMultiPetState(*g_multiPet);
   sendJsonResponse(true);
@@ -209,8 +231,7 @@ static void handleHeal() {
   if (!pet) { sendJsonResponse(false, "No active pet"); return; }
   if (!pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   healPet(*pet);
-  statsOnHeal(*g_stats);
-  saveStats(*g_stats);
+  if (g_stats) { statsOnHeal(*g_stats); saveStats(*g_stats); }
   savePetData(*pet);
   saveMultiPetState(*g_multiPet);
   sendJsonResponse(true);
@@ -305,6 +326,7 @@ static void handleSetName() {
 // Phase 5: Statistics Handler
 // ============================================================
 static void handleStats() {
+  if (!g_stats) { g_server->send(500, "text/plain", "Stats not initialized"); return; }
   String statsJson = getStatsJson(*g_stats);
   g_server->send(200, "application/json", statsJson);
 }

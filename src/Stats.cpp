@@ -3,7 +3,7 @@
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
-static const char* STATS_FILE = "/stats.json";
+// STATS_FILE is defined in config.h
 
 void loadStats(GameStats &stats) {
   stats.totalPlayTimeSec = 0;

@@ -76,7 +76,7 @@ void setup() {
   loadNotifications(multiPet.activePetIndex);
 
   // Register web server routes
-  registerHandlers(server, multiPet);
+  registerHandlers(server, multiPet, gameStats);
 
   // Register WiFi routes (for WiFi status, reset, connect)
   registerWiFiRoutes(server);
