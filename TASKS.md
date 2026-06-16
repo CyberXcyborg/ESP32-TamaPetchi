@@ -9,6 +9,18 @@
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
+### Bug Fixes (feature/phase5-bugfixes) ✅
+- Fixed critical g_stats null pointer dereference in WebHandlers.cpp
+- Fixed lambda capture issues in OTA.cpp and WiFiManager.cpp (server not captured)
+- Fixed invalid enum conversions in MultiPet.cpp and Storage.cpp
+- Added missing includes (ArduinoJson.h in Pet.h, Esp.h in OTA.cpp/WiFiManager.cpp)
+- Added missing note frequency definitions (NOTE_D5 through NOTE_G5)
+- Removed duplicate getBatteryJson() from Pet.cpp (already in PowerManager.cpp)
+- Removed orphaned Statistics.cpp (duplicate of Stats.cpp)
+- Added forward declarations for all WebHandlers
+- Added .gitignore for .pio/ build artifacts
+- Compilation: ✅ SUCCESS (RAM 16%, Flash 70.5%)
+
 ### 1. OTA (Over-The-Air) Updates ✅
 - ArduinoOTA support with password protection (default: tamapetchi)
 - Web UI status endpoint at GET /ota/status
