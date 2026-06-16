@@ -5,9 +5,9 @@
 - Phase 2 ✅ Merged (Evolution, day/night, warnings)
 - Phase 3 ✅ Merged (Naming, buzzer, OLED, achievements, pet types)
 - Phase 4 ✅ Merged (Evolution anim, death/revive, games, weather, music, settings)
-- Phase 5 ✅ Implemented (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
+- Phase 5 ✅ Merged (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
 
-## Phase 5: Advanced Features — COMPLETE
+## Phase 5: Advanced Features — COMPLETE ✅
 
 ### 1. OTA (Over-The-Air) Updates ✅
 - ArduinoOTA support with password protection (default: tamapetchi)
@@ -47,8 +47,10 @@
 - Deep sleep when pet sleeping + energy full (wake on BOOT button)
 - WiFi power reduction when idle
 
+## Phase 6: Future — Awaiting Nyra's Assignment
+
 ## Implementation Rules
-- Create branch: feature/phase5-advanced
+- Create branch: feature/phase6-xxx
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress
