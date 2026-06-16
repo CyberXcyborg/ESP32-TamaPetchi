@@ -36,9 +36,25 @@ void savePetData(const Pet &pet) {
   jsonDoc["hasBeenNamed"]  = pet.hasBeenNamed;
   jsonDoc["elderAchieved"] = pet.elderAchieved;
 
-  // Phase 5: persist power management fields
-  jsonDoc["batteryLevel"]     = pet.batteryLevel;
-  jsonDoc["lowBatteryWarning"] = pet.lowBatteryWarning;
+  // Phase 4: persist new fields
+  jsonDoc["isDying"]        = pet.isDying;
+  jsonDoc["dyingStartTime"] = pet.dyingStartTime;
+  jsonDoc["lastReviveTime"] = pet.lastReviveTime;
+  jsonDoc["musicEnabled"]   = pet.musicEnabled;
+  jsonDoc["difficulty"]     = pet.difficulty;
+  jsonDoc["weather"]        = pet.weather;
+
+  // Phase 5: persist stats & power management fields
+  jsonDoc["timesFed"]             = pet.timesFed;
+  jsonDoc["timesPlayed"]          = pet.timesPlayed;
+  jsonDoc["timesSlept"]           = pet.timesSlept;
+  jsonDoc["timesCleaned"]         = pet.timesCleaned;
+  jsonDoc["timesHealed"]          = pet.timesHealed;
+  jsonDoc["totalPlayTime"]        = pet.totalPlayTime;
+  jsonDoc["totalSleepTime"]       = pet.totalSleepTime;
+  jsonDoc["highScore"]            = pet.highScore;
+  jsonDoc["batteryLevel"]         = pet.batteryLevel;
+  jsonDoc["lowBatteryWarning"]    = pet.lowBatteryWarning;
 
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
@@ -90,9 +106,25 @@ void loadPetData(Pet &pet) {
     pet.hasBeenNamed  = jsonDoc["hasBeenNamed"]  | false;
     pet.elderAchieved = jsonDoc["elderAchieved"] | false;
 
-    // Phase 5: load power management fields (with defaults)
-    pet.batteryLevel     = jsonDoc["batteryLevel"]     | -1;
-    pet.lowBatteryWarning = jsonDoc["lowBatteryWarning"] | false;
+    // Phase 4: load new fields (with defaults)
+    pet.isDying        = jsonDoc["isDying"]        | false;
+    pet.dyingStartTime = jsonDoc["dyingStartTime"] | 0;
+    pet.lastReviveTime = jsonDoc["lastReviveTime"] | 0;
+    pet.musicEnabled   = jsonDoc["musicEnabled"]   | true;
+    pet.difficulty     = jsonDoc["difficulty"]     | 1;
+    pet.weather        = jsonDoc["weather"]        | 0;
+
+    // Phase 5: load stats & power management fields (with defaults)
+    pet.timesFed             = jsonDoc["timesFed"]             | 0;
+    pet.timesPlayed          = jsonDoc["timesPlayed"]          | 0;
+    pet.timesSlept           = jsonDoc["timesSlept"]           | 0;
+    pet.timesCleaned         = jsonDoc["timesCleaned"]         | 0;
+    pet.timesHealed          = jsonDoc["timesHealed"]          | 0;
+    pet.totalPlayTime        = jsonDoc["totalPlayTime"]        | 0UL;
+    pet.totalSleepTime       = jsonDoc["totalSleepTime"]       | 0UL;
+    pet.highScore            = jsonDoc["highScore"]            | 0;
+    pet.batteryLevel         = jsonDoc["batteryLevel"]         | -1;
+    pet.lowBatteryWarning    = jsonDoc["lowBatteryWarning"]    | false;
   }
 
   file.close();
