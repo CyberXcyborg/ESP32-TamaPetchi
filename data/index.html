@@ -119,6 +119,17 @@
             25% { transform: rotate(-2deg) scale(1.02); }
             75% { transform: rotate(2deg) scale(0.98); }
         }
+        @keyframes dying-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        @keyframes evolve-glow {
+            0% { filter: brightness(1) drop-shadow(0 0 0px gold); }
+            50% { filter: brightness(1.5) drop-shadow(0 0 20px gold); }
+            100% { filter: brightness(1) drop-shadow(0 0 0px gold); }
+        }
+        .dying-animation { animation: dying-pulse 1s infinite; }
+        .evolve-animation { animation: evolve-glow 0.5s ease-in-out 6; }
         
         .pulse {
             animation: pulse 2s infinite ease-in-out;
@@ -390,6 +401,10 @@
             <div id="day-night-indicator" class="text-center text-sm mt-1">
                 <i id="day-night-icon" class="fas fa-sun text-yellow-500"></i>
                 <span id="day-night-text">Day</span>
+                <span id="weather-display" class="ml-2">
+                    <i id="weather-icon" class="fas fa-sun"></i>
+                    <span id="weather-text">Sunny</span>
+                </span>
             </div>
         </div>
         
@@ -415,6 +430,58 @@
             <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
                 <h3 class="text-sm font-bold text-yellow-700 mb-2"><i class="fas fa-trophy"></i> Achievements</h3>
                 <div id="achievements-grid" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Mini-Games -->
+        <div id="games-section" class="px-6 pb-2">
+            <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
+                <h3 class="text-sm font-bold text-indigo-700 mb-2"><i class="fas fa-gamepad"></i> Mini-Games</h3>
+                <div class="flex gap-2">
+                    <button id="game-memory" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-brain"></i> Memory
+                    </button>
+                    <button id="game-catch" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-crosshairs"></i> Catch
+                    </button>
+                    <button id="game-quiz" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-question"></i> Quiz
+                    </button>
+                </div>
+                <div id="game-area" class="mt-2" style="display:none;">
+                    <div id="game-ui" class="text-center"></div>
+                    <div id="game-input-area" class="mt-2"></div>
+                    <div id="game-score" class="text-xs text-center mt-1"></div>
+                </div>
+                <div id="game-cooldown" class="text-xs text-center text-gray-500 mt-1" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="px-6 pb-2">
+            <div class="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-cog"></i> Settings</h3>
+                <div class="space-y-2">
+                    <!-- Difficulty -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-16">Difficulty:</span>
+                        <select id="difficulty-select" class="flex-1 border rounded px-2 py-1 text-xs">
+                            <option value="easy">Easy (80%)</option>
+                            <option value="normal" selected>Normal (100%)</option>
+                            <option value="hard">Hard (120%)</option>
+                        </select>
+                    </div>
+                    <!-- Music -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Music:</span>
+                        <button id="music-toggle" class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700">ON</button>
+                    </div>
+                    <!-- Dark Mode -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Dark Mode:</span>
+                        <button id="darkmode-toggle" class="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700">OFF</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -451,6 +518,15 @@
             </button>
         </div>
 
+        <!-- Revive Button (shown when dead) -->
+        <div id="revive-section" class="px-6 pb-2" style="display:none;">
+            <button id="revive-btn" class="game-button w-full p-3 flex items-center justify-center gap-2 text-green-600 bg-green-50 rounded-xl border-2 border-green-200">
+                <i class="fas fa-heart"></i>
+                <span>Revive Pet</span>
+            </button>
+            <div id="revive-cooldown" class="text-xs text-center text-gray-500 mt-1"></div>
+        </div>
+
         <!-- Sound Toggle -->
         <div class="px-6 pb-4">
             <button id="mute-btn" class="game-button w-full p-2 flex items-center justify-center gap-2 text-gray-600 text-sm">
@@ -474,6 +550,13 @@
             name: "Tama",
             type: "blob",
             stage: "baby",
+            isDying: false,
+            isEvolving: false,
+            weather: "sunny",
+            musicEnabled: true,
+            difficulty: "normal",
+            gameCooldown: 0,
+            activeGame: 0;
             isNight: false,
             achievements: []
         };
@@ -656,6 +739,189 @@
         }
         
         // Update the visual display
+        // ============================================================
+        // Phase 4: Revive
+        // ============================================================
+        document.getElementById('revive-btn').addEventListener('click', function() {
+            fetch('/revive', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showMessage('Pet revived! ❤️', 'success');
+                    updatePetData();
+                } else {
+                    showMessage(d.message || 'Cannot revive', 'error');
+                }
+            })
+            .catch(() => showMessage('Error reviving', 'error'));
+        });
+
+        // ============================================================
+        // Phase 4: Mini-Games
+        // ============================================================
+        let gameInterval = null;
+
+        document.getElementById('game-memory').addEventListener('click', () => startMiniGame(1));
+        document.getElementById('game-catch').addEventListener('click', () => startMiniGame(2));
+        document.getElementById('game-quiz').addEventListener('click', () => startMiniGame(3));
+
+        function startMiniGame(type) {
+            if (pet.gameCooldown > 0) { showMessage(`Game on cooldown: ${pet.gameCooldown}s`, 'error'); return; }
+            if (pet.energy < 10) { showMessage('Pet is too tired to play', 'error'); return; }
+            fetch('/game/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({game: type})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showGameArea(d.gameState, type);
+                } else {
+                    showMessage(d.message || 'Cannot start game', 'error');
+                }
+            })
+            .catch(() => showMessage('Error starting game', 'error'));
+        }
+
+        function showGameArea(state, type) {
+            const area = document.getElementById('game-area');
+            const ui = document.getElementById('game-ui');
+            const inputArea = document.getElementById('game-input-area');
+            const score = document.getElementById('game-score');
+            area.style.display = 'block';
+            score.textContent = `Score: ${state.score || 0} | Round: ${state.round || 0}`;
+
+            if (type === 1) {
+                // Memory game
+                ui.innerHTML = '<p class="text-xs text-gray-600">Memorize the sequence!</p>';
+                inputArea.innerHTML = '';
+                const seq = state.sequence || [];
+                let showIdx = 0;
+                const showNext = () => {
+                    if (showIdx < seq.length) {
+                        ui.innerHTML = `<p class="text-2xl font-bold text-indigo-600">${['⬆️','➡️','⬇️','⬅️'][seq[showIdx]]}</p>`;
+                        showIdx++;
+                        setTimeout(showNext, 800);
+                    } else {
+                        ui.innerHTML = '<p class="text-xs text-gray-600">Your turn! Repeat the sequence:</p>';
+                        inputArea.innerHTML = '';
+                        const btns = ['⬆️','➡️','⬇️','⬅️'];
+                        btns.forEach((b, i) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'game-button px-3 py-2 text-lg';
+                            btn.textContent = b;
+                            btn.addEventListener('click', () => sendGameInput(i));
+                            inputArea.appendChild(btn);
+                        });
+                    }
+                };
+                showNext();
+            } else if (type === 2) {
+                // Catch game
+                ui.innerHTML = `<p class="text-xs text-gray-600">Tap the target! (${state.targetX}, ${state.targetY})</p>`;
+                inputArea.innerHTML = '';
+                const canvas = document.createElement('div');
+                canvas.style.cssText = 'width:100%;height:80px;background:#e0e7ff;border-radius:8px;position:relative;cursor:pointer;';
+                canvas.innerHTML = `<div style="position:absolute;left:${state.targetX}%;top:50%;transform:translate(-50%,-50%);font-size:20px;">🎯</div>`;
+                canvas.addEventListener('click', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                    sendGameInput(x);
+                });
+                inputArea.appendChild(canvas);
+            } else if (type === 3) {
+                // Quiz game
+                const questions = [
+                    {q: "What do cats hate?", answers: ["Water", "Food", "Sleep"], correct: 0},
+                    {q: "What sound does a dog make?", answers: ["Meow", "Woof", "Moo"], correct: 1},
+                    {q: "What do pets need most?", answers: ["Money", "Love", "Cars"], correct: 1}
+                ];
+                const q = questions[(state.round || 0) % questions.length];
+                ui.innerHTML = `<p class="text-xs font-bold text-gray-700">${q.q}</p>`;
+                inputArea.innerHTML = '';
+                q.answers.forEach((a, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'game-button w-full px-2 py-1 text-xs mb-1';
+                    btn.textContent = a;
+                    btn.addEventListener('click', () => sendGameInput(i));
+                    inputArea.appendChild(btn);
+                });
+            }
+        }
+
+        function sendGameInput(input) {
+            fetch('/game/action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({input: input})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const gs = d.gameState;
+                    document.getElementById('game-score').textContent = `Score: ${gs.score || 0} | Round: ${gs.round || 0}`;
+                    if (gs.activeGame === 0) {
+                        // Game ended
+                        document.getElementById('game-area').style.display = 'none';
+                        if (pet) pet.gameCooldown = gs.cooldown;
+                        showMessage(gs.score >= 5 ? `🎉 You won! Score: ${gs.score}` : `Game over! Score: ${gs.score}`, gs.score >= 5 ? 'success' : 'info');
+                        updatePetData();
+                    } else {
+                        // Continue game
+                        showGameArea(gs, gs.activeGame);
+                    }
+                }
+            })
+            .catch(() => showMessage('Error sending input', 'error'));
+        }
+
+        // ============================================================
+        // Phase 4: Settings
+        // ============================================================
+        document.getElementById('music-toggle').addEventListener('click', function() {
+            fetch('/music', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    pet.musicEnabled = d.musicEnabled;
+                    updateStatBars();
+                }
+            });
+        });
+
+        document.getElementById('difficulty-select').addEventListener('change', function() {
+            fetch('/difficulty', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({difficulty: this.value})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    pet.difficulty = d.difficulty;
+                    showMessage(`Difficulty set to ${d.difficulty}`, 'success');
+                }
+            });
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            this.textContent = isDark ? 'ON' : 'OFF';
+            this.className = isDark ?
+                'text-xs px-3 py-1 rounded bg-gray-700 text-white' :
+                'text-xs px-3 py-1 rounded bg-gray-200 text-gray-700';
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        });
+
+        // Restore dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            const btn = document.getElementById('darkmode-toggle');
+            if (btn) { btn.textContent = 'ON'; btn.className = 'text-xs px-3 py-1 rounded bg-gray-700 text-white'; }
+        }
+
         function updateDisplay() {
             updateStatBars();
             updatePetSprite();
@@ -686,6 +952,49 @@
                 document.getElementById('day-night-icon').className = pet.isNight
                     ? 'fas fa-moon text-blue-400' : 'fas fa-sun text-yellow-500';
                 document.getElementById('day-night-text').textContent = pet.isNight ? 'Night' : 'Day';
+            }
+
+            // Phase 4: Update revive button
+            if (typeof pet.isDying !== 'undefined') {
+                const reviveSection = document.getElementById('revive-section');
+                const reviveCooldown = document.getElementById('revive-cooldown');
+                if (!pet.isAlive && !pet.isDying) {
+                    reviveSection.style.display = 'block';
+                    if (pet.gameCooldown > 0) {
+                        reviveCooldown.textContent = `Revive cooldown: ${pet.lastReviveTime ? '5 min' : 'ready'}`;
+                    } else {
+                        reviveCooldown.textContent = '';
+                    }
+                } else {
+                    reviveSection.style.display = 'none';
+                }
+            }
+
+            // Phase 4: Update weather display
+            if (typeof pet.weather !== 'undefined') {
+                const wIcon = document.getElementById('weather-icon');
+                const wText = document.getElementById('weather-text');
+                const weatherIcons = {sunny: 'fa-sun', cloudy: 'fa-cloud', rainy: 'fa-cloud-rain', stormy: 'fa-bolt', snowy: 'fa-snowflake'};
+                const weatherColors = {sunny: 'text-yellow-400', cloudy: 'text-gray-400', rainy: 'text-blue-400', stormy: 'text-purple-400', snowy: 'text-blue-200'};
+                wIcon.className = `fas ${weatherIcons[pet.weather] || 'fa-sun'} ${weatherColors[pet.weather] || 'text-yellow-400'}`;
+                wText.textContent = pet.weather ? pet.weather.charAt(0).toUpperCase() + pet.weather.slice(1) : 'Sunny';
+            }
+
+            // Phase 4: Update music button
+            if (typeof pet.musicEnabled !== 'undefined') {
+                const musicBtn = document.getElementById('music-toggle');
+                if (musicBtn) {
+                    musicBtn.textContent = pet.musicEnabled ? 'ON' : 'OFF';
+                    musicBtn.className = pet.musicEnabled ?
+                        'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                        'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+                }
+            }
+
+            // Phase 4: Update difficulty select
+            if (typeof pet.difficulty !== 'undefined') {
+                const diffSelect = document.getElementById('difficulty-select');
+                if (diffSelect) diffSelect.value = pet.difficulty;
             }
 
             // Update mute button
@@ -756,6 +1065,18 @@
         function generatePetSVG() {
             if (!pet.isAlive) {
                 return generateDeadPet();
+            }
+
+            // Phase 4: dying animation
+            if (pet.isDying) {
+                const svg = generateDyingPet(pet.type || 'blob');
+                return `<div class="dying-animation">${svg}</div>`;
+            }
+
+            // Phase 4: evolution animation
+            if (pet.isEvolving) {
+                const svg = generateEvolutionPet(pet.type || 'blob', pet.stage);
+                return `<div class="evolve-animation">${svg}</div>`;
             }
 
             const type = pet.type || 'blob';
@@ -1337,6 +1658,18 @@
             `;
         }
         
+        function generateDyingPet(type) {
+            // Fading version of normal pet
+            const normal = generateNormalPet(type);
+            return normal.replace('class="pet-sprite"', 'class="pet-sprite" style="opacity:0.5;filter:grayscale(0.7)"');
+        }
+
+        function generateEvolutionPet(type, stage) {
+            // Glowing version of normal pet
+            const normal = generateNormalPet(type);
+            return normal.replace('class="pet-sprite"', 'class="pet-sprite" style="filter:brightness(1.3) drop-shadow(0 0 10px gold)"');
+        }
+
         function generateDeadPet(type) {
             return `
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
