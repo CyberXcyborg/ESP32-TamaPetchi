@@ -38,6 +38,12 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/mute",        HTTP_POST, handleMute);
   server.on("/achievements", HTTP_GET, handleAchievements);
   server.on("/type",        HTTP_POST, handleSetType);
+  server.on("/revive",      HTTP_POST, handleRevive);
+  server.on("/game/start",  HTTP_POST, handleGameStart);
+  server.on("/game/action", HTTP_POST, handleGameAction);
+  server.on("/game/state",  HTTP_GET,  handleGameState);
+  server.on("/music",       HTTP_POST, handleSetMusic);
+  server.on("/difficulty",  HTTP_POST, handleSetDifficulty);
 }
 
 // ============================================================
@@ -107,6 +113,16 @@ static void handleGetPet() {
   deserializeJson(achDoc, achJson);
   jsonDoc["achievements"] = achDoc["achievements"];
 
+  // Phase 4: new fields
+  jsonDoc["isDying"]      = g_pet->isDying;
+  jsonDoc["dyingStartTime"] = g_pet->dyingStartTime;
+  jsonDoc["isEvolving"]   = g_pet->isEvolving;
+  jsonDoc["weather"]      = getWeatherName(g_pet->weather);
+  jsonDoc["musicEnabled"] = g_pet->musicEnabled;
+  jsonDoc["difficulty"]   = getDifficultyName(g_pet->difficulty);
+  jsonDoc["gameCooldown"] = g_pet->gameCooldown;
+  jsonDoc["activeGame"]   = g_pet->activeGame;
+
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
@@ -146,7 +162,7 @@ static void handleSleep() {
 }
 
 static void handleHeal() {
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (!g_pet->isAlive && !g_pet->isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
   healPet(*g_pet);
   savePetData(*g_pet);
   sendJsonResponse(true);
@@ -166,6 +182,126 @@ static void handleReset() {
 
 static void handleUpdate() {
   handleGetPet();
+}
+
+static void handleGameStart() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
+  if (g_pet->energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
+
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError error = deserializeJson(jsonDoc, body);
+  int gameType = jsonDoc["game"] | 0;
+
+  if (gameType < 1 || gameType > 3) { sendJsonResponse(false, "Invalid game type"); return; }
+  startGame(*g_pet, gameType);
+  savePetData(*g_pet);
+
+  String gameState = getGameStateJSON(*g_pet);
+  DynamicJsonDocument resp(256);
+  resp["success"] = true;
+  DynamicJsonDocument gs(512);
+  deserializeJson(gs, gameState);
+  resp["gameState"] = gs;
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+static void handleGameAction() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
+
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError error = deserializeJson(jsonDoc, body);
+  int input = jsonDoc["input"] | -1;
+
+  if (g_pet->activeGame == 1) {
+    checkMemoryInput(*g_pet, input);
+  } else if (g_pet->activeGame == 2) {
+    // Catch game: input is X coordinate, check proximity to target
+    int targetX = g_pet->catchTargetX;
+    int targetY = g_pet->catchTargetY;
+    int dist = abs(input - targetX);
+    if (dist < 15) {
+      g_pet->gameScore++;
+    }
+    updateCatchTarget(*g_pet);
+  } else if (g_pet->activeGame == 3) {
+    // Quiz game
+    int answer = jsonDoc["answer"] | -1;
+    // Correct answer is always 0 for now (simplified)
+    if (answer == 0) {
+      g_pet->gameScore++;
+    }
+    g_pet->gameRound++;
+    if (g_pet->gameRound >= 5) {
+      endGame(*g_pet, g_pet->gameScore >= 3);
+    }
+  }
+
+  savePetData(*g_pet);
+  String gameState = getGameStateJSON(*g_pet);
+  DynamicJsonDocument resp(256);
+  resp["success"] = true;
+  DynamicJsonDocument gs(512);
+  deserializeJson(gs, gameState);
+  resp["gameState"] = gs;
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+static void handleGameState() {
+  String gameState = getGameStateJSON(*g_pet);
+  g_server->send(200, "application/json", gameState);
+}
+
+static void handleSetMusic() {
+  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  g_pet->musicEnabled = !g_pet->musicEnabled;
+  savePetData(*g_pet);
+  DynamicJsonDocument jsonDoc(256);
+  jsonDoc["success"] = true;
+  jsonDoc["musicEnabled"] = g_pet->musicEnabled;
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+static void handleSetDifficulty() {
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError error = deserializeJson(jsonDoc, body);
+  String diffStr = jsonDoc["difficulty"] | "normal";
+  diffStr.toLowerCase();
+
+  if (diffStr == "easy") g_pet->difficulty = 0;
+  else if (diffStr == "hard") g_pet->difficulty = 2;
+  else g_pet->difficulty = 1;
+
+  savePetData(*g_pet);
+  DynamicJsonDocument resp(256);
+  resp["success"] = true;
+  resp["difficulty"] = getDifficultyName(g_pet->difficulty);
+  String response;
+  serializeJson(resp, response);
+  g_server->send(200, "application/json", response);
+}
+
+static void handleRevive() {
+  if (g_pet->isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
+  if (g_pet->isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
+  if (!canRevive(*g_pet)) {
+    unsigned long remaining = (300000 - (millis() - g_pet->lastReviveTime)) / 1000;
+    sendJsonResponse(false, "Revive on cooldown: " + String(remaining) + "s remaining");
+    return;
+  }
+  revivePet(*g_pet);
+  savePetData(*g_pet);
+  sendJsonResponse(true);
 }
 
 static void handleSetType() {

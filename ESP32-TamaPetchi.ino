@@ -77,6 +77,7 @@ void loop() {
     updatePet(pet);
     checkAchievements(pet);
     savePetData(pet);
+    playStateMelody(pet);
 
 #ifdef ENABLE_OLED
     updateOLED(pet);

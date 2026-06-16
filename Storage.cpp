@@ -36,6 +36,14 @@ void savePetData(const Pet &pet) {
   jsonDoc["hasBeenNamed"]  = pet.hasBeenNamed;
   jsonDoc["elderAchieved"] = pet.elderAchieved;
 
+  // Phase 4: persist new fields
+  jsonDoc["isDying"]        = pet.isDying;
+  jsonDoc["dyingStartTime"] = pet.dyingStartTime;
+  jsonDoc["lastReviveTime"] = pet.lastReviveTime;
+  jsonDoc["musicEnabled"]   = pet.musicEnabled;
+  jsonDoc["difficulty"]     = pet.difficulty;
+  jsonDoc["weather"]        = pet.weather;
+
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
   }
@@ -85,6 +93,14 @@ void loadPetData(Pet &pet) {
     pet.playCount     = jsonDoc["playCount"]     | 0;
     pet.hasBeenNamed  = jsonDoc["hasBeenNamed"]  | false;
     pet.elderAchieved = jsonDoc["elderAchieved"] | false;
+
+    // Phase 4: load new fields (with defaults)
+    pet.isDying        = jsonDoc["isDying"]        | false;
+    pet.dyingStartTime = jsonDoc["dyingStartTime"] | 0;
+    pet.lastReviveTime = jsonDoc["lastReviveTime"] | 0;
+    pet.musicEnabled   = jsonDoc["musicEnabled"]   | true;
+    pet.difficulty     = jsonDoc["difficulty"]     | 1;
+    pet.weather        = jsonDoc["weather"]        | 0;
   }
 
   file.close();
