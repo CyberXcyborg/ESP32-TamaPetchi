@@ -86,9 +86,9 @@
 
 ### 7.2 — Code Quality & Testing
 - [x] Add bounds validation on all SPIFFS JSON parse results (check for null/missing keys before use)
-- [ ] Add HTTP endpoint rate limiting (prevent rapid-fire requests from crashing the server)
-- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
-- [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
+- [x] Add HTTP endpoint rate limiting (prevent rapid-fire requests from crashing the server)
+- [x] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
+- [x] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
 ### 7.3 — Performance & Memory
 - [ ] Profile heap usage after 24h runtime (detect memory leaks)
@@ -97,14 +97,14 @@
 - [ ] Audit DynamicJsonDocument allocations — replace with StaticJsonDocument where size is known
 
 ### 7.4 — Web UI Polish
-- [ ] Add loading spinners for async operations
-- [ ] Add confirmation dialogs for destructive actions (reset, delete pet)
-- [ ] Improve error messages in API responses (include error codes)
+- [x] Add loading spinners for async operations
+- [x] Add confirmation dialogs for destructive actions (reset, delete pet)
+- [x] Improve error messages in API responses (include error codes)
 - [ ] Add pet sprite SVG animations for all pet types (currently only BLOB)
 
 ### 7.5 — New Features (Stretch)
-- [ ] Add scheduled feeding (timer-based auto-feed)
-- [ ] Add pet mood system (personality traits that affect stat decay)
+- [x] Add scheduled feeding (timer-based auto-feed)
+- [x] Add pet mood system (personality traits that affect stat decay)
 - [ ] Add IR remote control support (NEC protocol)
 - [ ] Add MQTT integration for smart home connectivity
 - [ ] Add OTA delta updates (binary diff to reduce bandwidth)
