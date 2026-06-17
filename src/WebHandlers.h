@@ -12,6 +12,12 @@
 // Register all routes on the server
 void registerHandlers(WebServer &server, Pet &pet);
 
+// ============================================================
+// Rate Limiting (Phase 7.2)
+// ============================================================
+bool checkRateLimit(const String &clientIP);
+void cleanupRateBuckets();
+
 // Global state for wake-up messages (owned by WebHandlers)
 extern bool showWakeMessage;
 extern unsigned long wakeMessageStartTime;

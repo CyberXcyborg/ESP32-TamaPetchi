@@ -58,6 +58,94 @@ extern GameStats g_stats;
 WebServer* getServer() { return g_server; }
 
 // ============================================================
+// Rate Limiting (Phase 7.2) — Token bucket per IP
+// ============================================================
+#define RATE_LIMIT_MAX_TOKENS    10   // Max burst requests
+#define RATE_LIMIT_REFILL_RATE   1    // Tokens per second
+#define RATE_LIMIT_BUCKET_MAX    32   // Max tracked IPs (to limit memory)
+#define RATE_LIMIT_CLEANUP_MS    60000 // Cleanup every 60s
+
+struct RateBucket {
+  String ip;
+  int tokens;
+  unsigned long lastRefill;
+  unsigned long lastRequest;
+};
+
+static RateBucket rateBuckets[RATE_LIMIT_BUCKET_MAX];
+static unsigned long lastRateCleanup = 0;
+
+bool checkRateLimit(const String &clientIP) {
+  if (clientIP.length() == 0) return true; // Allow if no IP
+
+  unsigned long now = millis();
+
+  // Find existing bucket or empty slot
+  int slot = -1;
+  int oldestSlot = 0;
+  unsigned long oldestTime = now;
+
+  for (int i = 0; i < RATE_LIMIT_BUCKET_MAX; i++) {
+    if (rateBuckets[i].ip == clientIP) {
+      slot = i;
+      break;
+    }
+    if (rateBuckets[i].ip.length() == 0) {
+      slot = i;
+      break;
+    }
+    if (rateBuckets[i].lastRequest < oldestTime) {
+      oldestTime = rateBuckets[i].lastRequest;
+      oldestSlot = i;
+    }
+  }
+
+  // No slot found — evict oldest
+  if (slot == -1) {
+    slot = oldestSlot;
+  }
+
+  // Initialize new bucket
+  if (rateBuckets[slot].ip != clientIP) {
+    rateBuckets[slot].ip = clientIP;
+    rateBuckets[slot].tokens = RATE_LIMIT_MAX_TOKENS;
+    rateBuckets[slot].lastRefill = now;
+  }
+
+  // Refill tokens based on elapsed time
+  unsigned long elapsed = now - rateBuckets[slot].lastRefill;
+  int tokensToAdd = elapsed / 1000 * RATE_LIMIT_REFILL_RATE;
+  if (tokensToAdd > 0) {
+    rateBuckets[slot].tokens = min(rateBuckets[slot].tokens + tokensToAdd, RATE_LIMIT_MAX_TOKENS);
+    rateBuckets[slot].lastRefill = now;
+  }
+
+  rateBuckets[slot].lastRequest = now;
+
+  // Check if request is allowed
+  if (rateBuckets[slot].tokens > 0) {
+    rateBuckets[slot].tokens--;
+    return true;
+  }
+
+  return false; // Rate limited
+}
+
+void cleanupRateBuckets() {
+  unsigned long now = millis();
+  if (now - lastRateCleanup < RATE_LIMIT_CLEANUP_MS) return;
+  lastRateCleanup = now;
+
+  for (int i = 0; i < RATE_LIMIT_BUCKET_MAX; i++) {
+    // Remove buckets inactive for > 5 minutes
+    if (rateBuckets[i].ip.length() > 0 && (now - rateBuckets[i].lastRequest) > 300000UL) {
+      rateBuckets[i].ip = "";
+      rateBuckets[i].tokens = 0;
+    }
+  }
+}
+
+// ============================================================
 // SSE Support (Phase 6.2) — Server-Sent Events for real-time updates
 // ============================================================
 #include <WiFiClient.h>
@@ -133,6 +221,9 @@ void handleSSEClients() {
   if (g_pet && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
     lastSSEBroadcast = millis();
 
+    // Phase 7.2: Periodic rate limit bucket cleanup
+    cleanupRateBuckets();
+
     DynamicJsonDocument jsonDoc(512);
     jsonDoc["hunger"]      = g_pet->hunger;
     jsonDoc["happiness"]   = g_pet->happiness;
@@ -170,6 +261,13 @@ void handleSSEClients() {
 void registerHandlers(WebServer &server, Pet &pet) {
   g_pet    = &pet;
   g_server = &server;
+
+  // Phase 7.2: Register rate-limited 404 fallback
+  server.onNotFound([]() {
+    if (g_server) {
+      g_server->send(404, "application/json", "{\"success\":false,\"error\":\"not_found\"}");
+    }
+  });
 
   server.on("/",       HTTP_GET,  handleRoot);
   server.on("/pet",    HTTP_GET,  handleGetPet);
@@ -310,6 +408,11 @@ void handleGetPet() {
 }
 
 void handleFeed() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   // Phase 6: Clamp stat before action to prevent overflow
@@ -322,6 +425,11 @@ void handleFeed() {
 }
 
 void handlePlay() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
   playPet(*g_pet);
@@ -332,6 +440,11 @@ void handlePlay() {
 }
 
 void handleClean() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   cleanPet(*g_pet);
   savePetData(*g_pet);
@@ -339,6 +452,11 @@ void handleClean() {
 }
 
 void handleSleep() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   sleepPet(*g_pet);
   savePetData(*g_pet);
@@ -346,6 +464,11 @@ void handleSleep() {
 }
 
 void handleHeal() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive && !g_pet->isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
   healPet(*g_pet);
   savePetData(*g_pet);
@@ -353,6 +476,11 @@ void handleHeal() {
 }
 
 void handleReset() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   initPet(*g_pet);
   // Reset achievement tracking
   g_pet->feedCount     = 0;
@@ -369,6 +497,11 @@ void handleUpdate() {
 }
 
 void handleGameStart() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
@@ -398,6 +531,11 @@ void handleGameStart() {
 }
 
 void handleGameAction() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
 
@@ -448,6 +586,11 @@ void handleGameState() {
 }
 
 void handleSetMusic() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   g_pet->musicEnabled = !g_pet->musicEnabled;
   savePetData(*g_pet);
@@ -460,6 +603,11 @@ void handleSetMusic() {
 }
 
 void handleSetDifficulty() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
@@ -487,6 +635,11 @@ void handleSetDifficulty() {
 }
 
 void handleRevive() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (g_pet->isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
   if (g_pet->isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
   if (!canRevive(*g_pet)) {
@@ -500,6 +653,11 @@ void handleRevive() {
 }
 
 void handleSetType() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
@@ -557,6 +715,11 @@ void handleMute() {
 }
 
 void handleSetName() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
@@ -612,6 +775,10 @@ void handleGetMelodyConfig() {
 
 void handleSetMelodyConfig() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
   setMelodyConfigFromJson(body);
   sendJsonResponse(true);
@@ -629,6 +796,10 @@ void handleGetPets() {
 
 void handleCreatePet() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
   DeserializationError err = deserializeJson(jsonDoc, body);
@@ -664,6 +835,10 @@ void handleSwitchPet() {
 
 void handleDeletePet() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
   DeserializationError err = deserializeJson(jsonDoc, body);
