@@ -9,6 +9,15 @@
 #include "Stats.h"
 #include "Notifications.h"
 #include "PowerManager.h"
+#ifndef DISABLE_IR_REMOTE
+#include "IRRemote.h"
+#endif
+#ifndef DISABLE_MQTT
+#include "MQTT.h"
+#endif
+#ifndef DISABLE_OTA_DELTA
+#include "OTA_Delta.h"
+#endif
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
@@ -56,6 +65,94 @@ extern MultiPetState g_multiPet;
 extern GameStats g_stats;
 
 WebServer* getServer() { return g_server; }
+
+// ============================================================
+// Rate Limiting (Phase 7.2) — Token bucket per IP
+// ============================================================
+#define RATE_LIMIT_MAX_TOKENS    10   // Max burst requests
+#define RATE_LIMIT_REFILL_RATE   1    // Tokens per second
+#define RATE_LIMIT_BUCKET_MAX    32   // Max tracked IPs (to limit memory)
+#define RATE_LIMIT_CLEANUP_MS    60000 // Cleanup every 60s
+
+struct RateBucket {
+  String ip;
+  int tokens;
+  unsigned long lastRefill;
+  unsigned long lastRequest;
+};
+
+static RateBucket rateBuckets[RATE_LIMIT_BUCKET_MAX];
+static unsigned long lastRateCleanup = 0;
+
+bool checkRateLimit(const String &clientIP) {
+  if (clientIP.length() == 0) return true; // Allow if no IP
+
+  unsigned long now = millis();
+
+  // Find existing bucket or empty slot
+  int slot = -1;
+  int oldestSlot = 0;
+  unsigned long oldestTime = now;
+
+  for (int i = 0; i < RATE_LIMIT_BUCKET_MAX; i++) {
+    if (rateBuckets[i].ip == clientIP) {
+      slot = i;
+      break;
+    }
+    if (rateBuckets[i].ip.length() == 0) {
+      slot = i;
+      break;
+    }
+    if (rateBuckets[i].lastRequest < oldestTime) {
+      oldestTime = rateBuckets[i].lastRequest;
+      oldestSlot = i;
+    }
+  }
+
+  // No slot found — evict oldest
+  if (slot == -1) {
+    slot = oldestSlot;
+  }
+
+  // Initialize new bucket
+  if (rateBuckets[slot].ip != clientIP) {
+    rateBuckets[slot].ip = clientIP;
+    rateBuckets[slot].tokens = RATE_LIMIT_MAX_TOKENS;
+    rateBuckets[slot].lastRefill = now;
+  }
+
+  // Refill tokens based on elapsed time
+  unsigned long elapsed = now - rateBuckets[slot].lastRefill;
+  int tokensToAdd = elapsed / 1000 * RATE_LIMIT_REFILL_RATE;
+  if (tokensToAdd > 0) {
+    rateBuckets[slot].tokens = min(rateBuckets[slot].tokens + tokensToAdd, RATE_LIMIT_MAX_TOKENS);
+    rateBuckets[slot].lastRefill = now;
+  }
+
+  rateBuckets[slot].lastRequest = now;
+
+  // Check if request is allowed
+  if (rateBuckets[slot].tokens > 0) {
+    rateBuckets[slot].tokens--;
+    return true;
+  }
+
+  return false; // Rate limited
+}
+
+void cleanupRateBuckets() {
+  unsigned long now = millis();
+  if (now - lastRateCleanup < RATE_LIMIT_CLEANUP_MS) return;
+  lastRateCleanup = now;
+
+  for (int i = 0; i < RATE_LIMIT_BUCKET_MAX; i++) {
+    // Remove buckets inactive for > 5 minutes
+    if (rateBuckets[i].ip.length() > 0 && (now - rateBuckets[i].lastRequest) > 300000UL) {
+      rateBuckets[i].ip = "";
+      rateBuckets[i].tokens = 0;
+    }
+  }
+}
 
 // ============================================================
 // SSE Support (Phase 6.2) — Server-Sent Events for real-time updates
@@ -133,6 +230,9 @@ void handleSSEClients() {
   if (g_pet && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
     lastSSEBroadcast = millis();
 
+    // Phase 7.2: Periodic rate limit bucket cleanup
+    cleanupRateBuckets();
+
     DynamicJsonDocument jsonDoc(512);
     jsonDoc["hunger"]      = g_pet->hunger;
     jsonDoc["happiness"]   = g_pet->happiness;
@@ -170,6 +270,13 @@ void handleSSEClients() {
 void registerHandlers(WebServer &server, Pet &pet) {
   g_pet    = &pet;
   g_server = &server;
+
+  // Phase 7.2: Register rate-limited 404 fallback
+  server.onNotFound([]() {
+    if (g_server) {
+      g_server->send(404, "application/json", "{\"success\":false,\"error\":\"not_found\"}");
+    }
+  });
 
   server.on("/",       HTTP_GET,  handleRoot);
   server.on("/pet",    HTTP_GET,  handleGetPet);
@@ -215,6 +322,27 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 5: Notifications route
   server.on("/notifications", HTTP_GET, handleGetNotifications);
+
+  // Phase 7.5: Mood & Scheduled Feeding routes
+  server.on("/mood",              HTTP_GET,  handleGetMood);
+  server.on("/scheduled-feed",    HTTP_GET,  handleGetScheduledFeed);
+  server.on("/scheduled-feed",    HTTP_POST, handleSetScheduledFeed);
+
+  // Phase 7.5: IR Remote routes
+#ifndef DISABLE_IR_REMOTE
+  server.on("/ir/status",  HTTP_GET,  handleGetIRStatus);
+  server.on("/ir/config",  HTTP_POST, handleSetIRRemote);
+#endif
+
+  // Phase 7.5: MQTT routes
+#ifndef DISABLE_MQTT
+  registerMQTTRoutes(server);
+#endif
+
+  // Phase 7.5: OTA Delta routes
+#ifndef DISABLE_OTA_DELTA
+  registerDeltaRoutes(server);
+#endif
 }
 
 // ============================================================
@@ -225,7 +353,7 @@ static void sendJsonResponse(bool success, const String &message = "") {
     Serial.println("ERROR: g_server is null in sendJsonResponse");
     return;
   }
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = success;
   if (message.length() > 0) {
     jsonDoc["message"] = message;
@@ -240,11 +368,24 @@ static void sendJsonResponse(bool success, const String &message = "") {
 // ============================================================
 void handleRoot() {
   if (!g_server) { Serial.println("ERROR: g_server null in handleRoot"); return; }
-  File file = SPIFFS.open("/index.html", "r");
+
+  // Phase 7.3: Try gzip-compressed version first
+  File file = SPIFFS.open("/index.html.gz", "r");
+  if (file) {
+    g_server->sendHeader("Content-Encoding", "gzip");
+    g_server->sendHeader("Cache-Control", "max-age=86400");
+    g_server->streamFile(file, "text/html");
+    file.close();
+    return;
+  }
+
+  // Fallback to uncompressed
+  file = SPIFFS.open("/index.html", "r");
   if (!file) {
     g_server->send(500, "text/plain", "Failed to open index.html");
     return;
   }
+  g_server->sendHeader("Cache-Control", "max-age=3600");
   g_server->streamFile(file, "text/html");
   file.close();
 }
@@ -290,7 +431,7 @@ void handleGetPet() {
 
   // Phase 3: achievements array
   String achJson = getAchievementsJson(*g_pet);
-  DynamicJsonDocument achDoc(512);
+  StaticJsonDocument<512> achDoc;
   deserializeJson(achDoc, achJson);
   jsonDoc["achievements"] = achDoc["achievements"];
 
@@ -304,12 +445,25 @@ void handleGetPet() {
   jsonDoc["gameCooldown"] = g_pet->gameCooldown;
   jsonDoc["activeGame"]   = g_pet->activeGame;
 
+  // Phase 7.5: mood & personality
+  jsonDoc["mood"]               = g_pet->mood;
+  jsonDoc["moodName"]           = getMoodName(g_pet->mood);
+  jsonDoc["moodEmoji"]          = getMoodEmoji(g_pet->mood);
+  jsonDoc["personalityCheerful"]  = g_pet->personalityCheerful;
+  jsonDoc["personalityEnergetic"] = g_pet->personalityEnergetic;
+  jsonDoc["personalityHungry"]    = g_pet->personalityHungry;
+
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
 }
 
 void handleFeed() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   // Phase 6: Clamp stat before action to prevent overflow
@@ -322,6 +476,11 @@ void handleFeed() {
 }
 
 void handlePlay() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
   playPet(*g_pet);
@@ -332,6 +491,11 @@ void handlePlay() {
 }
 
 void handleClean() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   cleanPet(*g_pet);
   savePetData(*g_pet);
@@ -339,6 +503,11 @@ void handleClean() {
 }
 
 void handleSleep() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   sleepPet(*g_pet);
   savePetData(*g_pet);
@@ -346,6 +515,11 @@ void handleSleep() {
 }
 
 void handleHeal() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive && !g_pet->isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
   healPet(*g_pet);
   savePetData(*g_pet);
@@ -353,6 +527,11 @@ void handleHeal() {
 }
 
 void handleReset() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   initPet(*g_pet);
   // Reset achievement tracking
   g_pet->feedCount     = 0;
@@ -369,13 +548,18 @@ void handleUpdate() {
 }
 
 void handleGameStart() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
   if (g_pet->energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   if (error) { sendJsonResponse(false, "Invalid JSON body"); return; }
 
@@ -387,9 +571,9 @@ void handleGameStart() {
   savePetData(*g_pet);
 
   String gameState = getGameStateJSON(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
-  DynamicJsonDocument gs(512);
+  StaticJsonDocument<512> gs;
   deserializeJson(gs, gameState);
   resp["gameState"] = gs;
   String result;
@@ -398,11 +582,16 @@ void handleGameStart() {
 }
 
 void handleGameAction() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   int input = jsonDoc["input"] | -1;
 
@@ -432,9 +621,9 @@ void handleGameAction() {
 
   savePetData(*g_pet);
   String gameState = getGameStateJSON(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
-  DynamicJsonDocument gs(512);
+  StaticJsonDocument<512> gs;
   deserializeJson(gs, gameState);
   resp["gameState"] = gs;
   String result;
@@ -448,10 +637,15 @@ void handleGameState() {
 }
 
 void handleSetMusic() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   g_pet->musicEnabled = !g_pet->musicEnabled;
   savePetData(*g_pet);
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
   jsonDoc["musicEnabled"] = g_pet->musicEnabled;
   String response;
@@ -460,9 +654,14 @@ void handleSetMusic() {
 }
 
 void handleSetDifficulty() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   String diffStr = jsonDoc["difficulty"] | "normal";
   diffStr.toLowerCase();
@@ -478,7 +677,7 @@ void handleSetDifficulty() {
   }
 
   savePetData(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
   resp["difficulty"] = getDifficultyName(g_pet->difficulty);
   String response;
@@ -487,6 +686,11 @@ void handleSetDifficulty() {
 }
 
 void handleRevive() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (g_pet->isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
   if (g_pet->isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
   if (!canRevive(*g_pet)) {
@@ -500,11 +704,16 @@ void handleRevive() {
 }
 
 void handleSetType() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
 
   if (error) {
@@ -548,7 +757,7 @@ void handleMute() {
   g_pet->soundEnabled = !g_pet->soundEnabled;
   savePetData(*g_pet);
 
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
   jsonDoc["soundEnabled"] = g_pet->soundEnabled;
   String response;
@@ -557,10 +766,15 @@ void handleMute() {
 }
 
 void handleSetName() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
 
   if (error) {
@@ -612,6 +826,10 @@ void handleGetMelodyConfig() {
 
 void handleSetMelodyConfig() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
   setMelodyConfigFromJson(body);
   sendJsonResponse(true);
@@ -629,8 +847,12 @@ void handleGetPets() {
 
 void handleCreatePet() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   String name = jsonDoc["name"] | "";
@@ -638,7 +860,7 @@ void handleCreatePet() {
   PetType pt = (PetType)constrain(type, 0, 2);
   int slot = createPet(g_multiPet, name, pt);
   if (slot >= 0) {
-    DynamicJsonDocument resp(256);
+    StaticJsonDocument<256> resp;
     resp["success"] = true;
     resp["slot"] = slot;
     String r; serializeJson(resp, r);
@@ -651,7 +873,7 @@ void handleCreatePet() {
 void handleSwitchPet() {
   if (!g_server) return;
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
@@ -664,8 +886,12 @@ void handleSwitchPet() {
 
 void handleDeletePet() {
   if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
+    return;
+  }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
@@ -691,3 +917,91 @@ void handleGetNotifications() {
   String json = getNotificationsJson(g_multiPet.activePetIndex);
   g_server->send(200, "application/json", json);
 }
+
+// ============================================================
+// Phase 7.5: Mood & Scheduled Feeding Endpoints
+// ============================================================
+
+void handleGetMood() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  String result = "{";
+  result += "\"mood\":" + String(g_pet->mood) + ",";
+  result += "\"moodName\":\"" + getMoodName(g_pet->mood) + "\",";
+  result += "\"moodEmoji\":\"" + getMoodEmoji(g_pet->mood) + "\",";
+  result += "\"personalityCheerful\":" + String(g_pet->personalityCheerful) + ",";
+  result += "\"personalityEnergetic\":" + String(g_pet->personalityEnergetic) + ",";
+  result += "\"personalityHungry\":" + String(g_pet->personalityHungry);
+  result += "}";
+  g_server->send(200, "application/json", result);
+}
+
+void handleGetScheduledFeed() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  g_server->send(200, "application/json", getScheduledFeedJson(*g_pet));
+}
+
+void handleSetScheduledFeed() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  if (jsonDoc["enabled"].is<bool>()) {
+    g_pet->scheduledFeedEnabled = jsonDoc["enabled"].as<bool>();
+  }
+  if (jsonDoc["intervalHours"].is<int>()) {
+    int hours = jsonDoc["intervalHours"].as<int>();
+    g_pet->scheduledFeedInterval = constrain(hours, 1, 24) * 3600000UL;
+  }
+  if (jsonDoc["amount"].is<int>()) {
+    g_pet->scheduledFeedAmount = constrain(jsonDoc["amount"].as<int>(), 5, 50);
+  }
+
+  g_pet->lastScheduledFeed = millis(); // Reset timer on config change
+  savePetData(*g_pet);
+  sendJsonResponse(true);
+}
+
+// ============================================================
+// Phase 7.5: IR Remote Status Endpoint
+// ============================================================
+#ifndef DISABLE_IR_REMOTE
+void handleGetIRStatus() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["irEnabled"] = isIRRemoteEnabled();
+  jsonDoc["lastButton"] = (int)getLastIRButton();
+  jsonDoc["lastRawCode"] = getLastIRRawCode();
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+void handleSetIRRemote() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  if (jsonDoc["enabled"].is<bool>()) {
+    enableIRRemote(jsonDoc["enabled"].as<bool>());
+  }
+  sendJsonResponse(true);
+}
+#endif // !DISABLE_IR_REMOTE

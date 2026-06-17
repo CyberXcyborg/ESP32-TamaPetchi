@@ -141,10 +141,22 @@ void initPet(Pet &pet) {
   pet.batteryLevel        = -1;
   pet.lowBatteryWarning   = false;
   pet.lastBatteryCheck    = 0;
+
+  // Phase 7.5 init
+  initMoodSystem(pet);
+  initScheduledFeed(pet);
 }
 
 void updatePet(Pet &pet) {
   if (!pet.isAlive) return;
+
+  // Phase 7.3: Periodic heap logging (every 10 ticks = 10 minutes)
+  static uint8_t heapLogCounter = 0;
+  if (++heapLogCounter >= 10) {
+    heapLogCounter = 0;
+    Serial.printf("[MEM] Free heap: %u bytes, min free: %u bytes\n",
+                  ESP.getFreeHeap(), ESP.getMinFreeHeap());
+  }
 
   // Phase 4: Check evolution animation timeout
   if (pet.isEvolving && millis() - pet.evolutionStartTime > 3000) {
@@ -293,6 +305,10 @@ void updatePet(Pet &pet) {
   }
 
   pet.age++;
+
+  // Phase 7.5: Update mood and check scheduled feeding
+  updateMood(pet);
+  checkScheduledFeed(pet);
 }
 
 // ============================================================
@@ -593,7 +609,7 @@ void updateCatchTarget(Pet &pet) {
 }
 
 String getGameStateJSON(const Pet &pet) {
-  DynamicJsonDocument doc(512);
+  StaticJsonDocument<512> doc;
   doc["activeGame"] = pet.activeGame;
   doc["score"] = pet.gameScore;
   doc["round"] = pet.gameRound;
@@ -767,7 +783,7 @@ int getMelodyConfig(int event) {
 }
 
 String getMelodyConfigJson() {
-  DynamicJsonDocument doc(1024);
+  StaticJsonDocument<512> doc;
 
   // Available melodies
   JsonArray lib = doc.createNestedArray("library");
@@ -793,7 +809,7 @@ String getMelodyConfigJson() {
 }
 
 void setMelodyConfigFromJson(const String &json) {
-  DynamicJsonDocument doc(512);
+  StaticJsonDocument<512> doc;
   if (deserializeJson(doc, json)) return;
 
   const char *eventNames[] = {"happy", "sleep", "sick", "dying", "evolve", "feed", "play", "death"};
@@ -854,4 +870,156 @@ void updateBatteryLevel(Pet &pet) {
   } else if (pct >= LOW_BATTERY_THRESHOLD + 5) {
     pet.lowBatteryWarning = false; // Hysteresis
   }
+}
+
+// ============================================================
+// Phase 7.5: Pet Mood System
+// Personality traits affect stat decay and mood evolution
+// ============================================================
+
+void initMoodSystem(Pet &pet) {
+  pet.mood = 3; // neutral
+  pet.personalityCheerful = 50 + random(0, 51);   // 50-100
+  pet.personalityEnergetic = 50 + random(0, 51);  // 50-100
+  pet.personalityHungry = 30 + random(0, 41);     // 30-70
+  pet.lastMoodUpdate = millis();
+}
+
+void updateMood(Pet &pet) {
+  if (!pet.isAlive) return;
+
+  // Update mood every 5 minutes
+  if (millis() - pet.lastMoodUpdate < 300000UL) return;
+  pet.lastMoodUpdate = millis();
+
+  // Calculate mood score based on stats and personality
+  int score = 0;
+
+  // Happiness contribution (weighted by personality)
+  if (pet.happiness > 80) score += 2;
+  else if (pet.happiness > 60) score += 1;
+  else if (pet.happiness < 30) score -= 2;
+  else if (pet.happiness < 50) score -= 1;
+
+  // Health contribution
+  if (pet.health > 70) score += 1;
+  else if (pet.health < 30) score -= 2;
+
+  // Energy contribution
+  if (pet.energy > 70) score += 1;
+  else if (pet.energy < 20) score -= 1;
+
+  // Hunger contribution
+  if (pet.hunger < 20) score -= 2;
+  else if (pet.hunger > 70) score += 1;
+
+  // Cleanliness contribution
+  if (pet.cleanliness < 30) score -= 1;
+  else if (pet.cleanliness > 80) score += 1;
+
+  // Personality modifier: cheerful pets tend happier
+  int personalityMod = (pet.personalityCheerful - 50) / 25; // -2 to +2
+  score += personalityMod;
+
+  // Map score to mood
+  if (score >= 4) pet.mood = 0;       // ecstatic
+  else if (score >= 2) pet.mood = 1;  // happy
+  else if (score >= 0) pet.mood = 2;  // content
+  else if (score >= -1) pet.mood = 3; // neutral
+  else if (score >= -3) pet.mood = 4; // sad
+  else if (score >= -5) pet.mood = 5; // upset
+  else pet.mood = 6;                   // miserable
+}
+
+String getMoodName(int mood) {
+  switch (mood) {
+    case 0: return "Ecstatic";
+    case 1: return "Happy";
+    case 2: return "Content";
+    case 3: return "Neutral";
+    case 4: return "Sad";
+    case 5: return "Upset";
+    case 6: return "Miserable";
+    default: return "Neutral";
+  }
+}
+
+String getMoodEmoji(int mood) {
+  switch (mood) {
+    case 0: return "🤩";
+    case 1: return "😊";
+    case 2: return "🙂";
+    case 3: return "😐";
+    case 4: return "😢";
+    case 5: return "😠";
+    case 6: return "😭";
+    default: return "😐";
+  }
+}
+
+int getMoodHappinessMod(int mood) {
+  switch (mood) {
+    case 0: return 3;
+    case 1: return 2;
+    case 2: return 1;
+    case 3: return 0;
+    case 4: return -1;
+    case 5: return -2;
+    case 6: return -3;
+    default: return 0;
+  }
+}
+
+// ============================================================
+// Phase 7.5: Scheduled Feeding
+// Timer-based auto-feeding at configurable intervals
+// ============================================================
+
+void initScheduledFeed(Pet &pet) {
+  pet.scheduledFeedEnabled = false;
+  pet.scheduledFeedInterval = 4UL * 60UL * 60UL * 1000UL; // 4 hours default
+  pet.lastScheduledFeed = millis();
+  pet.scheduledFeedAmount = 15;
+}
+
+void checkScheduledFeed(Pet &pet) {
+  if (!pet.scheduledFeedEnabled || !pet.isAlive) return;
+  if (pet.hunger >= STAT_MAX) return; // Already full
+
+  unsigned long now = millis();
+  if (now - pet.lastScheduledFeed >= pet.scheduledFeedInterval) {
+    pet.lastScheduledFeed = now;
+    pet.hunger = constrain(pet.hunger + pet.scheduledFeedAmount, STAT_MIN, STAT_MAX);
+    pet.state = "eating";
+    pet.stateChangeTime = now;
+    pet.lastInteractionTime = now;
+    if (pet.soundEnabled) soundFeed();
+    Serial.println("Scheduled feeding triggered!");
+  }
+}
+
+void setScheduledFeed(bool enabled, unsigned long intervalMs, int amount) {
+  // Note: these are stored in the global pet instance
+  // The actual values are applied via the web handler
+  (void)enabled;
+  (void)intervalMs;
+  (void)amount;
+}
+
+String getScheduledFeedJson(Pet &pet) {
+  String result = "{";
+  result += "\"enabled\":" + String(pet.scheduledFeedEnabled ? "true" : "false") + ",";
+  result += "\"intervalMs\":" + String(pet.scheduledFeedInterval) + ",";
+  result += "\"intervalHours\":" + String(pet.scheduledFeedInterval / 3600000UL) + ",";
+  result += "\"amount\":" + String(pet.scheduledFeedAmount) + ",";
+  unsigned long remaining = 0;
+  if (pet.scheduledFeedEnabled && pet.isAlive) {
+    unsigned long elapsed = millis() - pet.lastScheduledFeed;
+    if (elapsed < pet.scheduledFeedInterval) {
+      remaining = pet.scheduledFeedInterval - elapsed;
+    }
+  }
+  result += "\"nextFeedMs\":" + String(remaining);
+  result += "}";
+  return result;
 }

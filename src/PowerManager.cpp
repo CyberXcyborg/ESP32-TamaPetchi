@@ -99,7 +99,7 @@ void restoreWiFiPower() {
 // Battery JSON
 // ============================================================
 String getBatteryJson(const Pet &pet) {
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["batteryLevel"] = pet.batteryLevel;
   jsonDoc["lowBatteryWarning"] = pet.lowBatteryWarning;
   jsonDoc["hasBatteryMonitor"] = (pet.batteryLevel >= 0);

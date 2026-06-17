@@ -45,7 +45,7 @@ void saveAchievements(const Pet &pet) {
     return;
   }
 
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["feedCount"]     = pet.feedCount;
   jsonDoc["playCount"]     = pet.playCount;
   jsonDoc["hasBeenNamed"]  = pet.hasBeenNamed;

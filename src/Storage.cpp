@@ -72,6 +72,16 @@ void savePetData(const Pet &pet) {
   jsonDoc["lowBatteryWarning"]   = pet.lowBatteryWarning;
   jsonDoc["lastBatteryCheck"]    = pet.lastBatteryCheck;
 
+  // Phase 7.5: persist mood & scheduled feeding
+  jsonDoc["mood"]               = pet.mood;
+  jsonDoc["personalityCheerful"]  = pet.personalityCheerful;
+  jsonDoc["personalityEnergetic"] = pet.personalityEnergetic;
+  jsonDoc["personalityHungry"]    = pet.personalityHungry;
+  jsonDoc["scheduledFeedEnabled"] = pet.scheduledFeedEnabled;
+  jsonDoc["scheduledFeedInterval"] = pet.scheduledFeedInterval;
+  jsonDoc["lastScheduledFeed"]    = pet.lastScheduledFeed;
+  jsonDoc["scheduledFeedAmount"]  = pet.scheduledFeedAmount;
+
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
   }
@@ -180,6 +190,16 @@ void loadPetData(Pet &pet) {
     pet.batteryLevel        = constrain((int)jsonDoc["batteryLevel"]        | -1, -1, 100);
     pet.lowBatteryWarning   = jsonDoc["lowBatteryWarning"]   | false;
     pet.lastBatteryCheck    = jsonDoc["lastBatteryCheck"]    | 0UL;
+
+    // Phase 7.5: load mood & scheduled feeding (with defaults)
+    pet.mood               = constrain((int)jsonDoc["mood"]               | 3, 0, 6);
+    pet.personalityCheerful  = constrain((int)jsonDoc["personalityCheerful"]  | 50, 0, 100);
+    pet.personalityEnergetic = constrain((int)jsonDoc["personalityEnergetic"] | 50, 0, 100);
+    pet.personalityHungry    = constrain((int)jsonDoc["personalityHungry"]    | 50, 0, 100);
+    pet.scheduledFeedEnabled = jsonDoc["scheduledFeedEnabled"] | false;
+    pet.scheduledFeedInterval = jsonDoc["scheduledFeedInterval"] | (4UL * 3600000UL);
+    pet.lastScheduledFeed    = jsonDoc["lastScheduledFeed"]    | 0UL;
+    pet.scheduledFeedAmount  = constrain((int)jsonDoc["scheduledFeedAmount"] | 15, 5, 50);
   }
 
   file.close();

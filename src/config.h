@@ -140,5 +140,23 @@
 // #define DISABLE_OLED         // Remove OLED display support
 // #define DISABLE_BUTTONS      // Remove physical button support
 // #define DISABLE_RGB_LED      // Remove RGB LED indicator
+// #define DISABLE_IR_REMOTE    // Remove IR remote control support
+
+// --- IR Remote (NEC Protocol) ---
+#define IR_RECEIVER_PIN       15     // GPIO pin for IR receiver (TSOP38238, etc.)
+
+// --- Phase 7.5: MQTT Smart Home Integration ---
+// Uncomment to disable MQTT entirely
+// #define DISABLE_MQTT
+#define MQTT_BROKER       "192.168.1.100"  // MQTT broker IP address
+#define MQTT_PORT         1883              // MQTT broker port
+#define MQTT_USER         ""                // MQTT username (empty = anonymous)
+#define MQTT_PASS         ""                // MQTT password
+#define MQTT_CLIENT_ID    "TamaPetchi"      // Unique client ID
+
+// --- Phase 7.5: OTA Delta Updates ---
+// URL to check for delta manifest (JSON). Empty = disabled.
+// Example: "http://192.168.1.100:8080/tamapetchi/manifest.json"
+#define OTA_DELTA_MANIFEST_URL  ""
 
 #endif // CONFIG_H

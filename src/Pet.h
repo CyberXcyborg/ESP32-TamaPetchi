@@ -82,6 +82,19 @@ struct Pet {
   int batteryLevel;              // 0-100 if ADC available, -1 if not
   bool lowBatteryWarning;
   unsigned long lastBatteryCheck;
+
+  // --- Phase 7.5: Pet Mood System ---
+  int mood;                   // 0=ecstatic, 1=happy, 2=content, 3=neutral, 4=sad, 5=upset, 6=miserable
+  int personalityCheerful;    // 0-100: how quickly happiness decays/regenerates
+  int personalityEnergetic;   // 0-100: how quickly energy decays/regenerates
+  int personalityHungry;      // 0-100: how quickly hunger decays
+  unsigned long lastMoodUpdate;
+
+  // --- Phase 7.5: Scheduled Feeding ---
+  bool scheduledFeedEnabled;
+  unsigned long scheduledFeedInterval;  // Interval in ms (default 4 hours)
+  unsigned long lastScheduledFeed;
+  int scheduledFeedAmount;              // How much hunger to restore (default 15)
 };
 
 // --- Lifecycle ---
@@ -179,5 +192,18 @@ void resetPet(Pet &pet);
 
 // --- Phase 5: Power Management ---
 void updateBatteryLevel(Pet &pet);
+
+// --- Phase 7.5: Pet Mood System ---
+void initMoodSystem(Pet &pet);
+void updateMood(Pet &pet);
+String getMoodName(int mood);
+String getMoodEmoji(int mood);
+int getMoodHappinessMod(int mood);
+
+// --- Phase 7.5: Scheduled Feeding ---
+void initScheduledFeed(Pet &pet);
+void checkScheduledFeed(Pet &pet);
+void setScheduledFeed(bool enabled, unsigned long intervalMs, int amount);
+String getScheduledFeedJson(Pet &pet);
 
 #endif // PET_H

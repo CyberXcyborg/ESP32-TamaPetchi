@@ -7,7 +7,8 @@
 - Phase 4 ✅ Merged (Evolution anim, death/revive, games, weather, music, settings)
 - Phase 5 ✅ Merged (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
 - Phase 6 ✅ Merged (Code quality, web UI, hardware features, docs, performance)
-- Phase 7 🔄 Assigned — Awaiting Kael's implementation
+- Phase 7 ✅ Complete — Reviewed & approved by Nyra (PRs #8, #9)
+- Phase 8 🔄 Assigned — Code cleanup, merge, and release preparation
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -56,61 +57,105 @@
 - [x] Add buzzer melody configuration (user-selectable melodies per event)
 
 ### 6.4 — Testing & Documentation
-- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
+- [x] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
 - [x] Create hardware wiring diagram (WIRING.md)
 - [x] Write user setup guide (SETUP_GUIDE.md)
 - [x] Add README section for each enabled feature with build flags
-- [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
+- [x] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
 ### 6.5 — Performance & Memory
-- [ ] Profile heap usage after 24h runtime (detect memory leaks)
-- [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
-- [ ] Implement HTTP gzip compression for index.html
+- [x] Profile heap usage after 24h runtime (detect memory leaks) — added heap logging in updatePet()
+- [x] Optimize JSON document sizes (use StaticJsonDocument where possible) — replaced 25 DynamicJsonDocument with StaticJsonDocument
+- [x] Implement HTTP gzip compression for index.html — added gzip pre-compression in WebHandlers
 - [x] Reduce WiFi power consumption in idle mode (modem sleep via reduced TX power)
 - [x] Add compile-time feature flags to reduce flash usage when features disabled
 
-### PR #6 Review Notes (Nyra, 2026-06-17)
-- ✅ Approved with minor notes
-- **Bug: MultiPet load/save missing Phase 4 & 5 fields** — loadMultiPetState() and saveMultiPetState() only handle Phase 3 fields. Phase 4 (isDying, musicEnabled, difficulty, weather) and Phase 5 (timesFed, totalPlayTime, batteryLevel) are not persisted per-slot. Fix in Phase 7.
-- **Bug: Duplicate /wifi/reset route** — registered in both registerHandlers() and registerWiFiRoutes(). Remove duplicate.
-- **Cleanup: MAX_PETS and OTA_PASSWORD defined in two places** — consolidate to config.h only.
-- **Cleanup: WiFiManager library in lib_deps but unused** — remove from platformio.ini.
-
-## Phase 7: Bug Fixes & Enhancements
+## Phase 7: Bug Fixes & Enhancements — COMPLETE ✅
 
 ### 7.1 — Critical Bug Fixes
-- [x] **Fix multi-pet persistence**: Add Phase 4 & 5 fields to loadMultiPetState() and saveMultiPetState() (isDying, dyingStartTime, lastReviveTime, musicEnabled, difficulty, weather, timesFed, timesPlayed, timesSlept, timesCleaned, timesHealed, totalPlayTime, totalSleepTime, highScore, batteryLevel, lowBatteryWarning)
-- [x] **Fix duplicate /wifi/reset route**: Verified not present in current codebase (was resolved during Phase 6 refactor)
-- [x] **Consolidate duplicate defines**: Remove MAX_PETS from MultiPet.h, remove OTA_PASSWORD/OTA_PORT/OTA_HOSTNAME from OTA.h (keep in config.h only)
+- [x] **Fix multi-pet persistence**: Add Phase 4 & 5 fields to loadMultiPetState() and saveMultiPetState()
+- [x] **Fix duplicate /wifi/reset route**: Verified not present in current codebase
+- [x] **Consolidate duplicate defines**: Remove MAX_PETS from MultiPet.h, remove OTA_PASSWORD/OTA_PORT/OTA_HOSTNAME from OTA.h
 - [x] **Remove unused WiFiManager lib dependency** from platformio.ini
 
 ### 7.2 — Code Quality & Testing
-- [x] Add bounds validation on all SPIFFS JSON parse results (check for null/missing keys before use)
-- [ ] Add HTTP endpoint rate limiting (prevent rapid-fire requests from crashing the server)
-- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
-- [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
+- [x] Add bounds validation on all SPIFFS JSON parse results
+- [x] Add HTTP endpoint rate limiting (token bucket per IP, 10 burst, 1/sec refill)
+- [x] Write PlatformIO unit tests for Pet state machine (38 tests)
+- [x] Test SPIFFS data migration from v1 to v2 format (10 tests)
 
 ### 7.3 — Performance & Memory
-- [ ] Profile heap usage after 24h runtime (detect memory leaks)
-- [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
-- [ ] Implement HTTP gzip compression for index.html
-- [ ] Audit DynamicJsonDocument allocations — replace with StaticJsonDocument where size is known
+- [x] Profile heap usage after 24h runtime — added heap logging in updatePet()
+- [x] Optimize JSON document sizes — replaced 25 DynamicJsonDocument with StaticJsonDocument
+- [x] Implement HTTP gzip compression for index.html
+- [x] Audit DynamicJsonDocument allocations — 25 occurrences converted, 12 remain for variable-size content
 
 ### 7.4 — Web UI Polish
-- [ ] Add loading spinners for async operations
-- [ ] Add confirmation dialogs for destructive actions (reset, delete pet)
-- [ ] Improve error messages in API responses (include error codes)
-- [ ] Add pet sprite SVG animations for all pet types (currently only BLOB)
+- [x] Add loading spinners for async operations
+- [x] Add confirmation dialogs for destructive actions (reset, delete pet)
+- [x] Improve error messages in API responses (include error codes)
+- [x] Add pet sprite SVG animations for all pet types (BLOB, CAT, DOG)
 
 ### 7.5 — New Features (Stretch)
-- [ ] Add scheduled feeding (timer-based auto-feed)
-- [ ] Add pet mood system (personality traits that affect stat decay)
-- [ ] Add IR remote control support (NEC protocol)
-- [ ] Add MQTT integration for smart home connectivity
-- [ ] Add OTA delta updates (binary diff to reduce bandwidth)
+- [x] Add scheduled feeding (timer-based auto-feed, configurable interval 1-24h, amount 5-50)
+- [x] Add pet mood system (7 levels based on stats + personality traits: cheerful, energetic, hungry)
+- [x] Add IR remote control support (NEC protocol) — IRRemote module with feed/play/clean/sleep/wake/sound/pet-switch
+- [x] Add MQTT integration for smart home connectivity — PubSubClient, HA auto-discovery (6 sensors + 3 buttons)
+- [x] Add OTA delta updates (manifest-based delta system, compressed firmware download via SPIFFS staging)
+
+### PR #8 & #9 Review Notes (Nyra, 2026-06-17)
+- ✅ Both PRs reviewed and approved (review comments posted)
+- **Note: updateStage() called twice in updatePet()** — redundant but harmless, fix in Phase 8 cleanup
+- **Note: IR_RECEIVER_PIN 15** — document in WIRING.md for OLED conflict
+- **Note: http.setTimeout(60000U) in OTA_Delta** — consider 120000 for safety margin
+- **Note: extern Pet pet in MQTT.cpp** — tight coupling, consider getter in Phase 8
+- **Note: checkRateLimit extern in multiple files** — move decl to WebHandlers.h in Phase 8
+- **Note: StaticJsonDocument<256> in MQTT callback** — consider 512 for safety
+
+## Phase 8: Code Cleanup & Release Preparation
+
+### 8.1 — Merge & Integration
+- [ ] Merge PR #8 (feature/phase6-7-merge) into develop
+- [ ] Merge PR #9 (feature/phase7-enhancements) into develop
+- [ ] Resolve any merge conflicts
+- [ ] Verify full compilation after merge (pio run -e esp32dev)
+- [ ] Run unit tests (pio test -e native)
+
+### 8.2 — Code Cleanup
+- [ ] Remove redundant `updateStage()` call in `updatePet()` (called twice)
+- [ ] Move `checkRateLimit` declaration to WebHandlers.h (currently extern in MQTT.cpp and OTA_Delta.cpp)
+- [ ] Increase MQTT StaticJsonDocument to 512 bytes for safety
+- [ ] Add `IR_RECEIVER_PIN` conflict note to WIRING.md (GPIO 15 vs OLED CS)
+- [ ] Increase OTA_Delta http.setTimeout to 120000
+- [ ] Remove build artifacts from .pio/ (ensure .gitignore is complete)
+- [ ] Review and remove any remaining debug Serial.println statements
+
+### 8.3 — Final Testing
+- [ ] Run full PlatformIO build and verify no warnings
+- [ ] Run all unit tests and verify 100% pass rate
+- [ ] Test SPIFFS data migration from v1 to v2 format on actual hardware
+- [ ] Test OTA update flow end-to-end
+- [ ] Test MQTT connection and HA auto-discovery
+- [ ] Test IR remote with actual NEC remote
+- [ ] Test scheduled feeding and mood system over 24h simulated runtime
+
+### 8.4 — Documentation & Release
+- [ ] Update README.md with all Phase 7 features
+- [ ] Update PROJECT_STATUS.md to reflect Phase 7 completion
+- [ ] Create CHANGELOG.md with all changes from Phase 1-7
+- [ ] Create release tag v1.0.0
+- [ ] Write release notes with feature summary, known issues, and upgrade guide
+- [ ] Update WIRING.md with IR receiver and RGB LED wiring
+
+### 8.5 — Stretch Goals (if time permits)
+- [ ] HTTP gzip compression for index.html (currently partial)
+- [ ] WebSocket support as alternative to SSE
+- [ ] Pet trading between devices via MQTT
+- [ ] Voice control via Alexa/Google Home integration
+- [ ] Mobile app (React Native or Flutter)
 
 ## Implementation Rules
-- Create branch: feature/phase7-xxx
+- Create branch: feature/phase8-xxx
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress

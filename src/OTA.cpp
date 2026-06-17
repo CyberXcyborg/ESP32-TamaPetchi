@@ -95,7 +95,7 @@ void registerOTARoutes(WebServer &server) {
 
   // GET /ota/status — current OTA progress
   server.on("/ota/status", HTTP_GET, [&server]() {
-    DynamicJsonDocument jsonDoc(256);
+    StaticJsonDocument<256> jsonDoc;
     jsonDoc["inProgress"] = otaInProgress;
     jsonDoc["progress"] = otaProgress;
     jsonDoc["error"] = otaError;

@@ -27,6 +27,21 @@
 #include "OLED.h"
 #endif
 
+// IR Remote (optional - disable with -DENABLE_IR_REMOTE)
+#ifndef DISABLE_IR_REMOTE
+#include "IRRemote.h"
+#endif
+
+// MQTT (optional - disable with -DMQTT)
+#ifndef DISABLE_MQTT
+#include "MQTT.h"
+#endif
+
+// OTA Delta (optional - disable with -DENABLE_OTA_DELTA)
+#ifndef DISABLE_OTA_DELTA
+#include "OTA_Delta.h"
+#endif
+
 // Web server
 WebServer server(WEB_SERVER_PORT);
 
@@ -75,6 +90,11 @@ void setup() {
   // Phase 5: Initialize OTA
   setupOTA();
 
+  // Phase 7.5: Initialize MQTT
+#ifndef DISABLE_MQTT
+  setupMQTT();
+#endif
+
   // Phase 5: Load stats
   loadStats(g_stats);
 
@@ -107,6 +127,12 @@ void setup() {
   // Initialize RGB LED
   setupRGBLED();
 
+  // Initialize IR remote
+#ifndef DISABLE_IR_REMOTE
+  setupIRRemote();
+  setIRCommandCallback(handleIRCommand);
+#endif
+
   // Phase 6: WiFi power optimization — reduce TX power in idle
   WiFi.setTxPower(WIFI_POWER_8_5dBm);  // Reduce from default 20dBm to save power
 
@@ -122,8 +148,18 @@ void loop() {
   // Phase 5: Handle OTA
   handleOTA();
 
+  // Phase 7.5: Handle MQTT
+#ifndef DISABLE_MQTT
+  handleMQTT();
+#endif
+
   // Phase 6: Check physical buttons
   checkButtons(pet);
+
+  // Check IR remote
+#ifndef DISABLE_IR_REMOTE
+  checkIRRemote();
+#endif
 
   // Phase 6: Handle SSE client cleanup and broadcast
   handleSSEClients();
@@ -150,3 +186,95 @@ void loop() {
     updateRGBLED(pet);
   }
 }
+
+// ============================================================
+// Phase 7.5: IR Remote Command Handler
+// ============================================================
+#ifndef DISABLE_IR_REMOTE
+void handleIRCommand(IRButton button, uint32_t rawCode) {
+  Serial.printf("[IR] Command received: 0x%02X\n", button);
+
+  switch (button) {
+    case IR_BTN_CH_MINUS:  // Feed
+      if (pet.isAlive) {
+        feedPet(pet);
+        savePetData(pet);
+        Serial.println("[IR] Feed");
+      }
+      break;
+
+    case IR_BTN_CH:  // Play
+      if (pet.isAlive && pet.energy >= PLAY_ENERGY_MIN) {
+        pet.state = "playing";
+        pet.happiness = min(STAT_MAX, pet.happiness + PLAY_HAPPINESS_GAIN);
+        pet.energy = max(STAT_MIN, pet.energy - PLAY_ENERGY_COST);
+        pet.hunger = max(STAT_MIN, pet.hunger - PLAY_HUNGER_COST);
+        pet.gameCooldown = 3;
+        savePetData(pet);
+        Serial.println("[IR] Play");
+      }
+      break;
+
+    case IR_BTN_CH_PLUS:  // Clean
+      if (pet.isAlive) {
+        cleanPet(pet);
+        savePetData(pet);
+        Serial.println("[IR] Clean");
+      }
+      break;
+
+    case IR_BTN_PREV:  // Sleep
+      if (pet.isAlive && pet.state != "sleeping") {
+        pet.state = "sleeping";
+        savePetData(pet);
+        Serial.println("[IR] Sleep");
+      }
+      break;
+
+    case IR_BTN_NEXT:  // Wake
+      if (pet.isAlive && pet.state == "sleeping") {
+        pet.state = "normal";
+        savePetData(pet);
+        Serial.println("[IR] Wake");
+      }
+      break;
+
+    case IR_BTN_PLAY:  // Toggle sound
+      pet.soundEnabled = !pet.soundEnabled;
+      savePetData(pet);
+      Serial.printf("[IR] Sound: %s\n", pet.soundEnabled ? "ON" : "OFF");
+      break;
+
+    case IR_BTN_0:  // Reset pet
+      if (!pet.isAlive) {
+        // Revive
+        pet.isAlive = true;
+        pet.state = "normal";
+        pet.health = 50;
+        pet.hunger = 50;
+        pet.happiness = 50;
+        pet.energy = 50;
+        pet.cleanliness = 50;
+        pet.isDying = false;
+        savePetData(pet);
+        Serial.println("[IR] Revive pet");
+      }
+      break;
+
+    case IR_BTN_1:
+    case IR_BTN_2:
+    case IR_BTN_3:  // Switch pet slot (multi-pet)
+      {
+        int slot = (int)(button - IR_BTN_1); // 0, 1, or 2
+        if (switchPet(g_multiPet, slot)) {
+          loadPetData(pet);
+          Serial.printf("[IR] Switched to pet slot %d\n", slot);
+        }
+      }
+      break;
+
+    default:
+      break;
+  }
+}
+#endif // !DISABLE_IR_REMOTE

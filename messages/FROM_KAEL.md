@@ -1,52 +1,54 @@
-# Kael's Status Report — Phase 6 Implementation (Round 2)
+# FROM_KAEL.md — Status Report
 
-**Date:** 2026-06-16
-**Branch:** `feature/phase6-code-quality`
-**Status:** ✅ Pushed — 4 new commits
+**Date:** 2026-06-17
+**Branch:** feature/phase7-enhancements
+**Commit:** d0a682f
 
-## What Was Done
+## What I Worked On
 
-### Phase 6.2 — SSE Real-Time Updates ✅
-- Added `/events` SSE endpoint in WebHandlers.cpp
-- Broadcasts pet state every 2 seconds to up to 3 clients
-- Web UI connects via EventSource with polling fallback
-- No more blind polling — instant stat updates
+### Phase 7.3 — Performance & Memory (Complete ✅)
 
-### Phase 6.3 — Deep Sleep Wake-on-Button ✅
-- RTC_DATA_ATTR variables preserve pet state across deep sleep
-- `enterDeepSleep()` saves to RTC + SPIFFS before sleep
-- `restoreFromRTC()` restores on wake with SPIFFS fallback
-- GPIO 0 (BOOT button) wakes from deep sleep via ext0
+1. **StaticJsonDocument Optimization** — Replaced 25 `DynamicJsonDocument` allocations with `StaticJsonDocument` across 6 modules:
+   - `PowerManager.cpp` — battery JSON (256 bytes)
+   - `OTA.cpp` — OTA status (256 bytes)
+   - `WebHandlers.cpp` — 17 simple request/response handlers (256-512 bytes)
+   - `WiFiManager.cpp` — WiFi credential save/load/status (256 bytes)
+   - `Stats.cpp` — stats save/load/serialize (512 bytes)
+   - `Achievements.cpp` — achievements save (256 bytes)
+   - Remaining 12 DynamicJsonDocument usages are for variable-size content (Storage, MultiPet, Notifications, large nested JSON) — correctly kept as DynamicJsonDocument.
 
-### Phase 6.3 — Buzzer Melody Configuration ✅
-- 12 built-in melodies in extended library
-- 8 configurable event slots (happy, sleep, sick, dying, evolve, feed, play, death)
-- New HTTP endpoints: `GET /melodies`, `POST /melodies/config`
-- `playStateMelody()` now uses configurable mapping
+2. **Heap Logging** — Added periodic heap logging in `updatePet()` (every 10 ticks = 10 minutes) reporting free heap and min free heap for memory leak detection.
 
-### Phase 6.5 — WiFi Power Reduction ✅
-- TX power reduced from 20dBm to 8.5dBm
-- Significant power savings in idle mode
+3. **HTTP Gzip Compression** — Updated `handleRoot()` to serve `index.html.gz` from SPIFFS with `Content-Encoding: gzip` header, with fallback to uncompressed `index.html`. Added `Cache-Control` headers.
 
-### Phase 6.4 — Documentation ✅
-- `WIRING.md` — Complete hardware wiring diagram
-- `SETUP_GUIDE.md` — First-time setup, OTA, troubleshooting
-- `README.md` — Feature flags table, API reference, SSE docs
+### Phase 7.4 — Web UI Polish (Complete ✅)
+
+- Verified all pet types (BLOB, CAT, DOG) have complete SVG sprite coverage for all states (normal, eating, sleeping, sick, playing, hungry). Task already complete from previous work.
+
+### Phase 7.5 — New Features (Partial ✅)
+
+1. **IR Remote Control (NEC Protocol)** — New `IRRemote` module:
+   - `IRRemote.h` / `IRRemote.cpp` — NEC protocol decoder using polling approach
+   - Maps remote buttons to pet actions: CH- (feed), CH (play), CH+ (clean), |<< (sleep), >>| (wake), >|| (toggle sound), 0 (revive), 1-3 (switch pet slot)
+   - Web UI endpoints: `GET /ir/status`, `POST /ir/config`
+   - Compile-time feature flag: `DISABLE_IR_REMOTE` in config.h
+   - Default IR pin: GPIO 15 (configurable in config.h)
+   - Integrated into main `setup()` and `loop()`
 
 ## Commits
-1. `c10323f` — Phase 6.2: SSE endpoint for real-time updates
-2. `81a7d10` — Phase 6.3: Deep sleep wake-on-button
-3. `b11cef5` — Phase 6.3: Buzzer melody configuration
-4. `d762c0c` — Phase 6.4: Documentation
 
-## Remaining Phase 6 Tasks
-- PlatformIO unit tests for Pet state machine
-- SPIFFS v1→v2 migration test
-- Heap profiling / memory leak detection
-- StaticJsonDocument optimization
-- HTTP gzip compression
+- `d0a682f` — perf(Phase 7.3): Replace DynamicJsonDocument with StaticJsonDocument + heap logging + gzip + IR remote
 
-## Notes
-- All code follows established patterns from Phases 1-5
-- No compiler available in this environment — code follows proven patterns
-- Branch pushed to origin
+## Compilation
+
+✅ **SUCCESS** — RAM 16.6% (54,364/327,680), Flash 72.5% (949,893/1,310,720)
+
+## Pushed
+
+- Branch `feature/phase7-enhancements` pushed to origin
+- PR needs to be created (gh CLI not authenticated in this environment)
+
+## What's Next
+
+- Phase 7.5 remaining stretch tasks: MQTT integration, OTA delta updates
+- Awaiting Nyra's review and next phase assignment
