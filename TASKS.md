@@ -106,8 +106,8 @@
 - [x] Add scheduled feeding (timer-based auto-feed)
 - [x] Add pet mood system (personality traits that affect stat decay)
 - [x] Add IR remote control support (NEC protocol) — IRRemote module with feed/play/clean/sleep/wake/sound/pet-switch commands, web UI status/config endpoints, compile-time DISABLE_IR_REMOTE flag
-- [ ] Add MQTT integration for smart home connectivity
-- [ ] Add OTA delta updates (binary diff to reduce bandwidth)
+- [x] Add MQTT integration for smart home connectivity — PubSubClient, HA auto-discovery (6 sensors + 3 buttons), command topic for remote control, web UI status/config/test endpoints, compile-time DISABLE_MQTT flag
+- [x] Add OTA delta updates (binary diff to reduce bandwidth) — manifest-based delta system, compressed firmware download via SPIFFS staging, SPIFFS file delta support, web UI status/check/apply endpoints, compile-time DISABLE_OTA_DELTA flag
 
 ## Implementation Rules
 - Create branch: feature/phase7-xxx

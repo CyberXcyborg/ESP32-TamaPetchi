@@ -53,4 +53,14 @@ void handleGetIRStatus();
 void handleSetIRRemote();
 #endif
 
+// Phase 7.5: MQTT
+#ifndef DISABLE_MQTT
+void registerMQTTRoutes(WebServer &server);
+#endif
+
+// Phase 7.5: OTA Delta
+#ifndef DISABLE_OTA_DELTA
+void registerDeltaRoutes(WebServer &server);
+#endif
+
 #endif // WEBHANDLERS_H

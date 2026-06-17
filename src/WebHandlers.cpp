@@ -12,6 +12,12 @@
 #ifndef DISABLE_IR_REMOTE
 #include "IRRemote.h"
 #endif
+#ifndef DISABLE_MQTT
+#include "MQTT.h"
+#endif
+#ifndef DISABLE_OTA_DELTA
+#include "OTA_Delta.h"
+#endif
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
@@ -326,6 +332,16 @@ void registerHandlers(WebServer &server, Pet &pet) {
 #ifndef DISABLE_IR_REMOTE
   server.on("/ir/status",  HTTP_GET,  handleGetIRStatus);
   server.on("/ir/config",  HTTP_POST, handleSetIRRemote);
+#endif
+
+  // Phase 7.5: MQTT routes
+#ifndef DISABLE_MQTT
+  registerMQTTRoutes(server);
+#endif
+
+  // Phase 7.5: OTA Delta routes
+#ifndef DISABLE_OTA_DELTA
+  registerDeltaRoutes(server);
 #endif
 }
 

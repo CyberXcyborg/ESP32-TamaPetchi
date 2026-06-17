@@ -32,6 +32,16 @@
 #include "IRRemote.h"
 #endif
 
+// MQTT (optional - disable with -DMQTT)
+#ifndef DISABLE_MQTT
+#include "MQTT.h"
+#endif
+
+// OTA Delta (optional - disable with -DENABLE_OTA_DELTA)
+#ifndef DISABLE_OTA_DELTA
+#include "OTA_Delta.h"
+#endif
+
 // Web server
 WebServer server(WEB_SERVER_PORT);
 
@@ -79,6 +89,11 @@ void setup() {
 
   // Phase 5: Initialize OTA
   setupOTA();
+
+  // Phase 7.5: Initialize MQTT
+#ifndef DISABLE_MQTT
+  setupMQTT();
+#endif
 
   // Phase 5: Load stats
   loadStats(g_stats);
@@ -132,6 +147,11 @@ void loop() {
 
   // Phase 5: Handle OTA
   handleOTA();
+
+  // Phase 7.5: Handle MQTT
+#ifndef DISABLE_MQTT
+  handleMQTT();
+#endif
 
   // Phase 6: Check physical buttons
   checkButtons(pet);
