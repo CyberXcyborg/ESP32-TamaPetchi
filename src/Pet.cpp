@@ -197,9 +197,6 @@ void updatePet(Pet &pet) {
   // Update day/night cycle
   updateDayNightCycle(pet);
 
-  // Update evolution stage
-  updateStage(pet);
-
   // Get stage multiplier for decay rates
   int mult = getStageDecayMultiplier(pet);
 

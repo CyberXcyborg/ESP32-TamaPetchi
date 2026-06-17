@@ -2,12 +2,10 @@
 #include "config.h"
 #include "Pet.h"
 #include "Storage.h"
+#include "WebHandlers.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-
-// Forward declarations from WebHandlers.cpp
-extern bool checkRateLimit(const String &clientIP);
 
 // Forward declarations within MQTT module
 static void publishHADiscovery();
@@ -111,7 +109,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
   if (String(topic) != TOPIC_COMMAND) return;
 
   // Parse JSON command
-  StaticJsonDocument<256> jsonDoc;
+  StaticJsonDocument<512> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, cmd);
   if (err) {
     Serial.println("[MQTT] Invalid JSON command");

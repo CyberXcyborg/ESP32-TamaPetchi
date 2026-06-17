@@ -28,8 +28,9 @@
 | GPIO 12 | RGB LED G | Green | Via 220Ω resistor |
 | GPIO 13 | RGB LED B | Blue | Via 220Ω resistor |
 | GND | RGB LED COM | Black | Common cathode |
-| GPIO 0 | BOOT Button | White | Internal pull-up, active low |
-| GPIO 35 | Battery ADC | Purple | Via voltage divider (10kΩ/10kΩ) |
+|| GPIO 0 | BOOT Button | White | Internal pull-up, active low |
+|| GPIO 35 | Battery ADC | Purple | Via voltage divider (10kΩ/10kΩ) |
+|| GPIO 15 | IR Receiver | Green | TSOP38238 or similar (conflicts with OLED CS) |
 | 3V3 | Button pull-up | Red | Internal pull-up used |
 
 ## ASCII Wiring Diagram
@@ -83,3 +84,4 @@
 4. **Buttons** — GPIO 0 has a built-in BOOT button on most ESP32 dev boards
 5. **Battery monitoring** — GPIO 35 is ADC1_CH7, suitable for battery voltage reading
 6. **Deep sleep wake** — GPIO 0 can wake the ESP32 from deep sleep (ext0 wakeup)
+7. **IR Receiver (GPIO 15)** — conflicts with OLED CS pin on some boards. If using both OLED and IR remote, use a different CS pin for the OLED or disable OLED (`-DDISABLE_OLED`).
