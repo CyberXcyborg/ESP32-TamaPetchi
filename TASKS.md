@@ -115,19 +115,19 @@
 ## Phase 8: Code Cleanup & Release Preparation
 
 ### 8.1 — Merge & Integration
-- [ ] Merge PR #8 (feature/phase6-7-merge) into develop
-- [ ] Merge PR #9 (feature/phase7-enhancements) into develop
-- [ ] Resolve any merge conflicts
-- [ ] Verify full compilation after merge (pio run -e esp32dev)
+- [x] Merge PR #8 (feature/phase6-7-merge) into develop
+- [x] Merge PR #9 (feature/phase7-enhancements) into develop
+- [x] Resolve any merge conflicts
+- [x] Verify full compilation after merge (pio run -e esp32dev)
 - [ ] Run unit tests (pio test -e native)
 
 ### 8.2 — Code Cleanup
-- [ ] Remove redundant `updateStage()` call in `updatePet()` (called twice)
-- [ ] Move `checkRateLimit` declaration to WebHandlers.h (currently extern in MQTT.cpp and OTA_Delta.cpp)
-- [ ] Increase MQTT StaticJsonDocument to 512 bytes for safety
-- [ ] Add `IR_RECEIVER_PIN` conflict note to WIRING.md (GPIO 15 vs OLED CS)
-- [ ] Increase OTA_Delta http.setTimeout to 120000
-- [ ] Remove build artifacts from .pio/ (ensure .gitignore is complete)
+- [x] Remove redundant `updateStage()` call in `updatePet()` (called twice)
+- [x] Move `checkRateLimit` declaration to WebHandlers.h (removed extern from MQTT.cpp and OTA_Delta.cpp, added include)
+- [x] Increase MQTT StaticJsonDocument to 512 bytes for safety
+- [x] Add `IR_RECEIVER_PIN` conflict note to WIRING.md (GPIO 15 vs OLED CS)
+- [x] Increase OTA_Delta http.setTimeout to 120000
+- [x] Add native test infrastructure (mock Arduino.h, stubs, platformio.ini native env config)
 - [ ] Review and remove any remaining debug Serial.println statements
 
 ### 8.3 — Final Testing
@@ -140,12 +140,12 @@
 - [ ] Test scheduled feeding and mood system over 24h simulated runtime
 
 ### 8.4 — Documentation & Release
-- [ ] Update README.md with all Phase 7 features
-- [ ] Update PROJECT_STATUS.md to reflect Phase 7 completion
+- [x] Update README.md with all Phase 7 features
+- [x] Update PROJECT_STATUS.md to reflect Phase 7 completion
 - [ ] Create CHANGELOG.md with all changes from Phase 1-7
 - [ ] Create release tag v1.0.0
 - [ ] Write release notes with feature summary, known issues, and upgrade guide
-- [ ] Update WIRING.md with IR receiver and RGB LED wiring
+- [x] Update WIRING.md with IR receiver and RGB LED wiring
 
 ### 8.5 — Stretch Goals (if time permits)
 - [ ] HTTP gzip compression for index.html (currently partial)
