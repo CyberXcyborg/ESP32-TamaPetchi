@@ -20,4 +20,11 @@ extern String previousState;
 // Getter/setter for web handlers to access server (set during registration)
 WebServer* getServer();
 
+// ============================================================
+// SSE Support (Phase 6.2)
+// ============================================================
+void beginSSE();
+void broadcastSSE(const String &data);
+void handleSSEClients();
+
 #endif // WEBHANDLERS_H

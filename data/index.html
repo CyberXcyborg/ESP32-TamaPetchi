@@ -663,7 +663,8 @@
         window.onload = function() {
             setupEventListeners();
             updatePetData();
-            updateInterval = setInterval(updatePetData, 5000);
+            startSSE();  // Phase 6: Try SSE first for real-time updates
+            updateInterval = setInterval(updatePetData, 5000);  // Polling fallback
         };
         
         function setupEventListeners() {
@@ -803,6 +804,52 @@
                     console.error('Error fetching pet data:', error);
                     showMessage('Connection error. Check if device is online.', 'error');
                 });
+        }
+
+        // ============================================================
+        // Phase 6: SSE (Server-Sent Events) for real-time updates
+        // Falls back to polling if SSE is not supported
+        // ============================================================
+        let evtSource = null;
+        let sseConnected = false;
+
+        function startSSE() {
+            if (typeof EventSource === 'undefined') {
+                console.log('SSE not supported, using polling fallback');
+                return;
+            }
+
+            evtSource = new EventSource('/events');
+
+            evtSource.onopen = function() {
+                sseConnected = true;
+                console.log('SSE connected — real-time updates active');
+                // We still poll occasionally as a fallback in case SSE drops
+            };
+
+            evtSource.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (previousState !== data.state) {
+                        handleStateChange(previousState, data.state);
+                    }
+                    previousState = data.state;
+                    pet = data;
+                    updateDisplay();
+                } catch (err) {
+                    console.error('SSE parse error:', err);
+                }
+            };
+
+            evtSource.onerror = function() {
+                console.log('SSE connection lost, falling back to polling');
+                sseConnected = false;
+                if (evtSource) {
+                    evtSource.close();
+                    evtSource = null;
+                }
+                // Polling fallback continues via updateInterval
+            };
         }
         
         // Handle state changes and trigger animations

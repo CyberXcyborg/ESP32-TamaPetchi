@@ -19,6 +19,113 @@ String previousState             = "";
 WebServer* getServer() { return g_server; }
 
 // ============================================================
+// SSE Support (Phase 6.2) — Server-Sent Events for real-time updates
+// ============================================================
+#include <WiFiClient.h>
+
+#define SSE_MAX_CLIENTS 3
+static WiFiClient sseClients[SSE_MAX_CLIENTS];
+static unsigned long lastSSEBroadcast = 0;
+#define SSE_BROADCAST_INTERVAL 2000  // Send updates every 2 seconds
+
+void beginSSE() {
+  // Called after server.begin() — no-op for now, clients connect via /events
+}
+
+void broadcastSSE(const String &data) {
+  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
+    if (sseClients[i] && sseClients[i].connected()) {
+      sseClients[i].print("data: ");
+      sseClients[i].print(data);
+      sseClients[i].print("\n\n");
+    }
+  }
+}
+
+static void handleSSEClient() {
+  if (!g_server) return;
+
+  // Find a free slot
+  int slot = -1;
+  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
+    if (!sseClients[i] || !sseClients[i].connected()) {
+      slot = i;
+      break;
+    }
+  }
+
+  if (slot == -1) {
+    // All slots full — reject with 503
+    g_server->send(503, "text/plain", "Too many SSE clients");
+    return;
+  }
+
+  WiFiClient client = g_server->client();
+  sseClients[slot] = client;
+
+  // Send SSE headers
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-Type: text/event-stream");
+  client.println("Cache-Control: no-cache");
+  client.println("Connection: keep-alive");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println();
+  client.flush();
+
+  Serial.print("SSE client connected in slot ");
+  Serial.println(slot);
+
+  // Keep connection alive — client will disconnect when done
+  // We don't block here; the ESP32 WebServer is single-threaded
+  // The client stays in the array and we broadcast to it periodically
+}
+
+void handleSSEClients() {
+  // Clean up disconnected clients
+  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
+    if (sseClients[i] && !sseClients[i].connected()) {
+      sseClients[i].stop();
+      Serial.print("SSE client disconnected from slot ");
+      Serial.println(i);
+    }
+  }
+
+  // Broadcast pet state periodically
+  if (g_pet && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
+    lastSSEBroadcast = millis();
+
+    DynamicJsonDocument jsonDoc(512);
+    jsonDoc["hunger"]      = g_pet->hunger;
+    jsonDoc["happiness"]   = g_pet->happiness;
+    jsonDoc["health"]      = g_pet->health;
+    jsonDoc["energy"]      = g_pet->energy;
+    jsonDoc["cleanliness"] = g_pet->cleanliness;
+    jsonDoc["isAlive"]     = g_pet->isAlive;
+    jsonDoc["state"]       = g_pet->state;
+    jsonDoc["age"]         = g_pet->age;
+
+    const char* stageStr = "baby";
+    switch (g_pet->stage) {
+      case BABY:  stageStr = "baby";  break;
+      case CHILD: stageStr = "child"; break;
+      case ADULT: stageStr = "adult"; break;
+      case ELDER: stageStr = "elder"; break;
+    }
+    jsonDoc["stage"] = stageStr;
+    jsonDoc["isNight"] = g_pet->isNight;
+    jsonDoc["weather"] = getWeatherName(g_pet->weather);
+    jsonDoc["isDying"] = g_pet->isDying;
+    jsonDoc["isEvolving"] = g_pet->isEvolving;
+    jsonDoc["activeGame"] = g_pet->activeGame;
+    jsonDoc["gameCooldown"] = g_pet->gameCooldown;
+
+    String payload;
+    serializeJson(jsonDoc, payload);
+    broadcastSSE(payload);
+  }
+}
+
+// ============================================================
 // Route Registration
 // ============================================================
 void registerHandlers(WebServer &server, Pet &pet) {
@@ -44,6 +151,13 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/game/state",  HTTP_GET,  handleGameState);
   server.on("/music",       HTTP_POST, handleSetMusic);
   server.on("/difficulty",  HTTP_POST, handleSetDifficulty);
+
+  // Phase 6: SSE endpoint for real-time updates
+  server.on("/events",      HTTP_GET,  handleSSEClient);
+
+  // Phase 6: Buzzer melody configuration
+  server.on("/melodies",        HTTP_GET,  handleGetMelodyConfig);
+  server.on("/melodies/config", HTTP_POST, handleSetMelodyConfig);
 }
 
 // ============================================================
@@ -426,5 +540,22 @@ static void handleSetName() {
   savePetData(*g_pet);
   saveAchievements(*g_pet);
   checkAchievements(*g_pet);
+  sendJsonResponse(true);
+}
+
+// ============================================================
+// Phase 6.3: Buzzer Melody Configuration Endpoints
+// ============================================================
+
+static void handleGetMelodyConfig() {
+  if (!g_server) return;
+  String json = getMelodyConfigJson();
+  g_server->send(200, "application/json", json);
+}
+
+static void handleSetMelodyConfig() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  setMelodyConfigFromJson(body);
   sendJsonResponse(true);
 }
