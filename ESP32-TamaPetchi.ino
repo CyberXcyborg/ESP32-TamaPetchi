@@ -2,6 +2,7 @@
 #include <WebServer.h>
 #include <ArduinoJson.h>
 #include <SPIFFS.h>
+#include <Esp.h>  // For ESP.restart() and deep sleep functions
 
 // Phase 6: Watchdog timer
 #include <esp_task_wdt.h>
@@ -65,6 +66,13 @@ void setup() {
   // Load pet data from SPIFFS
   loadPetData(pet);
   loadAchievements(pet);
+
+  // Phase 6: Check if we woke from deep sleep and restore state
+  if (wasDeepSleepWake()) {
+    Serial.println("Woke from deep sleep!");
+    restoreFromRTC(pet);
+  }
+
   previousState = pet.state;
 
   // Register web server routes
@@ -84,6 +92,9 @@ void setup() {
   // Initialize RGB LED
   setupRGBLED();
 
+  // Phase 6: WiFi power optimization — reduce TX power in idle
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);  // Reduce from default 20dBm to save power
+
   Serial.println("TamaPetchi initialized — WDT active");
 }
 
@@ -95,6 +106,9 @@ void loop() {
 
   // Phase 6: Check physical buttons
   checkButtons(pet);
+
+  // Phase 6: Handle SSE client cleanup and broadcast
+  handleSSEClients();
 
   // Update pet stats every interval
   unsigned long currentMillis = millis();
