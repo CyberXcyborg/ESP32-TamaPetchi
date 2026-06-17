@@ -42,8 +42,8 @@
 
 ### 6.2 — Web UI Improvements
 - [x] Add responsive mobile-first CSS (currently desktop-oriented)
-- [ ] Implement WebSocket or Server-Sent Events for real-time pet stat updates (replace polling)
-- [ ] Add pet sprite animations (walk, sleep, eat cycles using CSS/SVG)
+- [x] Implement WebSocket or Server-Sent Events for real-time pet stat updates (replace polling)
+- [x] Add pet sprite animations (walk, sleep, eat cycles using CSS/SVG)
 - [x] Implement dark mode toggle (stored in localStorage + sync with device setting)
 - [x] Add sound effect toggle and volume control in web UI
 
@@ -51,21 +51,21 @@
 - [x] Add physical button support (GPIO 0 BOOT button for feed/play/clean/sleep)
 - [x] Implement RGB LED status indicator (green=healthy, yellow=warning, red=critical, blue=sleeping)
 - [x] Add battery level display on OLED (when ENABLE_OLED is defined)
-- [ ] Implement deep sleep wake-on-button with proper state restore
-- [ ] Add buzzer melody configuration (user-selectable melodies per event)
+- [x] Implement deep sleep wake-on-button with proper state restore
+- [x] Add buzzer melody configuration (user-selectable melodies per event)
 
 ### 6.4 — Testing & Documentation
 - [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
-- [ ] Create hardware wiring diagram (Fritzing or Excalidraw)
-- [ ] Write user setup guide (first WiFi connect, OTA update procedure)
-- [ ] Add README section for each enabled feature with build flags
+- [x] Create hardware wiring diagram (WIRING.md)
+- [x] Write user setup guide (SETUP_GUIDE.md)
+- [x] Add README section for each enabled feature with build flags
 - [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
 ### 6.5 — Performance & Memory
 - [ ] Profile heap usage after 24h runtime (detect memory leaks)
 - [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
 - [ ] Implement HTTP gzip compression for index.html
-- [ ] Reduce WiFi power consumption in idle mode (modem sleep)
+- [x] Reduce WiFi power consumption in idle mode (modem sleep via reduced TX power)
 - [x] Add compile-time feature flags to reduce flash usage when features disabled
 
 ## Implementation Rules
