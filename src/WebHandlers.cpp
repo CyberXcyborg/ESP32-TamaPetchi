@@ -313,6 +313,11 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 5: Notifications route
   server.on("/notifications", HTTP_GET, handleGetNotifications);
+
+  // Phase 7.5: Mood & Scheduled Feeding routes
+  server.on("/mood",              HTTP_GET,  handleGetMood);
+  server.on("/scheduled-feed",    HTTP_GET,  handleGetScheduledFeed);
+  server.on("/scheduled-feed",    HTTP_POST, handleSetScheduledFeed);
 }
 
 // ============================================================
@@ -401,6 +406,14 @@ void handleGetPet() {
   jsonDoc["difficulty"]   = getDifficultyName(g_pet->difficulty);
   jsonDoc["gameCooldown"] = g_pet->gameCooldown;
   jsonDoc["activeGame"]   = g_pet->activeGame;
+
+  // Phase 7.5: mood & personality
+  jsonDoc["mood"]               = g_pet->mood;
+  jsonDoc["moodName"]           = getMoodName(g_pet->mood);
+  jsonDoc["moodEmoji"]          = getMoodEmoji(g_pet->mood);
+  jsonDoc["personalityCheerful"]  = g_pet->personalityCheerful;
+  jsonDoc["personalityEnergetic"] = g_pet->personalityEnergetic;
+  jsonDoc["personalityHungry"]    = g_pet->personalityHungry;
 
   String response;
   serializeJson(jsonDoc, response);
@@ -865,4 +878,58 @@ void handleGetNotifications() {
   if (!g_server) return;
   String json = getNotificationsJson(g_multiPet.activePetIndex);
   g_server->send(200, "application/json", json);
+}
+
+// ============================================================
+// Phase 7.5: Mood & Scheduled Feeding Endpoints
+// ============================================================
+
+void handleGetMood() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  String result = "{";
+  result += "\"mood\":" + String(g_pet->mood) + ",";
+  result += "\"moodName\":\"" + getMoodName(g_pet->mood) + "\",";
+  result += "\"moodEmoji\":\"" + getMoodEmoji(g_pet->mood) + "\",";
+  result += "\"personalityCheerful\":" + String(g_pet->personalityCheerful) + ",";
+  result += "\"personalityEnergetic\":" + String(g_pet->personalityEnergetic) + ",";
+  result += "\"personalityHungry\":" + String(g_pet->personalityHungry);
+  result += "}";
+  g_server->send(200, "application/json", result);
+}
+
+void handleGetScheduledFeed() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  g_server->send(200, "application/json", getScheduledFeedJson(*g_pet));
+}
+
+void handleSetScheduledFeed() {
+  if (!g_server || !g_pet) {
+    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+    return;
+  }
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  if (jsonDoc["enabled"].is<bool>()) {
+    g_pet->scheduledFeedEnabled = jsonDoc["enabled"].as<bool>();
+  }
+  if (jsonDoc["intervalHours"].is<int>()) {
+    int hours = jsonDoc["intervalHours"].as<int>();
+    g_pet->scheduledFeedInterval = constrain(hours, 1, 24) * 3600000UL;
+  }
+  if (jsonDoc["amount"].is<int>()) {
+    g_pet->scheduledFeedAmount = constrain(jsonDoc["amount"].as<int>(), 5, 50);
+  }
+
+  g_pet->lastScheduledFeed = millis(); // Reset timer on config change
+  savePetData(*g_pet);
+  sendJsonResponse(true);
 }

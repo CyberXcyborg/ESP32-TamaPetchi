@@ -42,4 +42,9 @@ void handleDeletePet();
 void handleGetStats();
 void handleGetNotifications();
 
+// Phase 7.5: Mood & Scheduled Feeding
+void handleGetMood();
+void handleGetScheduledFeed();
+void handleSetScheduledFeed();
+
 #endif // WEBHANDLERS_H
