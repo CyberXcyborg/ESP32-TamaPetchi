@@ -118,6 +118,33 @@ void playMelody(const int *melody, int length, int tempo);
 void playStateMelody(const Pet &pet);
 void stopMusic();
 
+// --- Buzzer Melody Configuration (Phase 6.3) ---
+// User-selectable melody IDs per event
+#define MELODY_HAPPY    0
+#define MELODY_SLEEP    1
+#define MELODY_SICK     2
+#define MELODY_DYING    3
+#define MELODY_EVOLVE   4
+#define MELODY_FEED     5
+#define MELODY_PLAY     6
+#define MELODY_DEATH    7
+#define MELODY_COUNT    8
+
+// Default melody assignments (can be changed at runtime via web UI)
+extern int melodyConfig[MELODY_COUNT];  // maps event -> melody index
+
+// Built-in melody library
+extern const int *melodyLibrary[];
+extern const int melodyLengths[];
+extern const char *melodyNames[];
+extern const int melodyCount;
+
+void playMelodyById(int melodyId);
+void setMelodyConfig(int event, int melodyIndex);
+int getMelodyConfig(int event);
+String getMelodyConfigJson();
+void setMelodyConfigFromJson(const String &json);
+
 // --- Settings ---
 int getDifficultyMultiplier(int difficulty);
 String getDifficultyName(int difficulty);

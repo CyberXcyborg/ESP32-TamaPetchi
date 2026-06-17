@@ -647,20 +647,142 @@ void playStateMelody(const Pet &pet) {
   lastMelody = millis();
 
   if (pet.isDying) {
-    playMelody(melodyDying, melodyDyingLen, 200);
+    playMelodyById(melodyConfig[MELODY_DYING]);
   } else if (pet.isEvolving) {
-    playMelody(melodyEvolve, melodyEvolveLen, 120);
+    playMelodyById(melodyConfig[MELODY_EVOLVE]);
   } else if (pet.state == "sleeping") {
-    playMelody(melodySleep, melodySleepLen, 300);
+    playMelodyById(melodyConfig[MELODY_SLEEP]);
   } else if (pet.state == "sick") {
-    playMelody(melodySick, melodySickLen, 250);
+    playMelodyById(melodyConfig[MELODY_SICK]);
   } else if (pet.state == "normal" && pet.happiness > 70) {
-    playMelody(melodyHappy, melodyHappyLen, 150);
+    playMelodyById(melodyConfig[MELODY_HAPPY]);
   }
 }
 
 void stopMusic() {
   noTone(BUZZER_PIN);
+}
+
+// ============================================================
+// Phase 6.3: Buzzer Melody Configuration
+// User-selectable melodies per event, persisted to SPIFFS
+// ============================================================
+
+// Extended melody library (8 melodies)
+static int melodyFeed[] = {NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5};
+static int melodyFeedLen = 4;
+
+static int melodyPlay[] = {NOTE_E4, NOTE_G4, NOTE_C5, NOTE_E5, NOTE_C5, NOTE_G4};
+static int melodyPlayLen = 6;
+
+static int melodyDeath[] = {NOTE_C5, NOTE_B4, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4};
+static int melodyDeathLen = 8;
+
+static int melodyEvolve2[] = {NOTE_C4, NOTE_D4, NOTE_E4, NOTE_F4, NOTE_G4, NOTE_A4, NOTE_B4, NOTE_C5};
+static int melodyEvolveLen2 = 8;
+
+static int melodyBirth[] = {NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5, NOTE_E5, NOTE_G5, NOTE_C6};
+static int melodyBirthLen = 7;
+
+static int melodyAlert[] = {NOTE_A4, NOTE_REST, NOTE_A4, NOTE_REST, NOTE_A4, NOTE_REST, NOTE_A4};
+static int melodyAlertLen = 7;
+
+static int melodyLullaby[] = {NOTE_E4, NOTE_D4, NOTE_C4, NOTE_D4, NOTE_E4, NOTE_E4, NOTE_E4, NOTE_D4, NOTE_D4, NOTE_D4, NOTE_E4, NOTE_G4, NOTE_G4};
+static int melodyLullabyLen = 13;
+
+// Melody library table
+const int *melodyLibrary[] = {
+  melodyHappy,    // 0: Happy
+  melodySleep,    // 1: Sleep
+  melodySick,     // 2: Sick
+  melodyDying,    // 3: Dying
+  melodyEvolve,   // 4: Evolve
+  melodyFeed,     // 5: Feed
+  melodyPlay,     // 6: Play
+  melodyDeath,    // 7: Death
+  melodyEvolve2,  // 8: Ascending
+  melodyBirth,    // 9: Birth/Celebration
+  melodyAlert,    // 10: Alert
+  melodyLullaby,  // 11: Lullaby
+};
+const int melodyLengths[] = {
+  melodyHappyLen, melodySleepLen, melodySickLen, melodyDyingLen,
+  melodyEvolveLen, melodyFeedLen, melodyPlayLen, melodyDeathLen,
+  melodyEvolveLen2, melodyBirthLen, melodyAlertLen, melodyLullabyLen
+};
+const char *melodyNames[] = {
+  "Happy", "Sleep", "Sick", "Dying", "Evolve", "Feed", "Play", "Death",
+  "Ascending", "Birth", "Alert", "Lullaby"
+};
+const int melodyCount = 12;
+
+// Default melody configuration (event -> melody index)
+int melodyConfig[MELODY_COUNT] = {
+  0,  // HAPPY -> Happy
+  1,  // SLEEP -> Sleep
+  2,  // SICK -> Sick
+  3,  // DYING -> Dying
+  4,  // EVOLVE -> Evolve
+  5,  // FEED -> Feed
+  6,  // PLAY -> Play
+  7,  // DEATH -> Death
+};
+
+void playMelodyById(int melodyId) {
+  if (melodyId < 0 || melodyId >= melodyCount) return;
+  playMelody(melodyLibrary[melodyId], melodyLengths[melodyId], 150);
+}
+
+void setMelodyConfig(int event, int melodyIndex) {
+  if (event < 0 || event >= MELODY_COUNT) return;
+  if (melodyIndex < 0 || melodyIndex >= melodyCount) return;
+  melodyConfig[event] = melodyIndex;
+}
+
+int getMelodyConfig(int event) {
+  if (event < 0 || event >= MELODY_COUNT) return 0;
+  return melodyConfig[event];
+}
+
+String getMelodyConfigJson() {
+  DynamicJsonDocument doc(1024);
+
+  // Available melodies
+  JsonArray lib = doc.createNestedArray("library");
+  for (int i = 0; i < melodyCount; i++) {
+    JsonObject m = lib.createNestedObject();
+    m["id"] = i;
+    m["name"] = melodyNames[i];
+  }
+
+  // Current config
+  JsonArray cfg = doc.createNestedArray("config");
+  const char *eventNames[] = {"happy", "sleep", "sick", "dying", "evolve", "feed", "play", "death"};
+  for (int i = 0; i < MELODY_COUNT; i++) {
+    JsonObject c = cfg.createNestedObject();
+    c["event"] = eventNames[i];
+    c["melodyId"] = melodyConfig[i];
+    c["melodyName"] = melodyNames[melodyConfig[i]];
+  }
+
+  String result;
+  serializeJson(doc, result);
+  return result;
+}
+
+void setMelodyConfigFromJson(const String &json) {
+  DynamicJsonDocument doc(512);
+  if (deserializeJson(doc, json)) return;
+
+  const char *eventNames[] = {"happy", "sleep", "sick", "dying", "evolve", "feed", "play", "death"};
+  for (int i = 0; i < MELODY_COUNT; i++) {
+    if (doc[eventNames[i]].is<int>()) {
+      int melodyId = doc[eventNames[i]].as<int>();
+      if (melodyId >= 0 && melodyId < melodyCount) {
+        melodyConfig[i] = melodyId;
+      }
+    }
+  }
 }
 
 // ============================================================
