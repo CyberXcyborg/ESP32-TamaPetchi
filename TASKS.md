@@ -79,15 +79,15 @@
 ## Phase 7: Bug Fixes & Enhancements
 
 ### 7.1 — Critical Bug Fixes
-- [ ] **Fix multi-pet persistence**: Add Phase 4 & 5 fields to loadMultiPetState() and saveMultiPetState() (isDying, dyingStartTime, lastReviveTime, musicEnabled, difficulty, weather, timesFed, timesPlayed, timesSlept, timesCleaned, timesHealed, totalPlayTime, totalSleepTime, highScore, batteryLevel, lowBatteryWarning)
-- [ ] **Fix duplicate /wifi/reset route**: Remove from WebHandlers.cpp (keep in WiFiManager.cpp)
-- [ ] **Consolidate duplicate defines**: Remove MAX_PETS from MultiPet.h, remove OTA_PASSWORD/OTA_PORT/OTA_HOSTNAME from OTA.h (keep in config.h only)
-- [ ] **Remove unused WiFiManager lib dependency** from platformio.ini
+- [x] **Fix multi-pet persistence**: Add Phase 4 & 5 fields to loadMultiPetState() and saveMultiPetState() (isDying, dyingStartTime, lastReviveTime, musicEnabled, difficulty, weather, timesFed, timesPlayed, timesSlept, timesCleaned, timesHealed, totalPlayTime, totalSleepTime, highScore, batteryLevel, lowBatteryWarning)
+- [x] **Fix duplicate /wifi/reset route**: Verified not present in current codebase (was resolved during Phase 6 refactor)
+- [x] **Consolidate duplicate defines**: Remove MAX_PETS from MultiPet.h, remove OTA_PASSWORD/OTA_PORT/OTA_HOSTNAME from OTA.h (keep in config.h only)
+- [x] **Remove unused WiFiManager lib dependency** from platformio.ini
 
 ### 7.2 — Code Quality & Testing
-- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
-- [ ] Add bounds validation on all SPIFFS JSON parse results (check for null/missing keys before use)
+- [x] Add bounds validation on all SPIFFS JSON parse results (check for null/missing keys before use)
 - [ ] Add HTTP endpoint rate limiting (prevent rapid-fire requests from crashing the server)
+- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
 - [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
 ### 7.3 — Performance & Memory
