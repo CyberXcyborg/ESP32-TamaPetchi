@@ -14,7 +14,7 @@ bool setupWiFi() {
   if (SPIFFS.exists(WIFI_CONFIG_FILE)) {
     File file = SPIFFS.open(WIFI_CONFIG_FILE, "r");
     if (file) {
-      DynamicJsonDocument jsonDoc(256);
+      StaticJsonDocument<256> jsonDoc;
       if (!deserializeJson(jsonDoc, file)) {
         ssid = jsonDoc["ssid"] | WIFI_SSID;
         password = jsonDoc["password"] | WIFI_PASSWORD;
@@ -63,7 +63,7 @@ bool saveWiFiCredentials(const String &ssid, const String &password) {
   File file = SPIFFS.open(WIFI_CONFIG_FILE, "w");
   if (!file) return false;
 
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["ssid"] = ssid;
   jsonDoc["password"] = password;
 
@@ -76,7 +76,7 @@ void registerWiFiRoutes(WebServer &server) {
   // POST /wifi/reset — clear stored WiFi config and restart AP mode
   server.on("/wifi/reset", HTTP_POST, [&server]() {
     resetWiFiCredentials();
-    DynamicJsonDocument jsonDoc(256);
+    StaticJsonDocument<256> jsonDoc;
     jsonDoc["success"] = true;
     jsonDoc["message"] = "WiFi credentials cleared. Restarting in AP mode.";
     String response;
@@ -89,7 +89,7 @@ void registerWiFiRoutes(WebServer &server) {
   // POST /wifi/connect — save new credentials and try to connect
   server.on("/wifi/connect", HTTP_POST, [&server]() {
     String body = server.arg("plain");
-    DynamicJsonDocument jsonDoc(256);
+    StaticJsonDocument<256> jsonDoc;
     DeserializationError err = deserializeJson(jsonDoc, body);
     if (err) {
       server.send(400, "application/json", "{\"success\":false,\"message\":\"Invalid JSON\"}");
@@ -102,7 +102,7 @@ void registerWiFiRoutes(WebServer &server) {
       return;
     }
     saveWiFiCredentials(ssid, password);
-    DynamicJsonDocument resp(256);
+    StaticJsonDocument<256> resp;
     resp["success"] = true;
     resp["message"] = "WiFi credentials saved. Rebooting...";
     String response;
@@ -114,7 +114,7 @@ void registerWiFiRoutes(WebServer &server) {
 
   // GET /wifi/status — current WiFi connection status
   server.on("/wifi/status", HTTP_GET, [&server]() {
-    DynamicJsonDocument jsonDoc(256);
+    StaticJsonDocument<256> jsonDoc;
     jsonDoc["connected"] = isWiFiConnected();
     jsonDoc["ip"] = getIPAddress();
     jsonDoc["ssid"] = WiFi.SSID();

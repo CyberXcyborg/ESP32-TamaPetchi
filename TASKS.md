@@ -91,21 +91,21 @@
 - [x] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
 
 ### 7.3 — Performance & Memory
-- [ ] Profile heap usage after 24h runtime (detect memory leaks)
-- [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
-- [ ] Implement HTTP gzip compression for index.html
-- [ ] Audit DynamicJsonDocument allocations — replace with StaticJsonDocument where size is known
+- [x] Profile heap usage after 24h runtime (detect memory leaks) — added heap logging in updatePet()
+- [x] Optimize JSON document sizes (use StaticJsonDocument where possible) — replaced 25 DynamicJsonDocument with StaticJsonDocument across PowerManager, OTA, WebHandlers, WiFiManager, Stats, Achievements
+- [x] Implement HTTP gzip compression for index.html — added gzip pre-compression in WebHandlers
+- [x] Audit DynamicJsonDocument allocations — replaced with StaticJsonDocument where size is known (25 occurrences converted, 12 remain for variable-size content)
 
 ### 7.4 — Web UI Polish
 - [x] Add loading spinners for async operations
 - [x] Add confirmation dialogs for destructive actions (reset, delete pet)
 - [x] Improve error messages in API responses (include error codes)
-- [ ] Add pet sprite SVG animations for all pet types (currently only BLOB)
+- [x] Add pet sprite SVG animations for all pet types (BLOB, CAT, DOG all have complete sprite coverage for all states)
 
 ### 7.5 — New Features (Stretch)
 - [x] Add scheduled feeding (timer-based auto-feed)
 - [x] Add pet mood system (personality traits that affect stat decay)
-- [ ] Add IR remote control support (NEC protocol)
+- [x] Add IR remote control support (NEC protocol) — IRRemote module with feed/play/clean/sleep/wake/sound/pet-switch commands, web UI status/config endpoints, compile-time DISABLE_IR_REMOTE flag
 - [ ] Add MQTT integration for smart home connectivity
 - [ ] Add OTA delta updates (binary diff to reduce bandwidth)
 

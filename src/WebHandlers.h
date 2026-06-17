@@ -47,4 +47,10 @@ void handleGetMood();
 void handleGetScheduledFeed();
 void handleSetScheduledFeed();
 
+// Phase 7.5: IR Remote
+#ifndef DISABLE_IR_REMOTE
+void handleGetIRStatus();
+void handleSetIRRemote();
+#endif
+
 #endif // WEBHANDLERS_H

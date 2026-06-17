@@ -9,6 +9,9 @@
 #include "Stats.h"
 #include "Notifications.h"
 #include "PowerManager.h"
+#ifndef DISABLE_IR_REMOTE
+#include "IRRemote.h"
+#endif
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
@@ -318,6 +321,12 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/mood",              HTTP_GET,  handleGetMood);
   server.on("/scheduled-feed",    HTTP_GET,  handleGetScheduledFeed);
   server.on("/scheduled-feed",    HTTP_POST, handleSetScheduledFeed);
+
+  // Phase 7.5: IR Remote routes
+#ifndef DISABLE_IR_REMOTE
+  server.on("/ir/status",  HTTP_GET,  handleGetIRStatus);
+  server.on("/ir/config",  HTTP_POST, handleSetIRRemote);
+#endif
 }
 
 // ============================================================
@@ -328,7 +337,7 @@ static void sendJsonResponse(bool success, const String &message = "") {
     Serial.println("ERROR: g_server is null in sendJsonResponse");
     return;
   }
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = success;
   if (message.length() > 0) {
     jsonDoc["message"] = message;
@@ -343,11 +352,24 @@ static void sendJsonResponse(bool success, const String &message = "") {
 // ============================================================
 void handleRoot() {
   if (!g_server) { Serial.println("ERROR: g_server null in handleRoot"); return; }
-  File file = SPIFFS.open("/index.html", "r");
+
+  // Phase 7.3: Try gzip-compressed version first
+  File file = SPIFFS.open("/index.html.gz", "r");
+  if (file) {
+    g_server->sendHeader("Content-Encoding", "gzip");
+    g_server->sendHeader("Cache-Control", "max-age=86400");
+    g_server->streamFile(file, "text/html");
+    file.close();
+    return;
+  }
+
+  // Fallback to uncompressed
+  file = SPIFFS.open("/index.html", "r");
   if (!file) {
     g_server->send(500, "text/plain", "Failed to open index.html");
     return;
   }
+  g_server->sendHeader("Cache-Control", "max-age=3600");
   g_server->streamFile(file, "text/html");
   file.close();
 }
@@ -393,7 +415,7 @@ void handleGetPet() {
 
   // Phase 3: achievements array
   String achJson = getAchievementsJson(*g_pet);
-  DynamicJsonDocument achDoc(512);
+  StaticJsonDocument<512> achDoc;
   deserializeJson(achDoc, achJson);
   jsonDoc["achievements"] = achDoc["achievements"];
 
@@ -521,7 +543,7 @@ void handleGameStart() {
   if (g_pet->energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   if (error) { sendJsonResponse(false, "Invalid JSON body"); return; }
 
@@ -533,9 +555,9 @@ void handleGameStart() {
   savePetData(*g_pet);
 
   String gameState = getGameStateJSON(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
-  DynamicJsonDocument gs(512);
+  StaticJsonDocument<512> gs;
   deserializeJson(gs, gameState);
   resp["gameState"] = gs;
   String result;
@@ -553,7 +575,7 @@ void handleGameAction() {
   if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   int input = jsonDoc["input"] | -1;
 
@@ -583,9 +605,9 @@ void handleGameAction() {
 
   savePetData(*g_pet);
   String gameState = getGameStateJSON(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
-  DynamicJsonDocument gs(512);
+  StaticJsonDocument<512> gs;
   deserializeJson(gs, gameState);
   resp["gameState"] = gs;
   String result;
@@ -607,7 +629,7 @@ void handleSetMusic() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   g_pet->musicEnabled = !g_pet->musicEnabled;
   savePetData(*g_pet);
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
   jsonDoc["musicEnabled"] = g_pet->musicEnabled;
   String response;
@@ -623,7 +645,7 @@ void handleSetDifficulty() {
   }
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   String diffStr = jsonDoc["difficulty"] | "normal";
   diffStr.toLowerCase();
@@ -639,7 +661,7 @@ void handleSetDifficulty() {
   }
 
   savePetData(*g_pet);
-  DynamicJsonDocument resp(256);
+  StaticJsonDocument<256> resp;
   resp["success"] = true;
   resp["difficulty"] = getDifficultyName(g_pet->difficulty);
   String response;
@@ -675,7 +697,7 @@ void handleSetType() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
 
   if (error) {
@@ -719,7 +741,7 @@ void handleMute() {
   g_pet->soundEnabled = !g_pet->soundEnabled;
   savePetData(*g_pet);
 
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
   jsonDoc["soundEnabled"] = g_pet->soundEnabled;
   String response;
@@ -736,7 +758,7 @@ void handleSetName() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
 
   if (error) {
@@ -814,7 +836,7 @@ void handleCreatePet() {
     return;
   }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   String name = jsonDoc["name"] | "";
@@ -822,7 +844,7 @@ void handleCreatePet() {
   PetType pt = (PetType)constrain(type, 0, 2);
   int slot = createPet(g_multiPet, name, pt);
   if (slot >= 0) {
-    DynamicJsonDocument resp(256);
+    StaticJsonDocument<256> resp;
     resp["success"] = true;
     resp["slot"] = slot;
     String r; serializeJson(resp, r);
@@ -835,7 +857,7 @@ void handleCreatePet() {
 void handleSwitchPet() {
   if (!g_server) return;
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
@@ -853,7 +875,7 @@ void handleDeletePet() {
     return;
   }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
@@ -914,7 +936,7 @@ void handleSetScheduledFeed() {
     return;
   }
   String body = g_server->arg("plain");
-  DynamicJsonDocument jsonDoc(256);
+  StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
 
@@ -933,3 +955,37 @@ void handleSetScheduledFeed() {
   savePetData(*g_pet);
   sendJsonResponse(true);
 }
+
+// ============================================================
+// Phase 7.5: IR Remote Status Endpoint
+// ============================================================
+#ifndef DISABLE_IR_REMOTE
+void handleGetIRStatus() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["irEnabled"] = isIRRemoteEnabled();
+  jsonDoc["lastButton"] = (int)getLastIRButton();
+  jsonDoc["lastRawCode"] = getLastIRRawCode();
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+void handleSetIRRemote() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  if (jsonDoc["enabled"].is<bool>()) {
+    enableIRRemote(jsonDoc["enabled"].as<bool>());
+  }
+  sendJsonResponse(true);
+}
+#endif // !DISABLE_IR_REMOTE

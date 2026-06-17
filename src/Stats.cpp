@@ -22,7 +22,7 @@ void loadStats(GameStats &stats) {
   File file = SPIFFS.open(STATS_FILE, "r");
   if (!file) return;
 
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<512> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, file);
   if (!error) {
     stats.totalPlayTimeSec = jsonDoc["totalPlayTimeSec"] | 0UL;
@@ -42,7 +42,7 @@ void saveStats(const GameStats &stats) {
   File file = SPIFFS.open(STATS_FILE, "w");
   if (!file) return;
 
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<512> jsonDoc;
   jsonDoc["totalPlayTimeSec"] = stats.totalPlayTimeSec;
   jsonDoc["totalFeeds"]       = stats.totalFeeds;
   jsonDoc["totalPlays"]       = stats.totalPlays;
@@ -86,7 +86,7 @@ void statsOnEvolution(GameStats &stats) {
 }
 
 String getStatsJson(const GameStats &stats) {
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<512> jsonDoc;
   jsonDoc["totalPlayTimeSec"]  = stats.totalPlayTimeSec;
   jsonDoc["totalFeeds"]        = stats.totalFeeds;
   jsonDoc["totalPlays"]        = stats.totalPlays;

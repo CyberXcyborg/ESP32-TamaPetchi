@@ -140,5 +140,8 @@
 // #define DISABLE_OLED         // Remove OLED display support
 // #define DISABLE_BUTTONS      // Remove physical button support
 // #define DISABLE_RGB_LED      // Remove RGB LED indicator
+// #define DISABLE_IR_REMOTE    // Remove IR remote control support
 
+// --- IR Remote (NEC Protocol) ---
+#define IR_RECEIVER_PIN       15     // GPIO pin for IR receiver (TSOP38238, etc.)
 #endif // CONFIG_H

@@ -150,6 +150,14 @@ void initPet(Pet &pet) {
 void updatePet(Pet &pet) {
   if (!pet.isAlive) return;
 
+  // Phase 7.3: Periodic heap logging (every 10 ticks = 10 minutes)
+  static uint8_t heapLogCounter = 0;
+  if (++heapLogCounter >= 10) {
+    heapLogCounter = 0;
+    Serial.printf("[MEM] Free heap: %u bytes, min free: %u bytes\n",
+                  ESP.getFreeHeap(), ESP.getMinFreeHeap());
+  }
+
   // Phase 4: Check evolution animation timeout
   if (pet.isEvolving && millis() - pet.evolutionStartTime > 3000) {
     pet.isEvolving = false;
@@ -601,7 +609,7 @@ void updateCatchTarget(Pet &pet) {
 }
 
 String getGameStateJSON(const Pet &pet) {
-  DynamicJsonDocument doc(512);
+  StaticJsonDocument<512> doc;
   doc["activeGame"] = pet.activeGame;
   doc["score"] = pet.gameScore;
   doc["round"] = pet.gameRound;
@@ -775,7 +783,7 @@ int getMelodyConfig(int event) {
 }
 
 String getMelodyConfigJson() {
-  DynamicJsonDocument doc(1024);
+  StaticJsonDocument<512> doc;
 
   // Available melodies
   JsonArray lib = doc.createNestedArray("library");
@@ -801,7 +809,7 @@ String getMelodyConfigJson() {
 }
 
 void setMelodyConfigFromJson(const String &json) {
-  DynamicJsonDocument doc(512);
+  StaticJsonDocument<512> doc;
   if (deserializeJson(doc, json)) return;
 
   const char *eventNames[] = {"happy", "sleep", "sick", "dying", "evolve", "feed", "play", "death"};
