@@ -14,6 +14,13 @@
 #include "Achievements.h"
 #include "Buttons.h"
 #include "RGB_LED.h"
+#include "MultiPet.h"
+#include "OTA.h"
+#include "WiFiManager.h"
+#include "Stats.h"
+#include "Notifications.h"
+#include "PowerManager.h"
+#include "PowerManagement.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -26,10 +33,16 @@ WebServer server(WEB_SERVER_PORT);
 // Pet instance
 Pet pet;
 
-// Wake-up message tracking
-bool showWakeMessage = false;
-unsigned long wakeMessageStartTime = 0;
-String previousState = "";
+// Phase 5: Multi-pet state
+MultiPetState g_multiPet;
+
+// Phase 5: Game statistics
+GameStats g_stats;
+
+// Wake-up message tracking (defined in WebHandlers.cpp)
+extern bool showWakeMessage;
+extern unsigned long wakeMessageStartTime;
+extern String previousState;
 
 // Timing
 unsigned long lastUpdateTime = 0;
@@ -53,15 +66,17 @@ void setup() {
     return;
   }
 
-  // Connect to WiFi
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-  Serial.print("Connected to WiFi. IP address: ");
-  Serial.println(WiFi.localIP());
+  // Phase 5: Initialize power manager (ADC, wake-up)
+  setupPowerManager();
+
+  // Phase 5: Connect to WiFi (with AP fallback)
+  setupWiFi();
+
+  // Phase 5: Initialize OTA
+  setupOTA();
+
+  // Phase 5: Load stats
+  loadStats(g_stats);
 
   // Load pet data from SPIFFS
   loadPetData(pet);
@@ -104,6 +119,9 @@ void loop() {
 
   server.handleClient();
 
+  // Phase 5: Handle OTA
+  handleOTA();
+
   // Phase 6: Check physical buttons
   checkButtons(pet);
 
@@ -118,6 +136,11 @@ void loop() {
     checkAchievements(pet);
     savePetData(pet);
     playStateMelody(pet);
+
+    // Phase 5: Update stats & battery
+    statsTick(g_stats, PET_UPDATE_INTERVAL);
+    updateBatteryLevel(pet);
+    handlePowerManager(pet, currentMillis);
 
 #ifdef ENABLE_OLED
     updateOLED(pet);

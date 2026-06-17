@@ -1,5 +1,6 @@
 #include "Pet.h"
 #include "config.h"
+#include <ArduinoJson.h>
 
 // --- Helpers ---
 static int clampStat(int value) {
@@ -124,6 +125,22 @@ void initPet(Pet &pet) {
   memset(pet.memorySequence, 0, sizeof(pet.memorySequence));
   pet.catchTargetX      = 50;
   pet.catchTargetY      = 50;
+
+  // Phase 5 init
+  pet.totalPlayTime       = 0;
+  pet.totalSleepTime      = 0;
+  pet.timesFed            = 0;
+  pet.timesPlayed         = 0;
+  pet.timesSlept          = 0;
+  pet.timesCleaned        = 0;
+  pet.timesHealed         = 0;
+  pet.highScore           = 0;
+  pet.dailyActiveMinutes  = 0;
+  pet.weeklyActiveMinutes = 0;
+  pet.notificationCount   = 0;
+  pet.batteryLevel        = -1;
+  pet.lowBatteryWarning   = false;
+  pet.lastBatteryCheck    = 0;
 }
 
 void updatePet(Pet &pet) {
@@ -609,6 +626,11 @@ String getGameStateJSON(const Pet &pet) {
 #define NOTE_A4  440
 #define NOTE_B4  494
 #define NOTE_C5  523
+#define NOTE_D5  587
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_G5  784
+#define NOTE_C6  1047
 #define NOTE_REST 0
 
 static int melodyHappy[] = {NOTE_C4, NOTE_E4, NOTE_G4, NOTE_C5, NOTE_G4, NOTE_E4, NOTE_C4};
@@ -804,5 +826,32 @@ String getDifficultyName(int difficulty) {
     case 1: return "normal";
     case 2: return "hard";
     default: return "normal";
+  }
+}
+
+// ============================================================
+// Phase 5: Battery / Power Management
+// ============================================================
+
+void updateBatteryLevel(Pet &pet) {
+  // Only check every SLEEP_CHECK_INTERVAL
+  if (millis() - pet.lastBatteryCheck < SLEEP_CHECK_INTERVAL && pet.lastBatteryCheck != 0) {
+    return;
+  }
+  pet.lastBatteryCheck = millis();
+
+  // Read ADC and convert to percentage
+  // Assumes voltage divider on BATTERY_ADC_PIN (GPIO 34)
+  int raw = analogRead(BATTERY_ADC_PIN);
+  // Map 0-4095 to 0-100 (approximate, adjust for your voltage divider)
+  int pct = map(raw, 0, 4095, 0, 100);
+  pct = constrain(pct, 0, 100);
+  pet.batteryLevel = pct;
+
+  if (pct < LOW_BATTERY_THRESHOLD && !pet.lowBatteryWarning) {
+    pet.lowBatteryWarning = true;
+    Serial.println("LOW BATTERY WARNING!");
+  } else if (pct >= LOW_BATTERY_THRESHOLD + 5) {
+    pet.lowBatteryWarning = false; // Hysteresis
   }
 }

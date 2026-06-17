@@ -56,6 +56,22 @@ void savePetData(const Pet &pet) {
   jsonDoc["difficulty"]     = pet.difficulty;
   jsonDoc["weather"]        = pet.weather;
 
+  // Phase 5: persist statistics & power fields
+  jsonDoc["totalPlayTime"]       = pet.totalPlayTime;
+  jsonDoc["totalSleepTime"]      = pet.totalSleepTime;
+  jsonDoc["timesFed"]            = pet.timesFed;
+  jsonDoc["timesPlayed"]         = pet.timesPlayed;
+  jsonDoc["timesSlept"]          = pet.timesSlept;
+  jsonDoc["timesCleaned"]        = pet.timesCleaned;
+  jsonDoc["timesHealed"]         = pet.timesHealed;
+  jsonDoc["highScore"]           = pet.highScore;
+  jsonDoc["dailyActiveMinutes"]  = pet.dailyActiveMinutes;
+  jsonDoc["weeklyActiveMinutes"] = pet.weeklyActiveMinutes;
+  jsonDoc["notificationCount"]   = pet.notificationCount;
+  jsonDoc["batteryLevel"]        = pet.batteryLevel;
+  jsonDoc["lowBatteryWarning"]   = pet.lowBatteryWarning;
+  jsonDoc["lastBatteryCheck"]    = pet.lastBatteryCheck;
+
   if (serializeJson(jsonDoc, file) == 0) {
     Serial.println("Failed to write pet data to file");
   }
@@ -148,6 +164,22 @@ void loadPetData(Pet &pet) {
     int w = jsonDoc["weather"] | 0;
     if (w < 0 || w > 4) w = 0;
     pet.weather        = w;
+
+    // Phase 5: load statistics & power fields (with defaults)
+    pet.totalPlayTime       = jsonDoc["totalPlayTime"]       | 0UL;
+    pet.totalSleepTime      = jsonDoc["totalSleepTime"]      | 0UL;
+    pet.timesFed            = constrain((int)jsonDoc["timesFed"]            | 0, 0, 99999);
+    pet.timesPlayed         = constrain((int)jsonDoc["timesPlayed"]         | 0, 0, 99999);
+    pet.timesSlept          = constrain((int)jsonDoc["timesSlept"]          | 0, 0, 99999);
+    pet.timesCleaned        = constrain((int)jsonDoc["timesCleaned"]        | 0, 0, 99999);
+    pet.timesHealed         = constrain((int)jsonDoc["timesHealed"]         | 0, 0, 99999);
+    pet.highScore           = constrain((int)jsonDoc["highScore"]           | 0, 0, 99999);
+    pet.dailyActiveMinutes  = jsonDoc["dailyActiveMinutes"]  | 0UL;
+    pet.weeklyActiveMinutes = jsonDoc["weeklyActiveMinutes"] | 0UL;
+    pet.notificationCount   = constrain((int)jsonDoc["notificationCount"]   | 0, 0, MAX_NOTIFICATIONS);
+    pet.batteryLevel        = constrain((int)jsonDoc["batteryLevel"]        | -1, -1, 100);
+    pet.lowBatteryWarning   = jsonDoc["lowBatteryWarning"]   | false;
+    pet.lastBatteryCheck    = jsonDoc["lastBatteryCheck"]    | 0UL;
   }
 
   file.close();

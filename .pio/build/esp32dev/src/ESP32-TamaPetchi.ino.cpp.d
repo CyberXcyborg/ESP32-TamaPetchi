@@ -204,6 +204,9 @@
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src/SPIFFS.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
- src/config.h src/Pet.h src/Storage.h src/WebHandlers.h src/MultiPet.h \
- src/Stats.h src/Achievements.h src/Notifications.h src/PowerManager.h \
- src/WiFiManager.h src/OTA.h
+ /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/cores/esp32/Esp.h \
+ /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_system/include/esp_task_wdt.h \
+ src/config.h src/Pet.h src/Storage.h src/WebHandlers.h \
+ src/Achievements.h src/Buttons.h src/RGB_LED.h src/MultiPet.h src/OTA.h \
+ src/WiFiManager.h src/Stats.h src/Notifications.h src/PowerManager.h \
+ src/PowerManagement.h

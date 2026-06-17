@@ -62,6 +62,26 @@ struct Pet {
   int gameRound;             // current game round
   int memorySequence[10];    // memory game sequence
   int catchTargetX, catchTargetY; // catch game target position
+
+  // --- Phase 5: Statistics ---
+  unsigned long totalPlayTime;    // total play time in seconds
+  unsigned long totalSleepTime;   // total sleep time in seconds
+  int timesFed;
+  int timesPlayed;
+  int timesSlept;
+  int timesCleaned;
+  int timesHealed;
+  int highScore;
+  unsigned long dailyActiveMinutes;
+  unsigned long weeklyActiveMinutes;
+
+  // --- Phase 5: Notifications ---
+  int notificationCount;
+
+  // --- Phase 5: Power ---
+  int batteryLevel;              // 0-100 if ADC available, -1 if not
+  bool lowBatteryWarning;
+  unsigned long lastBatteryCheck;
 };
 
 // --- Lifecycle ---
@@ -156,5 +176,8 @@ void cleanPet(Pet &pet);
 void sleepPet(Pet &pet);
 void healPet(Pet &pet);
 void resetPet(Pet &pet);
+
+// --- Phase 5: Power Management ---
+void updateBatteryLevel(Pet &pet);
 
 #endif // PET_H

@@ -1,6 +1,7 @@
 #include "Buttons.h"
 #include "Storage.h"
 #include "config.h"
+#include <SPIFFS.h>
 
 // ============================================================
 // Physical Button Handler (Phase 6.3)

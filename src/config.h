@@ -96,6 +96,36 @@
 // --- Phase 6: Wear Leveling ---
 #define MIN_SAVE_INTERVAL   300000UL  // 5 minutes minimum between SPIFFS saves
 
+// ============================================================
+// Phase 5: Advanced Features
+// ============================================================
+
+// --- WiFi Manager ---
+#define WIFI_AP_SSID        "TamaPetchi-Setup"
+#define WIFI_AP_PASS        "tamapetchi"
+#define WIFI_CONNECT_TIMEOUT 10000  // 10 seconds
+
+// --- OTA Updates ---
+#define OTA_PASSWORD        "tamapetchi"
+#define OTA_PORT            3232
+#define OTA_HOSTNAME        "TamaPetchi"
+
+// --- Multi-Pet ---
+#define MAX_PETS            3
+#define MULTI_PET_FILE      "/multi_pet.json"
+
+// --- Statistics ---
+#define STATS_FILE          "/stats.json"
+
+// --- Notifications ---
+#define NOTIFICATION_FILE   "/notifications.json"
+#define MAX_NOTIFICATIONS   20
+
+// --- Power Management ---
+#define BATTERY_ADC_PIN        34     // ADC pin for battery monitoring
+#define LOW_BATTERY_THRESHOLD   20     // Battery percentage
+#define SLEEP_CHECK_INTERVAL    60000  // Check sleep conditions every 60s
+
 // --- Phase 6: Compile-Time Feature Flags ---
 // Uncomment to disable features and reduce flash usage
 // #define DISABLE_OTA          // Remove OTA update support

@@ -6,7 +6,8 @@
 - Phase 3 ✅ Merged (Naming, buzzer, OLED, achievements, pet types)
 - Phase 4 ✅ Merged (Evolution anim, death/revive, games, weather, music, settings)
 - Phase 5 ✅ Merged (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
-- Phase 6 🔄 Assigned — Awaiting Kael's implementation
+- Phase 6 ✅ Merged (Code quality, web UI, hardware features, docs, performance)
+- Phase 7 🔄 Assigned — Awaiting Kael's implementation
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -31,7 +32,7 @@
 5. **Notification System** — Per-pet notification slots, buzzer patterns, web UI badges
 6. **Power Management** — Deep sleep + battery ADC monitoring + WiFi power reduction
 
-## Phase 6: Polish & Hardware Integration
+## Phase 6: Polish & Hardware Integration — COMPLETE ✅
 
 ### 6.1 — Code Quality & Safety
 - [x] Add bounds checking on all SPIFFS JSON parsing (prevent malformed data crashes)
@@ -68,8 +69,48 @@
 - [x] Reduce WiFi power consumption in idle mode (modem sleep via reduced TX power)
 - [x] Add compile-time feature flags to reduce flash usage when features disabled
 
+### PR #6 Review Notes (Nyra, 2026-06-17)
+- ✅ Approved with minor notes
+- **Bug: MultiPet load/save missing Phase 4 & 5 fields** — loadMultiPetState() and saveMultiPetState() only handle Phase 3 fields. Phase 4 (isDying, musicEnabled, difficulty, weather) and Phase 5 (timesFed, totalPlayTime, batteryLevel) are not persisted per-slot. Fix in Phase 7.
+- **Bug: Duplicate /wifi/reset route** — registered in both registerHandlers() and registerWiFiRoutes(). Remove duplicate.
+- **Cleanup: MAX_PETS and OTA_PASSWORD defined in two places** — consolidate to config.h only.
+- **Cleanup: WiFiManager library in lib_deps but unused** — remove from platformio.ini.
+
+## Phase 7: Bug Fixes & Enhancements
+
+### 7.1 — Critical Bug Fixes
+- [ ] **Fix multi-pet persistence**: Add Phase 4 & 5 fields to loadMultiPetState() and saveMultiPetState() (isDying, dyingStartTime, lastReviveTime, musicEnabled, difficulty, weather, timesFed, timesPlayed, timesSlept, timesCleaned, timesHealed, totalPlayTime, totalSleepTime, highScore, batteryLevel, lowBatteryWarning)
+- [ ] **Fix duplicate /wifi/reset route**: Remove from WebHandlers.cpp (keep in WiFiManager.cpp)
+- [ ] **Consolidate duplicate defines**: Remove MAX_PETS from MultiPet.h, remove OTA_PASSWORD/OTA_PORT/OTA_HOSTNAME from OTA.h (keep in config.h only)
+- [ ] **Remove unused WiFiManager lib dependency** from platformio.ini
+
+### 7.2 — Code Quality & Testing
+- [ ] Write PlatformIO unit tests for Pet state machine (evolution, death, revive logic)
+- [ ] Add bounds validation on all SPIFFS JSON parse results (check for null/missing keys before use)
+- [ ] Add HTTP endpoint rate limiting (prevent rapid-fire requests from crashing the server)
+- [ ] Test SPIFFS data migration from v1 (monolithic .ino) to v2 (modular) format
+
+### 7.3 — Performance & Memory
+- [ ] Profile heap usage after 24h runtime (detect memory leaks)
+- [ ] Optimize JSON document sizes (use StaticJsonDocument where possible)
+- [ ] Implement HTTP gzip compression for index.html
+- [ ] Audit DynamicJsonDocument allocations — replace with StaticJsonDocument where size is known
+
+### 7.4 — Web UI Polish
+- [ ] Add loading spinners for async operations
+- [ ] Add confirmation dialogs for destructive actions (reset, delete pet)
+- [ ] Improve error messages in API responses (include error codes)
+- [ ] Add pet sprite SVG animations for all pet types (currently only BLOB)
+
+### 7.5 — New Features (Stretch)
+- [ ] Add scheduled feeding (timer-based auto-feed)
+- [ ] Add pet mood system (personality traits that affect stat decay)
+- [ ] Add IR remote control support (NEC protocol)
+- [ ] Add MQTT integration for smart home connectivity
+- [ ] Add OTA delta updates (binary diff to reduce bandwidth)
+
 ## Implementation Rules
-- Create branch: feature/phase6-xxx
+- Create branch: feature/phase7-xxx
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress

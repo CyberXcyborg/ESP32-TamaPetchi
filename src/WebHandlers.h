@@ -26,5 +26,14 @@ WebServer* getServer();
 void beginSSE();
 void broadcastSSE(const String &data);
 void handleSSEClients();
+void handleSetMelodyConfig();
+
+// Phase 5: Forward declarations
+void handleGetPets();
+void handleCreatePet();
+void handleSwitchPet();
+void handleDeletePet();
+void handleGetStats();
+void handleGetNotifications();
 
 #endif // WEBHANDLERS_H

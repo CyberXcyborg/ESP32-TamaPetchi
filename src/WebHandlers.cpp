@@ -1,11 +1,46 @@
-/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory
 #include "WebHandlers.h"
 #include "Pet.h"
 #include "Storage.h"
 #include "Achievements.h"
 #include "config.h"
+#include "MultiPet.h"
+#include "OTA.h"
+#include "WiFiManager.h"
+#include "Stats.h"
+#include "Notifications.h"
+#include "PowerManager.h"
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
+
+// Forward declarations for all route handlers
+void handleRoot();
+void handleGetPet();
+void handleFeed();
+void handlePlay();
+void handleClean();
+void handleSleep();
+void handleHeal();
+void handleReset();
+void handleUpdate();
+void handleSetName();
+void handleMute();
+void handleAchievements();
+void handleSetType();
+void handleRevive();
+void handleGameStart();
+void handleGameAction();
+void handleGameState();
+void handleSetMusic();
+void handleSetDifficulty();
+void handleSSEClient();
+void handleGetMelodyConfig();
+void handleSetMelodyConfig();
+void handleGetPets();
+void handleCreatePet();
+void handleSwitchPet();
+void handleDeletePet();
+void handleGetStats();
+void handleGetNotifications();
 
 // ============================================================
 // Module-level state
@@ -15,6 +50,10 @@ static WebServer*  g_server     = nullptr;
 bool showWakeMessage             = false;
 unsigned long wakeMessageStartTime = 0;
 String previousState             = "";
+
+// Phase 5: External state references
+extern MultiPetState g_multiPet;
+extern GameStats g_stats;
 
 WebServer* getServer() { return g_server; }
 
@@ -42,7 +81,7 @@ void broadcastSSE(const String &data) {
   }
 }
 
-static void handleSSEClient() {
+void handleSSEClient() {
   if (!g_server) return;
 
   // Find a free slot
@@ -158,6 +197,24 @@ void registerHandlers(WebServer &server, Pet &pet) {
   // Phase 6: Buzzer melody configuration
   server.on("/melodies",        HTTP_GET,  handleGetMelodyConfig);
   server.on("/melodies/config", HTTP_POST, handleSetMelodyConfig);
+
+  // Phase 5: WiFi Manager routes
+  registerWiFiRoutes(server);
+
+  // Phase 5: OTA routes
+  registerOTARoutes(server);
+
+  // Phase 5: Multi-Pet routes
+  server.on("/pets",         HTTP_GET,  handleGetPets);
+  server.on("/pets/create",  HTTP_POST, handleCreatePet);
+  server.on("/pets/switch",  HTTP_POST, handleSwitchPet);
+  server.on("/pets/delete",  HTTP_POST, handleDeletePet);
+
+  // Phase 5: Stats route
+  server.on("/stats",        HTTP_GET,  handleGetStats);
+
+  // Phase 5: Notifications route
+  server.on("/notifications", HTTP_GET, handleGetNotifications);
 }
 
 // ============================================================
@@ -181,7 +238,7 @@ static void sendJsonResponse(bool success, const String &message = "") {
 // ============================================================
 // Route Handlers
 // ============================================================
-static void handleRoot() {
+void handleRoot() {
   if (!g_server) { Serial.println("ERROR: g_server null in handleRoot"); return; }
   File file = SPIFFS.open("/index.html", "r");
   if (!file) {
@@ -192,7 +249,7 @@ static void handleRoot() {
   file.close();
 }
 
-static void handleGetPet() {
+void handleGetPet() {
   if (!g_pet || !g_server) {
     Serial.println("ERROR: null pointer in handleGetPet");
     if (g_server) g_server->send(500, "text/plain", "Internal error");
@@ -252,7 +309,7 @@ static void handleGetPet() {
   g_server->send(200, "application/json", response);
 }
 
-static void handleFeed() {
+void handleFeed() {
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   // Phase 6: Clamp stat before action to prevent overflow
@@ -264,7 +321,7 @@ static void handleFeed() {
   sendJsonResponse(true);
 }
 
-static void handlePlay() {
+void handlePlay() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
   playPet(*g_pet);
@@ -274,28 +331,28 @@ static void handlePlay() {
   sendJsonResponse(true);
 }
 
-static void handleClean() {
+void handleClean() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   cleanPet(*g_pet);
   savePetData(*g_pet);
   sendJsonResponse(true);
 }
 
-static void handleSleep() {
+void handleSleep() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   sleepPet(*g_pet);
   savePetData(*g_pet);
   sendJsonResponse(true);
 }
 
-static void handleHeal() {
+void handleHeal() {
   if (!g_pet->isAlive && !g_pet->isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
   healPet(*g_pet);
   savePetData(*g_pet);
   sendJsonResponse(true);
 }
 
-static void handleReset() {
+void handleReset() {
   initPet(*g_pet);
   // Reset achievement tracking
   g_pet->feedCount     = 0;
@@ -307,11 +364,11 @@ static void handleReset() {
   sendJsonResponse(true);
 }
 
-static void handleUpdate() {
+void handleUpdate() {
   handleGetPet();
 }
 
-static void handleGameStart() {
+void handleGameStart() {
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
@@ -340,7 +397,7 @@ static void handleGameStart() {
   g_server->send(200, "application/json", result);
 }
 
-static void handleGameAction() {
+void handleGameAction() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
 
@@ -385,12 +442,12 @@ static void handleGameAction() {
   g_server->send(200, "application/json", result);
 }
 
-static void handleGameState() {
+void handleGameState() {
   String gameState = getGameStateJSON(*g_pet);
   g_server->send(200, "application/json", gameState);
 }
 
-static void handleSetMusic() {
+void handleSetMusic() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   g_pet->musicEnabled = !g_pet->musicEnabled;
   savePetData(*g_pet);
@@ -402,7 +459,7 @@ static void handleSetMusic() {
   g_server->send(200, "application/json", response);
 }
 
-static void handleSetDifficulty() {
+void handleSetDifficulty() {
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   String body = g_server->arg("plain");
   DynamicJsonDocument jsonDoc(256);
@@ -429,7 +486,7 @@ static void handleSetDifficulty() {
   g_server->send(200, "application/json", response);
 }
 
-static void handleRevive() {
+void handleRevive() {
   if (g_pet->isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
   if (g_pet->isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
   if (!canRevive(*g_pet)) {
@@ -442,7 +499,7 @@ static void handleRevive() {
   sendJsonResponse(true);
 }
 
-static void handleSetType() {
+void handleSetType() {
   if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
@@ -480,12 +537,12 @@ static void handleSetType() {
   sendJsonResponse(true);
 }
 
-static void handleAchievements() {
+void handleAchievements() {
   String achJson = getAchievementsJson(*g_pet);
   g_server->send(200, "application/json", achJson);
 }
 
-static void handleMute() {
+void handleMute() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   g_pet->soundEnabled = !g_pet->soundEnabled;
@@ -499,7 +556,7 @@ static void handleMute() {
   g_server->send(200, "application/json", response);
 }
 
-static void handleSetName() {
+void handleSetName() {
   if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
@@ -547,15 +604,90 @@ static void handleSetName() {
 // Phase 6.3: Buzzer Melody Configuration Endpoints
 // ============================================================
 
-static void handleGetMelodyConfig() {
+void handleGetMelodyConfig() {
   if (!g_server) return;
   String json = getMelodyConfigJson();
   g_server->send(200, "application/json", json);
 }
 
-static void handleSetMelodyConfig() {
+void handleSetMelodyConfig() {
   if (!g_server) return;
   String body = g_server->arg("plain");
   setMelodyConfigFromJson(body);
   sendJsonResponse(true);
+}
+
+// ============================================================
+// Phase 5: Multi-Pet Endpoints
+// ============================================================
+
+void handleGetPets() {
+  if (!g_server) return;
+  String json = getMultiPetJson(g_multiPet);
+  g_server->send(200, "application/json", json);
+}
+
+void handleCreatePet() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+  String name = jsonDoc["name"] | "";
+  int type = jsonDoc["type"] | 0;
+  PetType pt = (PetType)constrain(type, 0, 2);
+  int slot = createPet(g_multiPet, name, pt);
+  if (slot >= 0) {
+    DynamicJsonDocument resp(256);
+    resp["success"] = true;
+    resp["slot"] = slot;
+    String r; serializeJson(resp, r);
+    g_server->send(200, "application/json", r);
+  } else {
+    sendJsonResponse(false, "No free slots");
+  }
+}
+
+void handleSwitchPet() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+  int slot = jsonDoc["slot"] | -1;
+  if (switchPet(g_multiPet, slot)) {
+    sendJsonResponse(true);
+  } else {
+    sendJsonResponse(false, "Invalid slot");
+  }
+}
+
+void handleDeletePet() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  DynamicJsonDocument jsonDoc(256);
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+  int slot = jsonDoc["slot"] | -1;
+  if (deletePet(g_multiPet, slot)) {
+    sendJsonResponse(true);
+  } else {
+    sendJsonResponse(false, "Cannot delete");
+  }
+}
+
+// ============================================================
+// Phase 5: Stats & Notifications Endpoints
+// ============================================================
+
+void handleGetStats() {
+  if (!g_server) return;
+  String json = getStatsJson(g_stats);
+  g_server->send(200, "application/json", json);
+}
+
+void handleGetNotifications() {
+  if (!g_server) return;
+  String json = getNotificationsJson(g_multiPet.activePetIndex);
+  g_server->send(200, "application/json", json);
 }

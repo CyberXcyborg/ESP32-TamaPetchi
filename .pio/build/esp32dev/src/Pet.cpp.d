@@ -133,7 +133,6 @@
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_hw_support/include/soc/esp32/spiram.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/cores/esp32/io_pin_remap.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
- .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.h \
+ src/config.h .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.hpp \
- .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
- src/config.h
+ .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp
