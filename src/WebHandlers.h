@@ -23,11 +23,10 @@ void cleanupRateBuckets();
 WebServer* getServer();
 
 // ============================================================
-// SSE Support (Phase 6.2)
+// WebSocket Support (Phase 10.2) — replaces SSE
 // ============================================================
-void beginSSE();
-void broadcastSSE(const String &data);
-void handleSSEClients();
+void handleWebSocketBroadcast();
+void webSocketBroadcastNotification(const String &notificationType, const String &message);
 void handleSetMelodyConfig();
 
 // Phase 5: Forward declarations

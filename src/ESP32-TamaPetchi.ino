@@ -22,6 +22,7 @@
 #include "PowerManager.h"
 #include "PowerManagement.h"
 #include "AppState.h"
+#include "WebSocket.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -100,6 +101,9 @@ void setup() {
   // Start server
   APP_STATE.server.begin();
 
+  // Phase 10.2: Start WebSocket server
+  webSocketBegin(WS_PORT);
+
   // Initialize OLED
 #ifdef ENABLE_OLED
   setupOLED();
@@ -129,6 +133,9 @@ void loop() {
 
   APP_STATE.server.handleClient();
 
+  // Phase 10.2: Handle WebSocket events
+  webSocketLoop();
+
   // Phase 5: Handle OTA
   handleOTA();
 
@@ -145,8 +152,8 @@ void loop() {
   checkIRRemote();
 #endif
 
-  // Phase 6: Handle SSE client cleanup and broadcast
-  handleSSEClients();
+  // Phase 10.2: WebSocket periodic broadcast + rate limit cleanup
+  handleWebSocketBroadcast();
 
   // Update pet stats every interval
   unsigned long currentMillis = millis();
