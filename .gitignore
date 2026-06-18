@@ -1,0 +1,9 @@
+# Build artifacts
+.pio/
+.DS_Store
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/

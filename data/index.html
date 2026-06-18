@@ -1,0 +1,2225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 TamaPetchi - Enhanced Blob Pet</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .pet-container {
+            background: linear-gradient(145deg, #e0f0ff, #b0d7ff);
+            border-radius: 20px;
+            box-shadow: 
+                inset 8px 8px 15px rgba(255,255,255,0.3),
+                inset -8px -8px 15px rgba(0,0,0,0.1),
+                0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pet-sprite {
+            transition: all 0.5s ease;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+        
+        .stat-bar {
+            background: linear-gradient(90deg, #f0f0f0, #e0e0e0);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.8s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0.2) 0%, 
+                rgba(255,255,255,0.4) 50%, 
+                rgba(255,255,255,0.2) 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .hunger-fill { background: linear-gradient(90deg, #ff9800, #ff5722); }
+        .happiness-fill { background: linear-gradient(90deg, #ffeb3b, #ffc107); }
+        .health-fill { background: linear-gradient(90deg, #4caf50, #2e7d32); }
+        .energy-fill { background: linear-gradient(90deg, #2196f3, #1565c0); }
+        .cleanliness-fill { background: linear-gradient(90deg, #00bcd4, #0097a7); }
+        
+        .game-button {
+            background: linear-gradient(145deg, #ffffff, #e0e0e0);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 
+                8px 8px 15px rgba(0,0,0,0.1),
+                -8px -8px 15px rgba(255,255,255,0.8);
+            transition: all 0.2s ease;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                10px 10px 20px rgba(0,0,0,0.15),
+                -10px -10px 20px rgba(255,255,255,0.9);
+        }
+        
+        .game-button:active {
+            transform: translateY(1px);
+            box-shadow: 
+                4px 4px 8px rgba(0,0,0,0.2),
+                -4px -4px 8px rgba(255,255,255,0.6);
+        }
+        
+        .game-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Pet Animations */
+        .bounce {
+            animation: bounce 2s infinite ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .wobble {
+            animation: wobble 3s infinite ease-in-out;
+        }
+        @keyframes wobble {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-2deg) scale(1.02); }
+            75% { transform: rotate(2deg) scale(0.98); }
+        }
+        @keyframes dying-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        @keyframes evolve-glow {
+            0% { filter: brightness(1) drop-shadow(0 0 0px gold); }
+            50% { filter: brightness(1.5) drop-shadow(0 0 20px gold); }
+            100% { filter: brightness(1) drop-shadow(0 0 0px gold); }
+        }
+        .dying-animation { animation: dying-pulse 1s infinite; }
+        .evolve-animation { animation: evolve-glow 0.5s ease-in-out 6; }
+        
+        .pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .shake {
+            animation: shake 0.8s infinite;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(-3px) rotate(-1deg); }
+            75% { transform: translateX(3px) rotate(1deg); }
+        }
+        
+        .eating-motion {
+            animation: eating 1s infinite alternate;
+        }
+        @keyframes eating {
+            0% { transform: scaleY(1); }
+            100% { transform: scaleY(0.95) translateY(2px); }
+        }
+        
+        .playing-motion {
+            animation: playing 1.5s infinite ease-in-out;
+        }
+        @keyframes playing {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-12px) rotate(-3deg); }
+            50% { transform: translateY(-15px) rotate(0deg); }
+            75% { transform: translateY(-12px) rotate(3deg); }
+        }
+        
+        .sleeping-motion {
+            animation: sleeping 4s infinite ease-in-out;
+        }
+        @keyframes sleeping {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.02) rotate(1deg); }
+        }
+        
+        .dead-motion {
+            animation: dead 3s infinite ease-in-out;
+        }
+        @keyframes dead {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(-4deg); }
+        }
+        
+        /* Environment Effects */
+        .environment-normal {
+            background: linear-gradient(145deg, #e0f0ff, #b0d7ff);
+        }
+        
+        .environment-eating {
+            background: linear-gradient(145deg, #fff5e0, #ffd7b0);
+        }
+        
+        .environment-playing {
+            background: linear-gradient(145deg, #e0ffe0, #b0ffb0);
+        }
+        
+        .environment-sleeping {
+            background: linear-gradient(145deg, #e0e0ff, #b0b0ff);
+        }
+        
+        .environment-sick {
+            background: linear-gradient(145deg, #ffe0e0, #ffb0b0);
+        }
+        
+        .environment-dead {
+            background: linear-gradient(145deg, #e0e0e0, #b0b0b0);
+        }
+        
+        /* Particles */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .food-particle {
+            background: #ff9800;
+            animation: food-fall 2s ease-in forwards;
+        }
+        @keyframes food-fall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(80px) rotate(360deg); opacity: 0; }
+        }
+        
+        .play-particle {
+            animation: play-burst 1.5s ease-out forwards;
+        }
+        @keyframes play-burst {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: scale(2) rotate(180deg); opacity: 0; }
+        }
+        
+        .heal-particle {
+            background: #4caf50;
+            animation: heal-sparkle 2s ease-out forwards;
+        }
+        @keyframes heal-sparkle {
+            0% { transform: scale(0) translateY(0); opacity: 1; }
+            50% { opacity: 1; }
+            100% { transform: scale(1.5) translateY(-30px); opacity: 0; }
+        }
+        
+        .sleep-z {
+            font-size: 24px;
+            color: #666;
+            opacity: 0;
+            animation: sleep-float 3s infinite ease-in-out;
+        }
+        @keyframes sleep-float {
+            0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+            25% { opacity: 1; }
+            50% { transform: translate(20px, -20px) scale(1); }
+            75% { opacity: 1; }
+            100% { transform: translate(40px, -40px) scale(1.5); opacity: 0; }
+        }
+        
+        .message {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #c8e6c9, #a5d6a7);
+            color: #2e7d32;
+            border: 2px solid #4caf50;
+        }
+        
+        .error {
+            background: linear-gradient(135deg, #ffcdd2, #f8bbd9);
+            color: #c62828;
+            border: 2px solid #f44336;
+        }
+        
+        .glow-effect {
+            filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.6));
+        }
+        
+        .sick-effect {
+            filter: hue-rotate(60deg) saturate(0.7);
+        }
+        
+        @media (max-width: 640px) {
+            .game-button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+        }
+
+        /* ============================================================ */
+        /* Phase 6: Dark Mode Styles                                    */
+        /* ============================================================ */
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .bg-white {
+            background: #1e1e36 !important;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .text-gray-600 {
+            color: #a0a0b0 !important;
+        }
+
+        body.dark-mode .text-gray-700 {
+            color: #c0c0d0 !important;
+        }
+
+        body.dark-mode .game-button {
+            background: linear-gradient(145deg, #2a2a4a, #1e1e36);
+            color: #e0e0e0;
+            box-shadow:
+                6px 6px 12px rgba(0,0,0,0.4),
+                -6px -6px 12px rgba(60,60,90,0.3);
+        }
+
+        body.dark-mode .game-button:hover {
+            box-shadow:
+                8px 8px 16px rgba(0,0,0,0.5),
+                -8px -8px 16px rgba(60,60,90,0.4);
+        }
+
+        body.dark-mode .pet-container {
+            background: linear-gradient(145deg, #1e2a4a, #162040);
+        }
+
+        body.dark-mode .stat-bar {
+            background: linear-gradient(90deg, #2a2a4a, #1e1e36);
+        }
+
+        body.dark-mode .bg-gray-50 {
+            background: #1a1a30 !important;
+            border-color: #2a2a4a !important;
+        }
+
+        body.dark-mode .bg-indigo-50 {
+            background: #1a1a3a !important;
+            border-color: #2a2a5a !important;
+        }
+
+        body.dark-mode .bg-yellow-50 {
+            background: #2a2a1a !important;
+            border-color: #3a3a2a !important;
+        }
+
+        body.dark-mode .bg-green-50 {
+            background: #1a2a1a !important;
+            border-color: #2a3a2a !important;
+        }
+
+        body.dark-mode .border-purple-200 {
+            border-color: #4a3a6a !important;
+        }
+
+        body.dark-mode input[type="text"] {
+            background: #2a2a4a;
+            color: #e0e0e0;
+            border-color: #4a3a6a;
+        }
+
+        body.dark-mode select {
+            background: #2a2a4a;
+            color: #e0e0e0;
+            border-color: #4a3a6a;
+        }
+
+        body.dark-mode .sleep-z {
+            color: #888;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4">
+    <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
+            <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
+                <i class="fas fa-heart text-pink-300"></i>
+                <span id="header-name">ESP32 TamaPetchi</span>
+                <i class="fas fa-star text-yellow-300"></i>
+            </h1>
+            <div id="pet-name-display" class="text-sm mt-1 opacity-80" style="display:none;">
+                Meet <span id="pet-name-text" class="font-bold"></span>!
+            </div>
+        </div>
+        
+        <!-- Message Area -->
+        <div id="message" class="message mx-4 mt-4 p-3 hidden">
+            <span id="message-text"></span>
+        </div>
+        
+        <!-- Pet Display -->
+        <div class="p-6">
+            <div id="pet-container" class="pet-container w-64 h-64 mx-auto flex items-center justify-center relative">
+                <div id="pet" class="pet-sprite">
+                    <!-- Pet SVG will be inserted here -->
+                </div>
+                <!-- Particles container -->
+                <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
+            </div>
+        </div>
+        
+        <!-- Stats Display -->
+        <div class="px-6 pb-4 space-y-3">
+            <!-- Hunger -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-utensils text-orange-500 w-6"></i>
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Hunger</span>
+                        <span id="hunger-value">100%</span>
+                    </div>
+                    <div class="stat-bar h-4">
+                        <div id="hunger-bar" class="stat-fill hunger-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Happiness -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-smile text-yellow-500 w-6"></i>
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Happiness</span>
+                        <span id="happiness-value">100%</span>
+                    </div>
+                    <div class="stat-bar h-4">
+                        <div id="happiness-bar" class="stat-fill happiness-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Health -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-heartbeat text-green-500 w-6"></i>
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Health</span>
+                        <span id="health-value">100%</span>
+                    </div>
+                    <div class="stat-bar h-4">
+                        <div id="health-bar" class="stat-fill health-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Energy -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-bolt text-blue-500 w-6"></i>
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Energy</span>
+                        <span id="energy-value">100%</span>
+                    </div>
+                    <div class="stat-bar h-4">
+                        <div id="energy-bar" class="stat-fill energy-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cleanliness -->
+            <div class="flex items-center gap-3">
+                <i class="fas fa-soap text-cyan-500 w-6"></i>
+                <div class="flex-1">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Cleanliness</span>
+                        <span id="cleanliness-value">100%</span>
+                    </div>
+                    <div class="stat-bar h-4">
+                        <div id="cleanliness-bar" class="stat-fill cleanliness-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Age & Stage -->
+            <div class="text-center text-gray-600 mt-4">
+                <i class="fas fa-clock text-purple-500"></i>
+                Age: <span id="age-value" class="font-bold">0</span> minutes
+                <span id="stage-badge" class="ml-2 px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">Baby</span>
+            </div>
+            <div id="day-night-indicator" class="text-center text-sm mt-1">
+                <i id="day-night-icon" class="fas fa-sun text-yellow-500"></i>
+                <span id="day-night-text">Day</span>
+                <span id="weather-display" class="ml-2">
+                    <i id="weather-icon" class="fas fa-sun"></i>
+                    <span id="weather-text">Sunny</span>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Pet Naming + Type Selector -->
+        <div class="px-6 pb-2 space-y-2">
+            <div class="flex gap-2">
+                <input type="text" id="name-input" placeholder="Enter pet name..." maxlength="16"
+                    class="flex-1 border-2 border-purple-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-400">
+                <button id="name-btn" class="game-button px-4 py-2 text-purple-600 text-sm">
+                    <i class="fas fa-pen"></i> Rename
+                </button>
+            </div>
+            <div class="flex gap-2">
+                <span class="text-sm text-gray-600 py-1">Type:</span>
+                <button id="type-blob" class="type-btn game-button px-3 py-1 text-xs flex-1" data-type="blob">Blob</button>
+                <button id="type-cat" class="type-btn game-button px-3 py-1 text-xs flex-1" data-type="cat">Cat</button>
+                <button id="type-dog" class="type-btn game-button px-3 py-1 text-xs flex-1" data-type="dog">Dog</button>
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div id="achievements-section" class="px-6 pb-2" style="display:none;">
+            <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
+                <h3 class="text-sm font-bold text-yellow-700 mb-2"><i class="fas fa-trophy"></i> Achievements</h3>
+                <div id="achievements-grid" class="flex flex-wrap gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Mini-Games -->
+        <div id="games-section" class="px-6 pb-2">
+            <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
+                <h3 class="text-sm font-bold text-indigo-700 mb-2"><i class="fas fa-gamepad"></i> Mini-Games</h3>
+                <div class="flex gap-2">
+                    <button id="game-memory" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-brain"></i> Memory
+                    </button>
+                    <button id="game-catch" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-crosshairs"></i> Catch
+                    </button>
+                    <button id="game-quiz" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600">
+                        <i class="fas fa-question"></i> Quiz
+                    </button>
+                </div>
+                <div id="game-area" class="mt-2" style="display:none;">
+                    <div id="game-ui" class="text-center"></div>
+                    <div id="game-input-area" class="mt-2"></div>
+                    <div id="game-score" class="text-xs text-center mt-1"></div>
+                </div>
+                <div id="game-cooldown" class="text-xs text-center text-gray-500 mt-1" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Settings -->
+        <div class="px-6 pb-2">
+            <div class="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-700 mb-2"><i class="fas fa-cog"></i> Settings</h3>
+                <div class="space-y-2">
+                    <!-- Difficulty -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-16">Difficulty:</span>
+                        <select id="difficulty-select" class="flex-1 border rounded px-2 py-1 text-xs">
+                            <option value="easy">Easy (80%)</option>
+                            <option value="normal" selected>Normal (100%)</option>
+                            <option value="hard">Hard (120%)</option>
+                        </select>
+                    </div>
+                    <!-- Music -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Music:</span>
+                        <button id="music-toggle" class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700">ON</button>
+                    </div>
+                    <!-- Dark Mode -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Dark Mode:</span>
+                        <button id="darkmode-toggle" class="text-xs px-3 py-1 rounded bg-gray-200 text-gray-700">OFF</button>
+                    </div>
+                    <!-- Sound Effects Toggle (Phase 6) -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-600">Sound FX:</span>
+                        <button id="sfx-toggle" class="text-xs px-3 py-1 rounded bg-purple-100 text-purple-700">ON</button>
+                    </div>
+                    <!-- Volume Control (Phase 6) -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-16">Volume:</span>
+                        <input type="range" id="volume-slider" min="0" max="100" value="70"
+                            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        <span id="volume-value" class="text-xs text-gray-500 w-8">70%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="p-6 grid grid-cols-2 gap-3">
+            <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700">
+                <i class="fas fa-utensils"></i>
+                <span>Feed</span>
+            </button>
+            
+            <button id="play-btn" class="game-button p-3 flex items-center justify-center gap-2 text-green-600 hover:text-green-700">
+                <i class="fas fa-gamepad"></i>
+                <span>Play</span>
+            </button>
+            
+            <button id="clean-btn" class="game-button p-3 flex items-center justify-center gap-2 text-cyan-600 hover:text-cyan-700">
+                <i class="fas fa-soap"></i>
+                <span>Clean</span>
+            </button>
+            
+            <button id="sleep-btn" class="game-button p-3 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700">
+                <i class="fas fa-bed"></i>
+                <span id="sleep-text">Sleep</span>
+            </button>
+            
+            <button id="heal-btn" class="game-button p-3 flex items-center justify-center gap-2 text-pink-600 hover:text-pink-700">
+                <i class="fas fa-heart-pulse"></i>
+                <span>Heal</span>
+            </button>
+            
+            <button id="reset-btn" class="game-button p-3 flex items-center justify-center gap-2 text-red-600 hover:text-red-700">
+                <i class="fas fa-refresh"></i>
+                <span>Reset</span>
+            </button>
+        </div>
+
+        <!-- Revive Button (shown when dead) -->
+        <div id="revive-section" class="px-6 pb-2" style="display:none;">
+            <button id="revive-btn" class="game-button w-full p-3 flex items-center justify-center gap-2 text-green-600 bg-green-50 rounded-xl border-2 border-green-200">
+                <i class="fas fa-heart"></i>
+                <span>Revive Pet</span>
+            </button>
+            <div id="revive-cooldown" class="text-xs text-center text-gray-500 mt-1"></div>
+        </div>
+
+        <!-- Sound Toggle -->
+        <div class="px-6 pb-4">
+            <button id="mute-btn" class="game-button w-full p-2 flex items-center justify-center gap-2 text-gray-600 text-sm">
+                <i id="mute-icon" class="fas fa-volume-up"></i>
+                <span id="mute-text">Sound: ON</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Pet state management
+        let pet = {
+            hunger: 50,
+            happiness: 50,
+            health: 80,
+            energy: 100,
+            cleanliness: 80,
+            age: 0,
+            isAlive: true,
+            state: "normal",
+            name: "Tama",
+            type: "blob",
+            stage: "baby",
+            isDying: false,
+            isEvolving: false,
+            weather: "sunny",
+            musicEnabled: true,
+            difficulty: "normal",
+            gameCooldown: 0,
+            activeGame: 0;
+            isNight: false,
+            achievements: []
+        };
+        
+        let updateInterval;
+        let previousState = "";
+        let animationTimeouts = [];
+        
+        // Initialize the game
+        window.onload = function() {
+            setupEventListeners();
+            updatePetData();
+            startSSE();  // Phase 6: Try SSE first for real-time updates
+            updateInterval = setInterval(updatePetData, 5000);  // Polling fallback
+        };
+        
+        function setupEventListeners() {
+            document.getElementById('feed-btn').addEventListener('click', () => performAction('feed'));
+            document.getElementById('play-btn').addEventListener('click', () => performAction('play'));
+            document.getElementById('clean-btn').addEventListener('click', () => performAction('clean'));
+            document.getElementById('sleep-btn').addEventListener('click', () => performAction('sleep'));
+            document.getElementById('heal-btn').addEventListener('click', () => performAction('heal'));
+            document.getElementById('reset-btn').addEventListener('click', resetPet);
+            document.getElementById('mute-btn').addEventListener('click', toggleMute);
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                btn.addEventListener('click', () => setPetType(btn.dataset.type));
+            });
+            document.getElementById('name-btn').addEventListener('click', setPetName);
+            document.getElementById('name-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') setPetName();
+            });
+        }
+
+        function setPetType(type) {
+            if (!confirm('Changing pet type will reset your pet. Continue?')) return;
+            fetch('/type', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: type})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showMessage(`Pet type changed to ${type}!`, 'success');
+                    updatePetData();
+                } else {
+                    showMessage(d.message || 'Failed to change type', 'error');
+                }
+            })
+            .catch(() => showMessage('Error changing type', 'error'));
+        }
+
+        function updateTypeButtons() {
+            document.querySelectorAll('.type-btn').forEach(btn => {
+                if (btn.dataset.type === pet.type) {
+                    btn.classList.add('ring-2', 'ring-purple-500');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-purple-500');
+                }
+            });
+        }
+
+        function toggleMute() {
+            fetch('/mute', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const icon = document.getElementById('mute-icon');
+                    const text = document.getElementById('mute-text');
+                    if (d.soundEnabled) {
+                        icon.className = 'fas fa-volume-up';
+                        text.textContent = 'Sound: ON';
+                    } else {
+                        icon.className = 'fas fa-volume-mute';
+                        text.textContent = 'Sound: OFF';
+                    }
+                    pet.soundEnabled = d.soundEnabled;
+                }
+            })
+            .catch(() => showMessage('Error toggling sound', 'error'));
+        }
+
+        function setPetName() {
+            const input = document.getElementById('name-input');
+            const name = input.value.trim();
+            if (!name) { showMessage('Please enter a name', 'error'); return; }
+            fetch('/name', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name.substring(0, 16)})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showMessage(`Name changed to "${name}"!`, 'success');
+                    input.value = '';
+                    updatePetData();
+                } else {
+                    showMessage(d.message || 'Failed to set name', 'error');
+                }
+            })
+            .catch(() => showMessage('Error setting name', 'error'));
+        }
+
+        function renderAchievements() {
+            const section = document.getElementById('achievements-section');
+            const grid = document.getElementById('achievements-grid');
+            if (!pet.achievements || pet.achievements.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            const icons = {
+                survived_1h: '<i class="fas fa-hourglass-half"></i>',
+                survived_24h: '<i class="fas fa-hourglass-end"></i>',
+                fed_10x: '<i class="fas fa-utensils"></i>',
+                played_10x: '<i class="fas fa-gamepad"></i>',
+                named_pet: '<i class="fas fa-signature"></i>',
+                reached_elder: '<i class="fas fa-crown"></i>'
+            };
+            const titles = {
+                survived_1h: 'Survived 1h',
+                survived_24h: 'Survived 24h',
+                fed_10x: 'Fed 10x',
+                played_10x: 'Played 10x',
+                named_pet: 'Named Pet',
+                reached_elder: 'Elder Pet'
+            };
+            grid.innerHTML = '';
+            pet.achievements.forEach(a => {
+                const badge = document.createElement('span');
+                badge.className = 'px-2 py-1 bg-yellow-200 text-yellow-800 rounded-lg text-xs font-bold flex items-center gap-1';
+                badge.innerHTML = (icons[a] || '<i class="fas fa-star"></i>') + ' ' + (titles[a] || a);
+                grid.appendChild(badge);
+            });
+        }
+        
+        // Fetch pet data from server
+        function updatePetData() {
+            fetch('/pet')
+                .then(response => response.json())
+                .then(data => {
+                    if (previousState !== data.state) {
+                        handleStateChange(previousState, data.state);
+                    }
+                    previousState = data.state;
+                    pet = data;
+                    updateDisplay();
+                    updateMoodDisplay();
+                    updateScheduledFeedUI();
+                })
+                .catch(error => {
+                    console.error('Error fetching pet data:', error);
+                    showMessage('Connection error. Check if device is online.', 'error');
+                });
+        }
+
+        // ============================================================
+        // Phase 6: SSE (Server-Sent Events) for real-time updates
+        // Falls back to polling if SSE is not supported
+        // ============================================================
+        let evtSource = null;
+        let sseConnected = false;
+
+        function startSSE() {
+            if (typeof EventSource === 'undefined') {
+                console.log('SSE not supported, using polling fallback');
+                return;
+            }
+
+            evtSource = new EventSource('/events');
+
+            evtSource.onopen = function() {
+                sseConnected = true;
+                console.log('SSE connected — real-time updates active');
+                // We still poll occasionally as a fallback in case SSE drops
+            };
+
+            evtSource.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (previousState !== data.state) {
+                        handleStateChange(previousState, data.state);
+                    }
+                    previousState = data.state;
+                    pet = data;
+                    updateDisplay();
+                    updateMoodDisplay();
+                    updateScheduledFeedUI();
+                } catch (err) {
+                    console.error('SSE parse error:', err);
+                }
+            };
+
+            evtSource.onerror = function() {
+                console.log('SSE connection lost, falling back to polling');
+                sseConnected = false;
+                if (evtSource) {
+                    evtSource.close();
+                    evtSource = null;
+                }
+                // Polling fallback continues via updateInterval
+            };
+        }
+        
+        // Handle state changes and trigger animations
+        function handleStateChange(oldState, newState) {
+            const container = document.getElementById('pet-container');
+            container.className = `pet-container w-64 h-64 mx-auto flex items-center justify-center relative environment-${newState}`;
+            
+            clearAnimationTimeouts();
+            
+            switch(newState) {
+                case 'eating':
+                    createFoodParticles();
+                    break;
+                case 'playing':
+                    createPlayParticles();
+                    break;
+                case 'sleeping':
+                    if (oldState !== 'sleeping') {
+                        createSleepEffects();
+                    }
+                    break;
+                case 'normal':
+                    if (oldState === 'sleeping') {
+                        showMessage('Your pet woke up feeling refreshed!', 'success');
+                    }
+                    break;
+            }
+        }
+        
+        // Update the visual display
+        // ============================================================
+        // Phase 4: Revive
+        // ============================================================
+        document.getElementById('revive-btn').addEventListener('click', function() {
+            fetch('/revive', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showMessage('Pet revived! ❤️', 'success');
+                    updatePetData();
+                } else {
+                    showMessage(d.message || 'Cannot revive', 'error');
+                }
+            })
+            .catch(() => showMessage('Error reviving', 'error'));
+        });
+
+        // ============================================================
+        // Phase 4: Mini-Games
+        // ============================================================
+        let gameInterval = null;
+
+        document.getElementById('game-memory').addEventListener('click', () => startMiniGame(1));
+        document.getElementById('game-catch').addEventListener('click', () => startMiniGame(2));
+        document.getElementById('game-quiz').addEventListener('click', () => startMiniGame(3));
+
+        function startMiniGame(type) {
+            if (pet.gameCooldown > 0) { showMessage(`Game on cooldown: ${pet.gameCooldown}s`, 'error'); return; }
+            if (pet.energy < 10) { showMessage('Pet is too tired to play', 'error'); return; }
+            fetch('/game/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({game: type})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showGameArea(d.gameState, type);
+                } else {
+                    showMessage(d.message || 'Cannot start game', 'error');
+                }
+            })
+            .catch(() => showMessage('Error starting game', 'error'));
+        }
+
+        function showGameArea(state, type) {
+            const area = document.getElementById('game-area');
+            const ui = document.getElementById('game-ui');
+            const inputArea = document.getElementById('game-input-area');
+            const score = document.getElementById('game-score');
+            area.style.display = 'block';
+            score.textContent = `Score: ${state.score || 0} | Round: ${state.round || 0}`;
+
+            if (type === 1) {
+                // Memory game
+                ui.innerHTML = '<p class="text-xs text-gray-600">Memorize the sequence!</p>';
+                inputArea.innerHTML = '';
+                const seq = state.sequence || [];
+                let showIdx = 0;
+                const showNext = () => {
+                    if (showIdx < seq.length) {
+                        ui.innerHTML = `<p class="text-2xl font-bold text-indigo-600">${['⬆️','➡️','⬇️','⬅️'][seq[showIdx]]}</p>`;
+                        showIdx++;
+                        setTimeout(showNext, 800);
+                    } else {
+                        ui.innerHTML = '<p class="text-xs text-gray-600">Your turn! Repeat the sequence:</p>';
+                        inputArea.innerHTML = '';
+                        const btns = ['⬆️','➡️','⬇️','⬅️'];
+                        btns.forEach((b, i) => {
+                            const btn = document.createElement('button');
+                            btn.className = 'game-button px-3 py-2 text-lg';
+                            btn.textContent = b;
+                            btn.addEventListener('click', () => sendGameInput(i));
+                            inputArea.appendChild(btn);
+                        });
+                    }
+                };
+                showNext();
+            } else if (type === 2) {
+                // Catch game
+                ui.innerHTML = `<p class="text-xs text-gray-600">Tap the target! (${state.targetX}, ${state.targetY})</p>`;
+                inputArea.innerHTML = '';
+                const canvas = document.createElement('div');
+                canvas.style.cssText = 'width:100%;height:80px;background:#e0e7ff;border-radius:8px;position:relative;cursor:pointer;';
+                canvas.innerHTML = `<div style="position:absolute;left:${state.targetX}%;top:50%;transform:translate(-50%,-50%);font-size:20px;">🎯</div>`;
+                canvas.addEventListener('click', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                    sendGameInput(x);
+                });
+                inputArea.appendChild(canvas);
+            } else if (type === 3) {
+                // Quiz game
+                const questions = [
+                    {q: "What do cats hate?", answers: ["Water", "Food", "Sleep"], correct: 0},
+                    {q: "What sound does a dog make?", answers: ["Meow", "Woof", "Moo"], correct: 1},
+                    {q: "What do pets need most?", answers: ["Money", "Love", "Cars"], correct: 1}
+                ];
+                const q = questions[(state.round || 0) % questions.length];
+                ui.innerHTML = `<p class="text-xs font-bold text-gray-700">${q.q}</p>`;
+                inputArea.innerHTML = '';
+                q.answers.forEach((a, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'game-button w-full px-2 py-1 text-xs mb-1';
+                    btn.textContent = a;
+                    btn.addEventListener('click', () => sendGameInput(i));
+                    inputArea.appendChild(btn);
+                });
+            }
+        }
+
+        function sendGameInput(input) {
+            fetch('/game/action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({input: input})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    const gs = d.gameState;
+                    document.getElementById('game-score').textContent = `Score: ${gs.score || 0} | Round: ${gs.round || 0}`;
+                    if (gs.activeGame === 0) {
+                        // Game ended
+                        document.getElementById('game-area').style.display = 'none';
+                        if (pet) pet.gameCooldown = gs.cooldown;
+                        showMessage(gs.score >= 5 ? `🎉 You won! Score: ${gs.score}` : `Game over! Score: ${gs.score}`, gs.score >= 5 ? 'success' : 'info');
+                        updatePetData();
+                    } else {
+                        // Continue game
+                        showGameArea(gs, gs.activeGame);
+                    }
+                }
+            })
+            .catch(() => showMessage('Error sending input', 'error'));
+        }
+
+        // ============================================================
+        // Phase 4: Settings
+        // ============================================================
+        document.getElementById('music-toggle').addEventListener('click', function() {
+            fetch('/music', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    pet.musicEnabled = d.musicEnabled;
+                    updateStatBars();
+                }
+            });
+        });
+
+        document.getElementById('difficulty-select').addEventListener('change', function() {
+            fetch('/difficulty', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({difficulty: this.value})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    pet.difficulty = d.difficulty;
+                    showMessage(`Difficulty set to ${d.difficulty}`, 'success');
+                }
+            });
+        });
+
+        document.getElementById('darkmode-toggle').addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            this.textContent = isDark ? 'ON' : 'OFF';
+            this.className = isDark ?
+                'text-xs px-3 py-1 rounded bg-gray-700 text-white' :
+                'text-xs px-3 py-1 rounded bg-gray-200 text-gray-700';
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+        });
+
+        // Restore dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            const btn = document.getElementById('darkmode-toggle');
+            if (btn) { btn.textContent = 'ON'; btn.className = 'text-xs px-3 py-1 rounded bg-gray-700 text-white'; }
+        }
+
+        // ============================================================
+        // Phase 6: Sound FX Toggle & Volume Control
+        // ============================================================
+        let sfxEnabled = localStorage.getItem('sfxEnabled') !== 'false';
+        let sfxVolume = parseInt(localStorage.getItem('sfxVolume') || '70');
+
+        const sfxBtn = document.getElementById('sfx-toggle');
+        if (sfxBtn) {
+            sfxBtn.textContent = sfxEnabled ? 'ON' : 'OFF';
+            sfxBtn.className = sfxEnabled ?
+                'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+            sfxBtn.addEventListener('click', function() {
+                sfxEnabled = !sfxEnabled;
+                this.textContent = sfxEnabled ? 'ON' : 'OFF';
+                this.className = sfxEnabled ?
+                    'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                    'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+                localStorage.setItem('sfxEnabled', sfxEnabled ? 'true' : 'false');
+            });
+        }
+
+        const volSlider = document.getElementById('volume-slider');
+        const volValue = document.getElementById('volume-value');
+        if (volSlider) {
+            volSlider.value = sfxVolume;
+            if (volValue) volValue.textContent = sfxVolume + '%';
+            volSlider.addEventListener('input', function() {
+                sfxVolume = parseInt(this.value);
+                if (volValue) volValue.textContent = sfxVolume + '%';
+                localStorage.setItem('sfxVolume', sfxVolume);
+            });
+        }
+
+        function updateDisplay() {
+            updateStatBars();
+            updatePetSprite();
+            updateButtons();
+            renderAchievements();
+            updateTypeButtons();
+            
+            if (!pet.isAlive) {
+                showMessage('Your pet has passed away. Click Reset to start over.', 'error');
+            }
+        }
+        
+        function updateStatBars() {
+            const stats = ['hunger', 'happiness', 'health', 'energy', 'cleanliness'];
+            stats.forEach(stat => {
+                const val = Math.max(0, Math.min(100, pet[stat]));
+                document.getElementById(`${stat}-bar`).style.width = `${val}%`;
+                document.getElementById(`${stat}-value`).textContent = `${val}%`;
+            });
+            document.getElementById('age-value').textContent = pet.age;
+
+            // Update stage badge
+            const stageNames = {baby: 'Baby', child: 'Child', adult: 'Adult', elder: 'Elder'};
+            document.getElementById('stage-badge').textContent = stageNames[pet.stage] || 'Baby';
+
+            // Update day/night indicator
+            if (typeof pet.isNight !== 'undefined') {
+                document.getElementById('day-night-icon').className = pet.isNight
+                    ? 'fas fa-moon text-blue-400' : 'fas fa-sun text-yellow-500';
+                document.getElementById('day-night-text').textContent = pet.isNight ? 'Night' : 'Day';
+            }
+
+            // Phase 4: Update revive button
+            if (typeof pet.isDying !== 'undefined') {
+                const reviveSection = document.getElementById('revive-section');
+                const reviveCooldown = document.getElementById('revive-cooldown');
+                if (!pet.isAlive && !pet.isDying) {
+                    reviveSection.style.display = 'block';
+                    if (pet.gameCooldown > 0) {
+                        reviveCooldown.textContent = `Revive cooldown: ${pet.lastReviveTime ? '5 min' : 'ready'}`;
+                    } else {
+                        reviveCooldown.textContent = '';
+                    }
+                } else {
+                    reviveSection.style.display = 'none';
+                }
+            }
+
+            // Phase 4: Update weather display
+            if (typeof pet.weather !== 'undefined') {
+                const wIcon = document.getElementById('weather-icon');
+                const wText = document.getElementById('weather-text');
+                const weatherIcons = {sunny: 'fa-sun', cloudy: 'fa-cloud', rainy: 'fa-cloud-rain', stormy: 'fa-bolt', snowy: 'fa-snowflake'};
+                const weatherColors = {sunny: 'text-yellow-400', cloudy: 'text-gray-400', rainy: 'text-blue-400', stormy: 'text-purple-400', snowy: 'text-blue-200'};
+                wIcon.className = `fas ${weatherIcons[pet.weather] || 'fa-sun'} ${weatherColors[pet.weather] || 'text-yellow-400'}`;
+                wText.textContent = pet.weather ? pet.weather.charAt(0).toUpperCase() + pet.weather.slice(1) : 'Sunny';
+            }
+
+            // Phase 4: Update music button
+            if (typeof pet.musicEnabled !== 'undefined') {
+                const musicBtn = document.getElementById('music-toggle');
+                if (musicBtn) {
+                    musicBtn.textContent = pet.musicEnabled ? 'ON' : 'OFF';
+                    musicBtn.className = pet.musicEnabled ?
+                        'text-xs px-3 py-1 rounded bg-purple-100 text-purple-700' :
+                        'text-xs px-3 py-1 rounded bg-gray-200 text-gray-500';
+                }
+            }
+
+            // Phase 4: Update difficulty select
+            if (typeof pet.difficulty !== 'undefined') {
+                const diffSelect = document.getElementById('difficulty-select');
+                if (diffSelect) diffSelect.value = pet.difficulty;
+            }
+
+            // Update mute button
+            if (typeof pet.soundEnabled !== 'undefined') {
+                const muteIcon = document.getElementById('mute-icon');
+                const muteText = document.getElementById('mute-text');
+                if (pet.soundEnabled) {
+                    muteIcon.className = 'fas fa-volume-up';
+                    muteText.textContent = 'Sound: ON';
+                } else {
+                    muteIcon.className = 'fas fa-volume-mute';
+                    muteText.textContent = 'Sound: OFF';
+                }
+            }
+
+            // Update pet name in header
+            if (typeof pet.name !== 'undefined') {
+                document.getElementById('header-name').textContent = `ESP32 ${pet.name}`;
+                const nameDisplay = document.getElementById('pet-name-display');
+                document.getElementById('pet-name-text').textContent = pet.name;
+                if (pet.name && pet.name !== 'Tama') {
+                    nameDisplay.style.display = 'block';
+                } else {
+                    nameDisplay.style.display = 'none';
+                }
+            }
+        }
+        
+        function updatePetSprite() {
+            const petElement = document.getElementById('pet');
+            petElement.innerHTML = generatePetSVG();
+            
+            // Remove existing animation classes
+            petElement.className = 'pet-sprite';
+            
+            // Add state-specific animations
+            if (!pet.isAlive) {
+                petElement.classList.add('dead-motion');
+            } else {
+                switch(pet.state) {
+                    case 'eating':
+                        petElement.classList.add('eating-motion');
+                        break;
+                    case 'playing':
+                        petElement.classList.add('playing-motion');
+                        break;
+                    case 'sleeping':
+                        petElement.classList.add('sleeping-motion');
+                        break;
+                    case 'sick':
+                        petElement.classList.add('shake', 'sick-effect');
+                        break;
+                    case 'hungry':
+                        petElement.classList.add('pulse');
+                        break;
+                    default: // normal
+                        if (pet.happiness > 70) {
+                            petElement.classList.add('bounce', 'glow-effect');
+                        } else if (pet.happiness > 30) {
+                            petElement.classList.add('wobble');
+                        } else {
+                            petElement.classList.add('pulse');
+                        }
+                }
+            }
+        }
+        
+        function generatePetSVG() {
+            if (!pet.isAlive) {
+                return generateDeadPet();
+            }
+
+            // Phase 4: dying animation
+            if (pet.isDying) {
+                const svg = generateDyingPet(pet.type || 'blob');
+                return `<div class="dying-animation">${svg}</div>`;
+            }
+
+            // Phase 4: evolution animation
+            if (pet.isEvolving) {
+                const svg = generateEvolutionPet(pet.type || 'blob', pet.stage);
+                return `<div class="evolve-animation">${svg}</div>`;
+            }
+
+            const type = pet.type || 'blob';
+            switch(pet.state) {
+                case 'eating': return generateEatingPet(type);
+                case 'playing': return generatePlayingPet(type);
+                case 'sleeping': return generateSleepingPet(type);
+                case 'sick': return generateSickPet(type);
+                case 'hungry': return generateHungryPet(type);
+                default: return generateNormalPet(type);
+            }
+        }
+        
+        // ============================================================
+        // CAT SVG Sprites
+        // ============================================================
+        function generateCatNormal(happinessLevel) {
+            const mouthPath = happinessLevel > 70 ?
+                "M42,56 Q50,50 58,56" :
+                happinessLevel > 30 ?
+                "M45,58 L55,58" :
+                "M42,60 Q50,66 58,60";
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Cat Ears -->
+                    <polygon points="25,35 35,18 45,35" fill="#FF9800" />
+                    <polygon points="55,35 65,18 75,35" fill="#FF9800" />
+                    <polygon points="28,33 35,22 42,33" fill="#FFB74D" />
+                    <polygon points="58,33 65,22 72,33" fill="#FFB74D" />
+                    <!-- Head -->
+                    <ellipse cx="50" cy="50" rx="26" ry="24" fill="#FF9800" />
+                    <!-- Inner face -->
+                    <ellipse cx="50" cy="54" rx="20" ry="18" fill="#FFB74D" />
+                    <!-- Eyes -->
+                    <ellipse cx="40" cy="44" rx="4" ry="5" fill="black" />
+                    <ellipse cx="60" cy="44" rx="4" ry="5" fill="black" />
+                    <ellipse cx="41" cy="43" rx="1.5" ry="2" fill="white" />
+                    <ellipse cx="61" cy="43" rx="1.5" ry="2" fill="white" />
+                    <!-- Nose -->
+                    <polygon points="50,52 47,56 53,56" fill="#E91E63" />
+                    <!-- Mouth -->
+                    <path d="M45,58 Q50,62 55,58" stroke="black" stroke-width="1.5" fill="none" />
+                    <path d="M50,56 L50,58" stroke="black" stroke-width="1.5" />
+                    <!-- Whiskers -->
+                    <line x1="20" y1="52" x2="38" y2="54" stroke="black" stroke-width="1" />
+                    <line x1="20" y1="58" x2="38" y2="56" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="54" x2="80" y2="52" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="56" x2="80" y2="58" stroke="black" stroke-width="1" />
+                    <!-- Body -->
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#FF9800" />
+                    <ellipse cx="50" cy="80" rx="14" ry="12" fill="#FFE0B2" />
+                    <!-- Tail -->
+                    <path d="M72,78 Q85,70 80,60" stroke="#FF9800" stroke-width="4" fill="none" stroke-linecap="round" />
+                    ${happinessLevel > 70 ? '<circle cx="25" cy="25" r="2" fill="#FFD700" opacity="0.8"/><circle cx="75" cy="30" r="2" fill="#FFD700" opacity="0.8"/>' : ''}
+                </svg>`;
+        }
+
+        function generateCatEating() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <polygon points="25,35 35,18 45,35" fill="#FF9800" />
+                    <polygon points="55,35 65,18 75,35" fill="#FF9800" />
+                    <ellipse cx="50" cy="52" rx="26" ry="24" fill="#FF9800" />
+                    <ellipse cx="40" cy="42" rx="4" ry="5" fill="black" />
+                    <ellipse cx="60" cy="42" rx="4" ry="5" fill="black" />
+                    <ellipse cx="41" cy="41" rx="1.5" ry="2" fill="white" />
+                    <ellipse cx="61" cy="41" rx="1.5" ry="2" fill="white" />
+                    <ellipse cx="50" cy="58" rx="5" ry="3" fill="black" />
+                    <ellipse cx="50" cy="57" rx="3" ry="2" fill="#FF6B6B" />
+                    <polygon points="50,52 47,56 53,56" fill="#E91E63" />
+                    <line x1="20" y1="52" x2="38" y2="54" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="54" x2="80" y2="52" stroke="black" stroke-width="1" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#FF9800" />
+                    <!-- Food bowl -->
+                    <ellipse cx="50" cy="90" rx="12" ry="4" fill="#795548" />
+                    <ellipse cx="50" cy="88" rx="10" ry="3" fill="#4E342E" />
+                    <circle cx="47" cy="87" r="2" fill="#FF8C00" />
+                    <circle cx="53" cy="87" r="2" fill="#FF8C00" />
+                </svg>`;
+        }
+
+        function generateCatSleeping() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <polygon points="25,35 35,18 45,35" fill="#FF9800" />
+                    <polygon points="55,35 65,18 75,35" fill="#FF9800" />
+                    <ellipse cx="50" cy="52" rx="26" ry="24" fill="#FF9800" />
+                    <!-- Closed eyes -->
+                    <line x1="34" y1="44" x2="44" y2="44" stroke="black" stroke-width="2" stroke-linecap="round" />
+                    <line x1="56" y1="44" x2="66" y2="44" stroke="black" stroke-width="2" stroke-linecap="round" />
+                    <polygon points="50,54 47,57 53,57" fill="#E91E63" />
+                    <line x1="20" y1="54" x2="38" y2="55" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="55" x2="80" y2="54" stroke="black" stroke-width="1" />
+                    <ellipse cx="50" cy="80" rx="24" ry="14" fill="#FF9800" />
+                    <path d="M72,80 Q88,72 85,62" stroke="#FF9800" stroke-width="4" fill="none" stroke-linecap="round" />
+                </svg>`;
+        }
+
+        function generateCatSick() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <polygon points="25,35 35,18 45,35" fill="#FF9800" />
+                    <polygon points="55,35 65,18 75,35" fill="#FF9800" />
+                    <ellipse cx="50" cy="52" rx="26" ry="24" fill="#FFCC80" />
+                    <!-- Sad eyes -->
+                    <line x1="34" y1="44" x2="44" y2="44" stroke="black" stroke-width="2" stroke-linecap="round" />
+                    <line x1="56" y1="44" x2="66" y2="44" stroke="black" stroke-width="2" stroke-linecap="round" />
+                    <!-- X eyes alternative -->
+                    <polygon points="50,54 47,57 53,57" fill="#E91E63" />
+                    <line x1="20" y1="56" x2="38" y2="57" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="57" x2="80" y2="56" stroke="black" stroke-width="1" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#FFCC80" />
+                    <!-- Sweat drops -->
+                    <ellipse cx="22" cy="40" rx="2" ry="3" fill="#87CEEB" opacity="0.7" />
+                    <ellipse cx="78" cy="40" rx="2" ry="3" fill="#87CEEB" opacity="0.7" />
+                    <path d="M80,35 Q83,30 86,33" stroke="#87CEEB" stroke-width="1.5" fill="none" opacity="0.7" />
+                </svg>`;
+        }
+
+        function generateCatPlaying() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <polygon points="22,30 32,12 42,30" fill="#FF9800" />
+                    <polygon points="58,30 68,12 78,30" fill="#FF9800" />
+                    <ellipse cx="50" cy="48" rx="26" ry="24" fill="#FF9800" />
+                    <!-- Star eyes -->
+                    <polygon points="40,39 41.5,43 45,43 42.25,45.5 43.5,49 40,46.5 36.5,49 37.75,45.5 35,43 38.5,43" fill="black" />
+                    <polygon points="60,39 61.5,43 65,43 62.25,45.5 63.5,49 60,46.5 56.5,49 57.75,45.5 55,43 58.5,43" fill="black" />
+                    <ellipse cx="50" cy="58" rx="7" ry="5" fill="black" />
+                    <ellipse cx="50" cy="57" rx="5" ry="3" fill="#FF69B4" />
+                    <polygon points="50,52 47,56 53,56" fill="#E91E63" />
+                    <line x1="18" y1="50" x2="38" y2="52" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="52" x2="82" y2="50" stroke="black" stroke-width="1" />
+                    <ellipse cx="50" cy="76" rx="22" ry="16" fill="#FF9800" />
+                    <path d="M72,74 Q88,66 90,56" stroke="#FF9800" stroke-width="4" fill="none" stroke-linecap="round" />
+                    <!-- Yarn ball -->
+                    <circle cx="30" cy="90" r="6" fill="#E91E63" />
+                    <line x1="28" y1="88" x2="34" y2="92" stroke="#C2185B" stroke-width="1" />
+                    <line x1="27" y1="91" x2="33" y2="87" stroke="#C2185B" stroke-width="1" />
+                </svg>`;
+        }
+
+        function generateCatHungry() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <polygon points="25,35 35,18 45,35" fill="#FF9800" />
+                    <polygon points="55,35 65,18 75,35" fill="#FF9800" />
+                    <ellipse cx="50" cy="52" rx="26" ry="24" fill="#FF9800" />
+                    <!-- Worried eyes -->
+                    <ellipse cx="40" cy="43" rx="5" ry="4" fill="black" />
+                    <ellipse cx="60" cy="43" rx="5" ry="4" fill="black" />
+                    <ellipse cx="41" cy="42" rx="1.5" ry="2" fill="white" />
+                    <ellipse cx="61" cy="42" rx="1.5" ry="2" fill="white" />
+                    <!-- Sad mouth -->
+                    <path d="M42,60 Q50,54 58,60" stroke="black" stroke-width="1.5" fill="none" />
+                    <polygon points="50,56 47,59 53,59" fill="#E91E63" />
+                    <line x1="20" y1="56" x2="38" y2="57" stroke="black" stroke-width="1" />
+                    <line x1="62" y1="57" x2="80" y2="56" stroke="black" stroke-width="1" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#FF9800" />
+                </svg>`;
+        }
+
+        // ============================================================
+        // DOG SVG Sprites
+        // ============================================================
+        function generateDogNormal(happinessLevel) {
+            const mouthPath = happinessLevel > 70 ?
+                "M42,58 Q50,52 58,58" :
+                happinessLevel > 30 ?
+                "M45,60 L55,60" :
+                "M42,62 Q50,68 58,62";
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Floppy ears -->
+                    <ellipse cx="24" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(-15 24 45)" />
+                    <ellipse cx="76" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(15 76 45)" />
+                    <!-- Head -->
+                    <ellipse cx="50" cy="48" rx="26" ry="24" fill="#A1887F" />
+                    <!-- Snout -->
+                    <ellipse cx="50" cy="56" rx="14" ry="10" fill="#D7CCC8" />
+                    <!-- Eyes -->
+                    <circle cx="40" cy="42" r="5" fill="black" />
+                    <circle cx="60" cy="42" r="5" fill="black" />
+                    <circle cx="39" cy="41" r="1.5" fill="white" />
+                    <circle cx="59" cy="41" r="1.5" fill="white" />
+                    <!-- Eyebrows -->
+                    <line x1="34" y1="36" x2="44" y2="37" stroke="#5D4037" stroke-width="2" stroke-linecap="round" />
+                    <line x1="56" y1="37" x2="66" y2="36" stroke="#5D4037" stroke-width="2" stroke-linecap="round" />
+                    <!-- Nose -->
+                    <ellipse cx="50" cy="54" rx="4" ry="3" fill="black" />
+                    <ellipse cx="49" cy="53" rx="1.5" ry="1" fill="#555" />
+                    <!-- Mouth -->
+                    <path d="${mouthPath}" stroke="black" stroke-width="2" fill="none" />
+                    <!-- Tongue (when happy) -->
+                    ${happinessLevel > 70 ? '<ellipse cx="50" cy="62" rx="3" ry="4" fill="#FF69B4" />' : ''}
+                    <!-- Body -->
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#A1887F" />
+                    <ellipse cx="50" cy="80" rx="14" ry="12" fill="#D7CCC8" />
+                    <!-- Tail -->
+                    <path d="M72,76 Q85,68 82,58" stroke="#8D6E63" stroke-width="4" fill="none" stroke-linecap="round" />
+                    <!-- Paws -->
+                    <ellipse cx="38" cy="92" rx="5" ry="3" fill="#8D6E63" />
+                    <ellipse cx="62" cy="92" rx="5" ry="3" fill="#8D6E63" />
+                    ${happinessLevel > 80 ? '<circle cx="25" cy="25" r="2" fill="#FFD700" opacity="0.8"/><circle cx="75" cy="30" r="2" fill="#FFD700" opacity="0.8"/>' : ''}
+                </svg>`;
+        }
+
+        function generateDogEating() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <ellipse cx="24" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(-15 24 45)" />
+                    <ellipse cx="76" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(15 76 45)" />
+                    <ellipse cx="50" cy="50" rx="26" ry="24" fill="#A1887F" />
+                    <ellipse cx="50" cy="58" rx="14" ry="10" fill="#D7CCC8" />
+                    <circle cx="40" cy="42" r="5" fill="black" />
+                    <circle cx="60" cy="42" r="5" fill="black" />
+                    <circle cx="41" cy="40" r="1.5" fill="white" />
+                    <circle cx="61" cy="40" r="1.5" fill="white" />
+                    <ellipse cx="50" cy="56" rx="5" ry="3" fill="black" />
+                    <ellipse cx="50" cy="55" rx="3" ry="2" fill="#FF6B6B" />
+                    <ellipse cx="50" cy="54" rx="4" ry="3" fill="black" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#A1887F" />
+                    <!-- Food bowl -->
+                    <ellipse cx="50" cy="94" rx="14" ry="5" fill="#795548" />
+                    <ellipse cx="50" cy="92" rx="12" ry="4" fill="#4E342E" />
+                    <circle cx="46" cy="91" r="2" fill="#FF8C00" />
+                    <circle cx="54" cy="91" r="2" fill="#FF8C00" />
+                    <circle cx="50" cy="90" r="1.5" fill="#FFD700" />
+                </svg>`;
+        }
+
+        function generateDogSleeping() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <ellipse cx="24" cy="48" rx="10" ry="14" fill="#8D6E63" transform="rotate(-10 24 48)" />
+                    <ellipse cx="76" cy="48" rx="10" ry="14" fill="#8D6E63" transform="rotate(10 76 48)" />
+                    <ellipse cx="50" cy="52" rx="26" ry="24" fill="#A1887F" />
+                    <ellipse cx="50" cy="60" rx="14" ry="10" fill="#D7CCC8" />
+                    <!-- Closed eyes -->
+                    <path d="M35,44 Q40,41 45,44" stroke="black" stroke-width="2" fill="none" />
+                    <path d="M55,44 Q60,41 65,44" stroke="black" stroke-width="2" fill="none" />
+                    <ellipse cx="50" cy="56" rx="4" ry="3" fill="black" />
+                    <!-- Curled up body -->
+                    <ellipse cx="50" cy="82" rx="26" ry="12" fill="#A1887F" />
+                    <path d="M28,82 Q20,72 28,64" stroke="#8D6E63" stroke-width="4" fill="none" stroke-linecap="round" />
+                </svg>`;
+        }
+
+        function generateDogSick() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <ellipse cx="24" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(-15 24 45)" />
+                    <ellipse cx="76" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(15 76 45)" />
+                    <ellipse cx="50" cy="50" rx="26" ry="24" fill="#BCAAA4" />
+                    <ellipse cx="50" cy="58" rx="14" ry="10" fill="#D7CCC8" />
+                    <!-- Sad eyes -->
+                    <path d="M35,42 Q40,45 45,42" stroke="black" stroke-width="2" fill="none" />
+                    <path d="M55,42 Q60,45 65,42" stroke="black" stroke-width="2" fill="none" />
+                    <ellipse cx="50" cy="56" rx="4" ry="3" fill="black" />
+                    <path d="M42,62 Q50,58 58,62" stroke="black" stroke-width="1.5" fill="none" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#BCAAA4" />
+                    <ellipse cx="22" cy="38" rx="2" ry="3" fill="#87CEEB" opacity="0.7" />
+                    <ellipse cx="78" cy="38" rx="2" ry="3" fill="#87CEEB" opacity="0.7" />
+                </svg>`;
+        }
+
+        function generateDogPlaying() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <ellipse cx="22" cy="40" rx="10" ry="18" fill="#8D6E63" transform="rotate(-20 22 40)" />
+                    <ellipse cx="78" cy="40" rx="10" ry="18" fill="#8D6E63" transform="rotate(20 78 40)" />
+                    <ellipse cx="50" cy="46" rx="26" ry="24" fill="#A1887F" />
+                    <ellipse cx="50" cy="54" rx="14" ry="10" fill="#D7CCC8" />
+                    <!-- Star eyes -->
+                    <polygon points="40,37 41.5,41 45,41 42.25,43.5 43.5,47 40,44.5 36.5,47 37.75,43.5 35,41 38.5,41" fill="black" />
+                    <polygon points="60,37 61.5,41 65,41 62.25,43.5 63.5,47 60,44.5 56.5,47 57.75,43.5 55,41 58.5,41" fill="black" />
+                    <ellipse cx="50" cy="54" rx="4" ry="3" fill="black" />
+                    <!-- Big open mouth with tongue -->
+                    <ellipse cx="50" cy="60" rx="8" ry="5" fill="black" />
+                    <ellipse cx="50" cy="59" rx="6" ry="4" fill="#FF69B4" />
+                    <ellipse cx="50" cy="63" rx="3" ry="3" fill="#FF1493" />
+                    <ellipse cx="50" cy="74" rx="22" ry="16" fill="#A1887F" />
+                    <!-- Wagging tail -->
+                    <path d="M72,72 Q88,62 86,50" stroke="#8D6E63" stroke-width="5" fill="none" stroke-linecap="round" />
+                    <!-- Ball -->
+                    <circle cx="28" cy="88" r="6" fill="#F44336" />
+                    <path d="M24,84 Q28,88 32,84" stroke="#B71C1C" stroke-width="1" fill="none" />
+                </svg>`;
+        }
+
+        function generateDogHungry() {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <ellipse cx="24" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(-15 24 45)" />
+                    <ellipse cx="76" cy="45" rx="10" ry="16" fill="#8D6E63" transform="rotate(15 76 45)" />
+                    <ellipse cx="50" cy="50" rx="26" ry="24" fill="#A1887F" />
+                    <ellipse cx="50" cy="58" rx="14" ry="10" fill="#D7CCC8" />
+                    <!-- Sad puppy eyes -->
+                    <ellipse cx="40" cy="42" rx="5" ry="4" fill="black" />
+                    <ellipse cx="60" cy="42" rx="5" ry="4" fill="black" />
+                    <ellipse cx="39" cy="41" r="1.5" fill="white" />
+                    <ellipse cx="59" cy="41" r="1.5" fill="white" />
+                    <line x1="34" y1="36" x2="44" y2="38" stroke="#5D4037" stroke-width="2" stroke-linecap="round" />
+                    <line x1="56" y1="38" x2="66" y2="36" stroke="#5D4037" stroke-width="2" stroke-linecap="round" />
+                    <ellipse cx="50" cy="54" rx="4" ry="3" fill="black" />
+                    <path d="M42,62 Q50,56 58,62" stroke="black" stroke-width="1.5" fill="none" />
+                    <ellipse cx="50" cy="78" rx="22" ry="16" fill="#A1887F" />
+                </svg>`;
+        }
+
+        function generateNormalPet(type) {
+            const happinessLevel = pet.happiness;
+            const mouthPath = happinessLevel > 70 ? 
+                "M42,58 Q50,52 58,58" : // Happy smile
+                happinessLevel > 30 ? 
+                "M45,60 L55,60" : // Neutral
+                "M42,62 Q50,68 58,62"; // Sad
+            
+            const eyeColor = happinessLevel > 50 ? "black" : "#444";
+            const glowIntensity = Math.max(0, (happinessLevel - 50) / 50);
+            
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (Blob Style) -->
+                    <ellipse cx="50" cy="50" rx="28" ry="32" fill="#FFCC66" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="60" rx="12" ry="16" fill="#FFE5A0" />
+                    
+                    <!-- Eyes -->
+                    <circle cx="40" cy="42" r="5" fill="${eyeColor}" />
+                    <circle cx="60" cy="42" r="5" fill="${eyeColor}" />
+                    <circle cx="39" cy="41" r="1.5" fill="white" />
+                    <circle cx="59" cy="41" r="1.5" fill="white" />
+                    
+                    <!-- Mouth -->
+                    <path d="${mouthPath}" stroke="black" stroke-width="2" fill="none" />
+                    
+                    <!-- Blush (more intense when happy) -->
+                    <ellipse cx="32" cy="48" rx="3" ry="1.5" fill="pink" opacity="${0.3 + glowIntensity * 0.4}" />
+                    <ellipse cx="68" cy="48" rx="3" ry="1.5" fill="pink" opacity="${0.3 + glowIntensity * 0.4}" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="60" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears -->
+                    <ellipse cx="30" cy="28" rx="5" ry="8" fill="#FFCC66" />
+                    <ellipse cx="70" cy="28" rx="5" ry="8" fill="#FFCC66" />
+                    
+                    ${happinessLevel > 80 ? `
+                        <!-- Happy sparkles -->
+                        <circle cx="25" cy="25" r="2" fill="#FFD700" opacity="0.8" />
+                        <circle cx="75" cy="30" r="2" fill="#FFD700" opacity="0.8" />
+                        <circle cx="20" cy="65" r="1.5" fill="#FFD700" opacity="0.8" />
+                    ` : ''}
+                </svg>
+            `;
+        }
+        
+        function generateEatingPet(type) {
+            const t = type || 'blob';
+            if (t === 'cat') return generateCatEating();
+            if (t === 'dog') return generateDogEating();
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body -->
+                    <ellipse cx="50" cy="52" rx="28" ry="30" fill="#FFCC66" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="62" rx="12" ry="14" fill="#FFE5A0" />
+                    
+                    <!-- Eyes (focused on food) -->
+                    <circle cx="40" cy="42" r="5" fill="black" />
+                    <circle cx="60" cy="42" r="5" fill="black" />
+                    <circle cx="41" cy="40" r="1.5" fill="white" />
+                    <circle cx="61" cy="40" r="1.5" fill="white" />
+                    
+                    <!-- Eating mouth (open) -->
+                    <ellipse cx="50" cy="58" rx="6" ry="4" fill="black" />
+                    <ellipse cx="50" cy="57" rx="4" ry="2" fill="#FF6B6B" />
+                    
+                    <!-- Blush -->
+                    <ellipse cx="32" cy="48" rx="3" ry="1.5" fill="pink" opacity="0.6" />
+                    <ellipse cx="68" cy="48" rx="3" ry="1.5" fill="pink" opacity="0.6" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="60" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears -->
+                    <ellipse cx="30" cy="28" rx="5" ry="8" fill="#FFCC66" />
+                    <ellipse cx="70" cy="28" rx="5" ry="8" fill="#FFCC66" />
+                    
+                    <!-- Food near mouth -->
+                    <circle cx="45" cy="45" r="3" fill="#FF8C00" />
+                    <circle cx="47" cy="43" r="1" fill="#FFD700" />
+                </svg>
+            `;
+        }
+        
+        function generatePlayingPet(type) {
+            const t = type || 'blob';
+            if (t === 'cat') return generateCatPlaying();
+            if (t === 'dog') return generateDogPlaying();
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (slightly jumped) -->
+                    <ellipse cx="50" cy="48" rx="28" ry="32" fill="#FFCC66" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="58" rx="12" ry="16" fill="#FFE5A0" />
+                    
+                    <!-- Eyes (excited star-shaped) -->
+                    <g id="star-eye-left">
+                        <polygon points="40,37 41.5,41 45,41 42.25,43.5 43.5,47 40,44.5 36.5,47 37.75,43.5 35,41 38.5,41" fill="black" />
+                        <circle cx="40" cy="42" r="2" fill="white" opacity="0.8" />
+                    </g>
+                    <g id="star-eye-right">
+                        <polygon points="60,37 61.5,41 65,41 62.25,43.5 63.5,47 60,44.5 56.5,47 57.75,43.5 55,41 58.5,41" fill="black" />
+                        <circle cx="60" cy="42" r="2" fill="white" opacity="0.8" />
+                    </g>
+                    
+                    <!-- Extremely joyful open mouth with tongue -->
+                    <ellipse cx="50" cy="58" rx="8" ry="6" fill="black" />
+                    <ellipse cx="50" cy="57" rx="6" ry="4" fill="#FF69B4" />
+                    <ellipse cx="50" cy="60" rx="3" ry="2" fill="#FF1493" />
+                    
+                    <!-- Excited blush -->
+                    <ellipse cx="30" cy="46" rx="5" ry="3" fill="pink" opacity="0.8" />
+                    <ellipse cx="70" cy="46" rx="5" ry="3" fill="pink" opacity="0.8" />
+                    
+                    <!-- Feet (mid-jump) -->
+                    <ellipse cx="38" cy="78" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="62" cy="78" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears (perked up) -->
+                    <ellipse cx="28" cy="24" rx="6" ry="10" fill="#FFCC66" />
+                    <ellipse cx="72" cy="24" rx="6" ry="10" fill="#FFCC66" />
+                    
+                    <!-- Sweat drops from excitement -->
+                    <ellipse cx="25" cy="35" rx="2" ry="4" fill="#87CEEB" opacity="0.7" />
+                    <ellipse cx="75" cy="38" rx="2" ry="4" fill="#87CEEB" opacity="0.7" />
+                    
+                    <!-- Play energy lines -->
+                    <path d="M20,45 Q22,42 24,45" stroke="#FFD700" stroke-width="2" fill="none" opacity="0.8" />
+                    <path d="M76,50 Q78,47 80,50" stroke="#FFD700" stroke-width="2" fill="none" opacity="0.8" />
+                    <path d="M18,60 Q20,57 22,60" stroke="#FF69B4" stroke-width="2" fill="none" opacity="0.8" />
+                    <path d="M78,65 Q80,62 82,65" stroke="#FF69B4" stroke-width="2" fill="none" opacity="0.8" />
+                    
+                    <!-- Extra joy sparkles -->
+                    <circle cx="25" cy="25" r="2" fill="#FFD700" opacity="0.9" />
+                    <circle cx="75" cy="30" r="2" fill="#FFD700" opacity="0.9" />
+                    <circle cx="15" cy="55" r="1.5" fill="#FF69B4" opacity="0.9" />
+                    <circle cx="85" cy="45" r="1.5" fill="#4ECDC4" opacity="0.9" />
+                </svg>
+            `;
+        }
+        
+        function generateSleepingPet(type) {
+            const t = type || 'blob';
+            if (t === 'cat') return generateCatSleeping();
+            if (t === 'dog') return generateDogSleeping();
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (relaxed) -->
+                    <ellipse cx="50" cy="52" rx="28" ry="30" fill="#D4A574" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="62" rx="12" ry="14" fill="#E8C792" />
+                    
+                    <!-- Closed eyes -->
+                    <path d="M35,42 Q40,40 45,42" stroke="black" stroke-width="2" fill="none" />
+                    <path d="M55,42 Q60,40 65,42" stroke="black" stroke-width="2" fill="none" />
+                    
+                    <!-- Peaceful mouth -->
+                    <path d="M47,58 Q50,60 53,58" stroke="black" stroke-width="1.5" fill="none" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="60" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears (drooped) -->
+                    <ellipse cx="32" cy="30" rx="4" ry="7" fill="#D4A574" />
+                    <ellipse cx="68" cy="30" rx="4" ry="7" fill="#D4A574" />
+                    
+                    <!-- Night cap -->
+                    <ellipse cx="50" cy="25" rx="15" ry="8" fill="#4A4A8C" />
+                    <circle cx="60" cy="20" r="4" fill="#FFFF99" />
+                </svg>
+            `;
+        }
+        
+        function generateSickPet(type) {
+            const t = type || 'blob';
+            if (t === 'cat') return generateCatSick();
+            if (t === 'dog') return generateDogSick();
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (sickly green tint) -->
+                    <ellipse cx="50" cy="50" rx="28" ry="32" fill="#B8CC66" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="60" rx="12" ry="16" fill="#D1E5A0" />
+                    
+                    <!-- Sick eyes (X eyes or spiral) -->
+                    <circle cx="40" cy="42" r="5" fill="white" />
+                    <circle cx="60" cy="42" r="5" fill="white" />
+                    <path d="M37,39 L43,45 M37,45 L43,39" stroke="red" stroke-width="2" />
+                    <path d="M57,39 L63,45 M57,45 L63,39" stroke="red" stroke-width="2" />
+                    
+                    <!-- Sick mouth -->
+                    <path d="M42,62 Q50,68 58,62" stroke="black" stroke-width="2" fill="none" />
+                    
+                    <!-- Sickly pallor -->
+                    <ellipse cx="32" cy="48" rx="3" ry="1.5" fill="#90EE90" opacity="0.4" />
+                    <ellipse cx="68" cy="48" rx="3" ry="1.5" fill="#90EE90" opacity="0.4" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="60" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears -->
+                    <ellipse cx="30" cy="28" rx="5" ry="8" fill="#B8CC66" />
+                    <ellipse cx="70" cy="28" rx="5" ry="8" fill="#B8CC66" />
+                    
+                    <!-- Thermometer -->
+                    <rect x="70" y="35" width="2" height="12" fill="silver" />
+                    <circle cx="71" cy="47" r="2" fill="red" />
+                    
+                    <!-- Germs -->
+                    <circle cx="25" cy="30" r="2" fill="#90EE90" opacity="0.6" />
+                    <circle cx="20" cy="40" r="1.5" fill="#90EE90" opacity="0.6" />
+                    <circle cx="80" cy="45" r="2" fill="#90EE90" opacity="0.6" />
+                </svg>
+            `;
+        }
+        
+        function generateHungryPet(type) {
+            const t = type || 'blob';
+            if (t === 'cat') return generateCatHungry();
+            if (t === 'dog') return generateDogHungry();
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (slightly thinner) -->
+                    <ellipse cx="50" cy="50" rx="25" ry="32" fill="#FFCC66" />
+                    
+                    <!-- Belly (smaller) -->
+                    <ellipse cx="50" cy="60" rx="10" ry="14" fill="#FFE5A0" />
+                    
+                    <!-- Sad eyes -->
+                    <circle cx="40" cy="42" r="5" fill="black" />
+                    <circle cx="60" cy="42" r="5" fill="black" />
+                    <circle cx="39" cy="43" r="1.5" fill="white" />
+                    <circle cx="59" cy="43" r="1.5" fill="white" />
+                    
+                    <!-- Hungry mouth -->
+                    <path d="M42,62 Q50,68 58,62" stroke="black" stroke-width="2" fill="none" />
+                    
+                    <!-- Tears -->
+                    <ellipse cx="35" cy="50" rx="1" ry="4" fill="#87CEEB" opacity="0.7" />
+                    <ellipse cx="65" cy="50" rx="1" ry="4" fill="#87CEEB" opacity="0.7" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    <ellipse cx="60" cy="80" rx="4" ry="2" fill="#AA8844" />
+                    
+                    <!-- Ears (drooped) -->
+                    <ellipse cx="32" cy="30" rx="4" ry="7" fill="#FFCC66" />
+                    <ellipse cx="68" cy="30" rx="4" ry="7" fill="#FFCC66" />
+                    
+                    <!-- Hunger indicator -->
+                    <text x="50" y="15" text-anchor="middle" font-size="8" fill="red">HUNGRY!</text>
+                    
+                    <!-- Empty food bowl -->
+                    <ellipse cx="25" cy="75" rx="8" ry="3" fill="#8B4513" />
+                    <ellipse cx="25" cy="74" rx="6" ry="2" fill="#D2691E" />
+                </svg>
+            `;
+        }
+        
+        function generateDyingPet(type) {
+            // Fading version of normal pet
+            const normal = generateNormalPet(type);
+            return normal.replace('class="pet-sprite"', 'class="pet-sprite" style="opacity:0.5;filter:grayscale(0.7)"');
+        }
+
+        function generateEvolutionPet(type, stage) {
+            // Glowing version of normal pet
+            const normal = generateNormalPet(type);
+            return normal.replace('class="pet-sprite"', 'class="pet-sprite" style="filter:brightness(1.3) drop-shadow(0 0 10px gold)"');
+        }
+
+        function generateDeadPet(type) {
+            return `
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="pet-sprite" width="120" height="120">
+                    <!-- Head + Body (gray) -->
+                    <ellipse cx="50" cy="55" rx="28" ry="30" fill="#888888" />
+                    
+                    <!-- Belly -->
+                    <ellipse cx="50" cy="65" rx="12" ry="14" fill="#AAAAAA" />
+                    
+                    <!-- X eyes -->
+                    <path d="M35,38 L45,48 M35,48 L45,38" stroke="black" stroke-width="3" />
+                    <path d="M55,38 L65,48 M55,48 L65,38" stroke="black" stroke-width="3" />
+                    
+                    <!-- Mouth -->
+                    <path d="M42,65 Q50,70 58,65" stroke="black" stroke-width="2" fill="none" />
+                    
+                    <!-- Feet -->
+                    <ellipse cx="40" cy="82" rx="4" ry="2" fill="#666666" />
+                    <ellipse cx="60" cy="82" rx="4" ry="2" fill="#666666" />
+                    
+                    <!-- Ears -->
+                    <ellipse cx="30" cy="32" rx="5" ry="6" fill="#888888" />
+                    <ellipse cx="70" cy="32" rx="5" ry="6" fill="#888888" />
+                    
+                    <!-- Angel halo -->
+                    <ellipse cx="50" cy="20" rx="12" ry="3" fill="none" stroke="#FFD700" stroke-width="2" />
+                    
+                    <!-- RIP marker -->
+                    <rect x="75" y="65" width="12" height="15" fill="#666666" />
+                    <text x="81" y="73" text-anchor="middle" font-size="4" fill="white">RIP</text>
+                </svg>
+            `;
+        }
+        
+        function updateButtons() {
+            const buttons = document.querySelectorAll('.game-button:not(#reset-btn)');
+            buttons.forEach(button => {
+                button.disabled = !pet.isAlive;
+            });
+            
+            // Update sleep button text
+            const sleepBtn = document.getElementById('sleep-text');
+            sleepBtn.textContent = pet.state === 'sleeping' ? 'Wake' : 'Sleep';
+        }
+        
+        // Particle effects
+        function createFoodParticles() {
+            const container = document.getElementById('particles-container');
+            for (let i = 0; i < 6; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle food-particle';
+                particle.style.width = '6px';
+                particle.style.height = '6px';
+                particle.style.left = (40 + Math.random() * 20) + '%';
+                particle.style.top = '10%';
+                particle.style.animationDelay = (i * 0.3) + 's';
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 2500);
+            }
+        }
+        
+        function createPlayParticles() {
+            const container = document.getElementById('particles-container');
+            const colors = ['#FF6B9D', '#4ECDC4', '#FFE66D', '#95E1D3', '#FF8A80'];
+            
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle play-particle';
+                particle.style.width = '8px';
+                particle.style.height = '8px';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.left = (45 + Math.random() * 10) + '%';
+                particle.style.top = (45 + Math.random() * 10) + '%';
+                particle.style.animationDelay = (i * 0.1) + 's';
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 2000);
+            }
+        }
+        
+        function createSleepEffects() {
+            const container = document.getElementById('particles-container');
+            
+            function addSleepZ() {
+                if (pet.state === 'sleeping') {
+                    const z = document.createElement('div');
+                    z.className = 'sleep-z';
+                    z.textContent = 'Z';
+                    z.style.position = 'absolute';
+                    z.style.left = '60%';
+                    z.style.top = '30%';
+                    container.appendChild(z);
+                    
+                    setTimeout(() => {
+                        if (z.parentNode) {
+                            z.parentNode.removeChild(z);
+                        }
+                    }, 3000);
+                    
+                    if (pet.state === 'sleeping') {
+                        const timeout = setTimeout(addSleepZ, 2000);
+                        animationTimeouts.push(timeout);
+                    }
+                }
+            }
+            
+            addSleepZ();
+        }
+        
+        function createHealParticles() {
+            const container = document.getElementById('particles-container');
+            
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle heal-particle';
+                particle.style.width = '6px';
+                particle.style.height = '6px';
+                particle.style.left = (30 + Math.random() * 40) + '%';
+                particle.style.top = (30 + Math.random() * 40) + '%';
+                particle.style.animationDelay = (i * 0.15) + 's';
+                container.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                }, 2500);
+            }
+        }
+        
+        function clearAnimationTimeouts() {
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            
+            // Clear particles
+            const container = document.getElementById('particles-container');
+            container.innerHTML = '';
+        }
+        
+        // Action handlers
+        function performAction(action) {
+            fetch(`/${action}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const messages = {
+                            feed: 'Your pet enjoyed the meal! 🍎',
+                            play: 'Your pet had fun playing! 🎉',
+                            clean: 'Your pet is squeaky clean! 🧼',
+                            sleep: pet.state === 'sleeping' ? 'Good morning! 🌅' : 'Sweet dreams! 😴',
+                            heal: 'Your pet feels much better! 💚'
+                        };
+                        
+                        showMessage(messages[action], 'success');
+                        
+                        // Trigger appropriate effects
+                        switch(action) {
+                            case 'feed':
+                                createFoodParticles();
+                                break;
+                            case 'play':
+                                createPlayParticles();
+                                break;
+                            case 'heal':
+                                createHealParticles();
+                                break;
+                        }
+                        
+                        updatePetData();
+                    } else {
+                        showMessage(data.message || `Failed to ${action}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage(`Error performing ${action}`, 'error');
+                });
+        }
+        
+        function resetPet() {
+            if (confirm('Are you sure you want to reset your pet? This cannot be undone!')) {
+                fetch('/reset', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showMessage('Welcome to your new pet! 🐣', 'success');
+                            clearAnimationTimeouts();
+                            updatePetData();
+                        } else {
+                            showMessage(data.message || 'Failed to reset pet', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showMessage('Error resetting pet', 'error');
+                    });
+            }
+        }
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            const messageText = document.getElementById('message-text');
+            
+            messageText.textContent = text;
+            messageDiv.className = `message mx-4 mt-4 p-3 ${type}`;
+            messageDiv.classList.remove('hidden');
+            
+            if (window.messageTimeout) {
+                clearTimeout(window.messageTimeout);
+            }
+            
+            window.messageTimeout = setTimeout(() => {
+                messageDiv.classList.add('hidden');
+            }, 4000);
+        }
+
+        // ============================================================
+        // Phase 7.5: Mood & Scheduled Feeding UI
+        // ============================================================
+
+        function updateMoodDisplay() {
+            if (!pet.moodName) return;
+            const moodEmoji = document.getElementById('mood-emoji');
+            const moodName = document.getElementById('mood-name');
+            const moodBar = document.getElementById('mood-bar');
+            const cheerful = document.getElementById('personality-cheerful');
+            const energetic = document.getElementById('personality-energetic');
+            const hungry = document.getElementById('personality-hungry');
+            if (moodEmoji) moodEmoji.textContent = pet.moodEmoji || '😐';
+            if (moodName) moodName.textContent = pet.moodName || 'Neutral';
+            if (cheerful) cheerful.textContent = pet.personalityCheerful || 50;
+            if (energetic) energetic.textContent = pet.personalityEnergetic || 50;
+            if (hungry) hungry.textContent = pet.personalityHungry || 50;
+            if (moodBar) {
+                const pct = Math.max(0, Math.min(100, ((6 - (pet.mood || 3)) / 6) * 100));
+                moodBar.style.width = pct + '%';
+                moodBar.className = 'stat-fill ' + (pct > 60 ? 'happiness-fill' : pct > 30 ? 'energy-fill' : 'hunger-fill');
+            }
+        }
+
+        function updateScheduledFeedUI() {
+            const toggle = document.getElementById('scheduled-feed-toggle');
+            const status = document.getElementById('scheduled-feed-status');
+            if (toggle) toggle.checked = pet.scheduledFeedEnabled || false;
+            if (status) status.textContent = pet.scheduledFeedEnabled ? 'Active' : 'Disabled';
+        }
+
+        function toggleScheduledFeed() {
+            const toggle = document.getElementById('scheduled-feed-toggle');
+            const enabled = toggle ? toggle.checked : false;
+            const hours = parseInt(document.getElementById('scheduled-feed-hours')?.value || 4);
+            const amount = parseInt(document.getElementById('scheduled-feed-amount')?.value || 15);
+            fetch('/scheduled-feed', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled, intervalHours: hours, amount})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('Scheduled feeding updated! ⏰', 'success');
+                    updatePetData();
+                } else {
+                    showMessage(data.message || 'Failed to update', 'error');
+                }
+            })
+            .catch(e => { console.error(e); showMessage('Error updating scheduled feed', 'error'); });
+        }
+
+        // Loading spinner helper
+        function showLoading(btn) {
+            if (!btn) return;
+            btn.dataset.originalText = btn.textContent;
+            btn.textContent = '⏳';
+            btn.disabled = true;
+        }
+        function hideLoading(btn) {
+            if (!btn) return;
+            btn.textContent = btn.dataset.originalText || btn.textContent;
+            btn.disabled = false;
+        }
+
+        // Override performAction to add loading spinners
+        const origPerformAction = performAction;
+        performAction = function(action) {
+            const btn = document.querySelector(`button[onclick="performAction('${action}')"]`);
+            showLoading(btn);
+            origPerformAction(action);
+            setTimeout(() => hideLoading(btn), 2000);
+        };
+
+        // Confirmation dialog for delete pet
+        function confirmDeletePet(slot) {
+            if (confirm('Are you sure you want to delete this pet? This cannot be undone!')) {
+                fetch('/pets/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({slot})
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('Pet deleted', 'success');
+                        updatePetData();
+                    } else {
+                        showMessage(data.message || 'Failed to delete', 'error');
+                    }
+                })
+                .catch(e => { console.error(e); showMessage('Error deleting pet', 'error'); });
+            }
+        }
+
+        // Improved error messages with codes
+        const errorCodes = {
+            rate_limit: 'Too many requests — please slow down',
+            not_found: 'Endpoint not found',
+            internal_error: 'Internal server error',
+            invalid_json: 'Invalid request format',
+            pet_dead: 'Your pet is not alive'
+        };
+        function getErrorMessage(data) {
+            if (data.error && errorCodes[data.error]) return errorCodes[data.error];
+            return data.message || 'An unknown error occurred';
+        }
+    </script>
+
+    <!-- Phase 7.5: Mood & Scheduled Feeding Panel -->
+    <div id="mood-panel" class="mx-4 mt-4">
+        <div class="pet-container p-4">
+            <h3 class="text-lg font-bold mb-2">😊 Mood</h3>
+            <div class="flex items-center gap-3">
+                <span id="mood-emoji" class="text-3xl">😐</span>
+                <div>
+                    <span id="mood-name" class="font-bold">Neutral</span>
+                    <div class="stat-bar w-32 h-3 mt-1">
+                        <div id="mood-bar" class="stat-fill happiness-fill" style="width:50%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-xs mt-2 text-gray-600">
+                Personality: Cheerful <span id="personality-cheerful">50</span> |
+                Energetic <span id="personality-energetic">50</span> |
+                Hungry <span id="personality-hungry">50</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="scheduled-feed-panel" class="mx-4 mt-2">
+        <div class="pet-container p-4">
+            <h3 class="text-lg font-bold mb-2">⏰ Scheduled Feeding</h3>
+            <div class="flex items-center gap-3">
+                <label class="switch">
+                    <input type="checkbox" id="scheduled-feed-toggle" onchange="toggleScheduledFeed()">
+                    <span class="slider"></span>
+                </label>
+                <span id="scheduled-feed-status">Disabled</span>
+            </div>
+            <div class="mt-2 text-sm">
+                <label>Every <input type="number" id="scheduled-feed-hours" value="4" min="1" max="24" class="w-12 text-center"> hours</label>
+                <label class="ml-2">Amount: <input type="number" id="scheduled-feed-amount" value="15" min="5" max="50" class="w-12 text-center"></label>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
