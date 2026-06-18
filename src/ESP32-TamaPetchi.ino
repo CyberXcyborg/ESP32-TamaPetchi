@@ -21,6 +21,7 @@
 #include "Notifications.h"
 #include "PowerManager.h"
 #include "PowerManagement.h"
+#include "AppState.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -42,28 +43,11 @@
 #include "OTA_Delta.h"
 #endif
 
-// Web server
-WebServer server(WEB_SERVER_PORT);
-
-// Pet instance
-Pet pet;
-
-// Phase 5: Multi-pet state
-MultiPetState g_multiPet;
-
-// Phase 5: Game statistics
-GameStats g_stats;
-
-// Wake-up message tracking (defined in WebHandlers.cpp)
-extern bool showWakeMessage;
-extern unsigned long wakeMessageStartTime;
-extern String previousState;
+// Phase 6: Watchdog configuration
+#define WDT_TIMEOUT 10  // 10 seconds without feed → reset
 
 // Timing
 unsigned long lastUpdateTime = 0;
-
-// Phase 6: Watchdog configuration
-#define WDT_TIMEOUT 10  // 10 seconds without feed → reset
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -96,25 +80,25 @@ void setup() {
 #endif
 
   // Phase 5: Load stats
-  loadStats(g_stats);
+  loadStats(APP_STATE.stats);
 
   // Load pet data from SPIFFS
-  loadPetData(pet);
-  loadAchievements(pet);
+  loadPetData(APP_STATE.pet);
+  loadAchievements(APP_STATE.pet);
 
   // Phase 6: Check if we woke from deep sleep and restore state
   if (wasDeepSleepWake()) {
     Serial.println("Woke from deep sleep!");
-    restoreFromRTC(pet);
+    restoreFromRTC(APP_STATE.pet);
   }
 
-  previousState = pet.state;
+  AppState::getInstance().previousState = APP_STATE.pet.state;
 
   // Register web server routes
-  registerHandlers(server, pet);
+  registerHandlers(APP_STATE.server, APP_STATE.pet);
 
   // Start server
-  server.begin();
+  APP_STATE.server.begin();
 
   // Initialize OLED
 #ifdef ENABLE_OLED
@@ -143,7 +127,7 @@ void loop() {
   // Phase 6: Feed the watchdog
   esp_task_wdt_reset();
 
-  server.handleClient();
+  APP_STATE.server.handleClient();
 
   // Phase 5: Handle OTA
   handleOTA();
@@ -154,7 +138,7 @@ void loop() {
 #endif
 
   // Phase 6: Check physical buttons
-  checkButtons(pet);
+  checkButtons(APP_STATE.pet);
 
   // Check IR remote
 #ifndef DISABLE_IR_REMOTE
@@ -168,22 +152,22 @@ void loop() {
   unsigned long currentMillis = millis();
   if (currentMillis - lastUpdateTime >= PET_UPDATE_INTERVAL) {
     lastUpdateTime = currentMillis;
-    updatePet(pet);
-    checkAchievements(pet);
-    savePetData(pet);
-    playStateMelody(pet);
+    updatePet(APP_STATE.pet);
+    checkAchievements(APP_STATE.pet);
+    savePetData(APP_STATE.pet);
+    playStateMelody(APP_STATE.pet);
 
     // Phase 5: Update stats & battery
-    statsTick(g_stats, PET_UPDATE_INTERVAL);
-    updateBatteryLevel(pet);
-    handlePowerManager(pet, currentMillis);
+    statsTick(APP_STATE.stats, PET_UPDATE_INTERVAL);
+    updateBatteryLevel(APP_STATE.pet);
+    handlePowerManager(APP_STATE.pet, currentMillis);
 
 #ifdef ENABLE_OLED
-    updateOLED(pet);
+    updateOLED(APP_STATE.pet);
 #endif
 
     // Phase 6: Update RGB LED status
-    updateRGBLED(pet);
+    updateRGBLED(APP_STATE.pet);
   }
 }
 
@@ -196,62 +180,62 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
 
   switch (button) {
     case IR_BTN_CH_MINUS:  // Feed
-      if (pet.isAlive) {
-        feedPet(pet);
-        savePetData(pet);
+      if (APP_STATE.pet.isAlive) {
+        feedPet(APP_STATE.pet);
+        savePetData(APP_STATE.pet);
       }
       break;
 
     case IR_BTN_CH:  // Play
-      if (pet.isAlive && pet.energy >= PLAY_ENERGY_MIN) {
-        pet.state = "playing";
-        pet.happiness = min(STAT_MAX, pet.happiness + PLAY_HAPPINESS_GAIN);
-        pet.energy = max(STAT_MIN, pet.energy - PLAY_ENERGY_COST);
-        pet.hunger = max(STAT_MIN, pet.hunger - PLAY_HUNGER_COST);
-        pet.gameCooldown = 3;
-        savePetData(pet);
+      if (APP_STATE.pet.isAlive && APP_STATE.pet.energy >= PLAY_ENERGY_MIN) {
+        APP_STATE.pet.state = "playing";
+        APP_STATE.pet.happiness = min(STAT_MAX, APP_STATE.pet.happiness + PLAY_HAPPINESS_GAIN);
+        APP_STATE.pet.energy = max(STAT_MIN, APP_STATE.pet.energy - PLAY_ENERGY_COST);
+        APP_STATE.pet.hunger = max(STAT_MIN, APP_STATE.pet.hunger - PLAY_HUNGER_COST);
+        APP_STATE.pet.gameCooldown = 3;
+        savePetData(APP_STATE.pet);
       }
       break;
 
     case IR_BTN_CH_PLUS:  // Clean
-      if (pet.isAlive) {
-        cleanPet(pet);
-        savePetData(pet);
+      if (APP_STATE.pet.isAlive) {
+        cleanPet(APP_STATE.pet);
+        savePetData(APP_STATE.pet);
       }
       break;
 
     case IR_BTN_PREV:  // Sleep
-      if (pet.isAlive && pet.state != "sleeping") {
-        pet.state = "sleeping";
-        savePetData(pet);
+      if (APP_STATE.pet.isAlive && APP_STATE.pet.state != "sleeping") {
+        APP_STATE.pet.state = "sleeping";
+        savePetData(APP_STATE.pet);
       }
       break;
 
     case IR_BTN_NEXT:  // Wake
-      if (pet.isAlive && pet.state == "sleeping") {
-        pet.state = "normal";
-        savePetData(pet);
+      if (APP_STATE.pet.isAlive && APP_STATE.pet.state == "sleeping") {
+        APP_STATE.pet.state = "normal";
+        savePetData(APP_STATE.pet);
       }
       break;
 
     case IR_BTN_PLAY:  // Toggle sound
-      pet.soundEnabled = !pet.soundEnabled;
-      savePetData(pet);
-      Serial.printf("[IR] Sound: %s\n", pet.soundEnabled ? "ON" : "OFF");
+      APP_STATE.pet.soundEnabled = !APP_STATE.pet.soundEnabled;
+      savePetData(APP_STATE.pet);
+      Serial.printf("[IR] Sound: %s\n", APP_STATE.pet.soundEnabled ? "ON" : "OFF");
       break;
 
     case IR_BTN_0:  // Reset pet
-      if (!pet.isAlive) {
+      if (!APP_STATE.pet.isAlive) {
         // Revive
-        pet.isAlive = true;
-        pet.state = "normal";
-        pet.health = 50;
-        pet.hunger = 50;
-        pet.happiness = 50;
-        pet.energy = 50;
-        pet.cleanliness = 50;
-        pet.isDying = false;
-        savePetData(pet);
+        APP_STATE.pet.isAlive = true;
+        APP_STATE.pet.state = "normal";
+        APP_STATE.pet.health = 50;
+        APP_STATE.pet.hunger = 50;
+        APP_STATE.pet.happiness = 50;
+        APP_STATE.pet.energy = 50;
+        APP_STATE.pet.cleanliness = 50;
+        APP_STATE.pet.isDying = false;
+        savePetData(APP_STATE.pet);
       }
       break;
 
@@ -260,8 +244,8 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
     case IR_BTN_3:  // Switch pet slot (multi-pet)
       {
         int slot = (int)(button - IR_BTN_1); // 0, 1, or 2
-        if (switchPet(g_multiPet, slot)) {
-          loadPetData(pet);
+        if (switchPet(APP_STATE.multiPet, slot)) {
+          loadPetData(APP_STATE.pet);
           Serial.printf("[IR] Switched to pet slot %d\n", slot);
         }
       }

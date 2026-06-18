@@ -3,6 +3,7 @@
 
 #include <WebServer.h>
 #include "Pet.h"
+#include "AppState.h"
 
 // ============================================================
 // HTTP handler registration & implementation
@@ -17,11 +18,6 @@ void registerHandlers(WebServer &server, Pet &pet);
 // ============================================================
 bool checkRateLimit(const String &clientIP);
 void cleanupRateBuckets();
-
-// Global state for wake-up messages (owned by WebHandlers)
-extern bool showWakeMessage;
-extern unsigned long wakeMessageStartTime;
-extern String previousState;
 
 // Getter/setter for web handlers to access server (set during registration)
 WebServer* getServer();
