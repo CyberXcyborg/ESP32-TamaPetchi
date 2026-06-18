@@ -50,31 +50,26 @@ void checkButtons(Pet &pet) {
         // Special: long press sleep on dead pet = reset
         initPet(pet);
         savePetDataForce(pet);
-        Serial.println("Pet reset via long press");
       } else {
         switch (currentAction) {
           case 0: // Feed
             if (pet.isAlive) {
               feedPet(pet);
-              Serial.println("Button: Feed");
             }
             break;
           case 1: // Play
             if (pet.isAlive && pet.energy >= PLAY_ENERGY_MIN) {
               playPet(pet);
-              Serial.println("Button: Play");
             }
             break;
           case 2: // Clean
             if (pet.isAlive) {
               cleanPet(pet);
-              Serial.println("Button: Clean");
             }
             break;
           case 3: // Sleep toggle
             if (pet.isAlive) {
               sleepPet(pet);
-              Serial.println("Button: Sleep toggle");
             }
             break;
         }
@@ -85,9 +80,6 @@ void checkButtons(Pet &pet) {
       // Short press = cycle action
       currentAction = (currentAction + 1) % 4;
       actionSelected = true;
-      const char* actionNames[] = {"Feed", "Play", "Clean", "Sleep"};
-      Serial.print("Button: Selected ");
-      Serial.println(actionNames[currentAction]);
     }
   }
 
@@ -125,7 +117,6 @@ void enterDeepSleep(Pet &pet) {
   // Also save to SPIFFS as backup (in case RTC is corrupted)
   savePetDataForce(pet);
 
-  Serial.println("Entering deep sleep... Will wake on button press.");
   Serial.flush();
 
   // Configure wake on GPIO 0 (BOOT button)
@@ -140,7 +131,6 @@ bool wasDeepSleepWake() {
 
 void restoreFromRTC(Pet &pet) {
   if (rtcMagic != RTC_MAGIC_VALUE) {
-    Serial.println("RTC magic mismatch — cold boot, not deep sleep wake");
     return;
   }
 
@@ -171,10 +161,4 @@ void restoreFromRTC(Pet &pet) {
 
   // Clear magic to prevent re-restore on next boot
   rtcMagic = 0;
-
-  Serial.println("Restored pet state from RTC + SPIFFS after deep sleep wake");
-  Serial.print("Age: ");
-  Serial.print(pet.age);
-  Serial.print(" State: ");
-  Serial.println(pet.state);
 }

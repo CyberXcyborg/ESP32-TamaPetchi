@@ -128,11 +128,11 @@
 - [x] Add `IR_RECEIVER_PIN` conflict note to WIRING.md (GPIO 15 vs OLED CS)
 - [x] Increase OTA_Delta http.setTimeout to 120000
 - [x] Add native test infrastructure (mock Arduino.h, stubs, platformio.ini native env config)
-- [ ] Review and remove any remaining debug Serial.println statements
+- [x] Review and remove any remaining debug Serial.println statements
 
 ### 8.3 — Final Testing
-- [ ] Run full PlatformIO build and verify no warnings
-- [ ] Run all unit tests and verify 100% pass rate
+- [x] Run full PlatformIO build and verify no warnings
+- [ ] Run all unit tests and verify 100% pass rate (requires additional native stubs — deferred)
 - [ ] Test SPIFFS data migration from v1 to v2 format on actual hardware
 - [ ] Test OTA update flow end-to-end
 - [ ] Test MQTT connection and HA auto-discovery
@@ -142,7 +142,7 @@
 ### 8.4 — Documentation & Release
 - [x] Update README.md with all Phase 7 features
 - [x] Update PROJECT_STATUS.md to reflect Phase 7 completion
-- [ ] Create CHANGELOG.md with all changes from Phase 1-7
+- [x] Create CHANGELOG.md with all changes from Phase 1-7
 - [ ] Create release tag v1.0.0
 - [ ] Write release notes with feature summary, known issues, and upgrade guide
 - [x] Update WIRING.md with IR receiver and RGB LED wiring

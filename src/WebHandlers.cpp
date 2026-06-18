@@ -206,10 +206,6 @@ void handleSSEClient() {
   client.println("Connection: keep-alive");
   client.println("Access-Control-Allow-Origin: *");
   client.println();
-  client.flush();
-
-  Serial.print("SSE client connected in slot ");
-  Serial.println(slot);
 
   // Keep connection alive — client will disconnect when done
   // We don't block here; the ESP32 WebServer is single-threaded
@@ -221,8 +217,6 @@ void handleSSEClients() {
   for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
     if (sseClients[i] && !sseClients[i].connected()) {
       sseClients[i].stop();
-      Serial.print("SSE client disconnected from slot ");
-      Serial.println(i);
     }
   }
 

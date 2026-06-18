@@ -199,7 +199,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
       if (pet.isAlive) {
         feedPet(pet);
         savePetData(pet);
-        Serial.println("[IR] Feed");
       }
       break;
 
@@ -211,7 +210,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
         pet.hunger = max(STAT_MIN, pet.hunger - PLAY_HUNGER_COST);
         pet.gameCooldown = 3;
         savePetData(pet);
-        Serial.println("[IR] Play");
       }
       break;
 
@@ -219,7 +217,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
       if (pet.isAlive) {
         cleanPet(pet);
         savePetData(pet);
-        Serial.println("[IR] Clean");
       }
       break;
 
@@ -227,7 +224,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
       if (pet.isAlive && pet.state != "sleeping") {
         pet.state = "sleeping";
         savePetData(pet);
-        Serial.println("[IR] Sleep");
       }
       break;
 
@@ -235,7 +231,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
       if (pet.isAlive && pet.state == "sleeping") {
         pet.state = "normal";
         savePetData(pet);
-        Serial.println("[IR] Wake");
       }
       break;
 
@@ -257,7 +252,6 @@ void handleIRCommand(IRButton button, uint32_t rawCode) {
         pet.cleanliness = 50;
         pet.isDying = false;
         savePetData(pet);
-        Serial.println("[IR] Revive pet");
       }
       break;
 
