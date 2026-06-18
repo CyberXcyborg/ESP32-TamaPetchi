@@ -9,7 +9,8 @@
 - Phase 6 ✅ Merged (Code quality, web UI, hardware features, docs, performance)
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
-- Phase 9 🔄 Assigned — Release, hardware validation, and v1.1 feature planning
+- Phase 9 🔄 In Progress — Release ✅, v1.1 features in development
+- Phase 10 🔄 In Progress — 10.1 AppState ✅, 10.2-10.7 pending
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -155,7 +156,7 @@
 - [x] Write comprehensive release notes (feature summary, known issues, upgrade guide)
 - [x] Merge develop → main for v1.0.0 release
 - [x] Verify release artifacts (firmware.bin, SPIFFS data)
-- [ ] Create GitHub release with attached binaries
+- [x] Create GitHub release with attached binaries — https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.0.0
 
 ### 9.2 — Hardware Validation (requires physical ESP32)
 - [ ] Flash v1.0.0 to physical ESP32 Dev Module
@@ -197,6 +198,192 @@
 
 ## Implementation Rules
 - Create branch: feature/phase9-xxx
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress
+- Push when all features done
+- Create PR when complete
+
+## How This Works
+Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Phase 10: v1.1 Core Features Sprint
+
+**Branch:** 
+**Goal:** Implement the highest-impact v1.1 features that don't require hardware.
+**Priority:** Architecture cleanup → WebSocket → i18n → Factory reset
+
+### 10.1 — Architecture: Singleton AppState Refactor
+- [ ] Create  /  singleton class
+- [ ] Migrate all globals (g_pet, g_server, g_stats, g_multiPet, g_powerManager, g_wifiManager, g_ota, g_mqtt, g_notifications, g_achievements, g_oled, g_buttons, g_rgbLed) into AppState
+- [ ] Add  accessor
+- [ ] Update all modules to use  instead of extern globals
+- [ ] Ensure thread-safe access where needed (mutex for shared state)
+- [ ] Verify compilation:  — zero errors
+- [ ] Run unit tests:  — all 61+ tests pass
+
+### 10.2 — WebSocket Real-Time Updates
+- [ ] Add  library to platformio.ini (e.g., )
+- [ ] Create  /  module
+- [ ] Implement WebSocket server on port 81 (separate from HTTP on 80)
+- [ ] Add real-time pet stat push (JSON broadcast on stat change)
+- [ ] Add real-time notification push (achievement unlock, pet death, evolution)
+- [ ] Update web UI () to use WebSocket instead of SSE polling
+- [ ] Add WebSocket connection status indicator in UI
+- [ ] Implement auto-reconnect with exponential backoff
+- [ ] Verify compilation and memory usage (ensure < 80% flash)
+- [ ] Add unit tests for WebSocket message serialization
+
+### 10.3 — i18n Multi-Language Support
+- [ ] Create  /  module
+- [ ] Create , , 
+- [ ] Translate all web UI strings: nav labels, button text, status messages, error messages
+- [ ] Add language selector in web UI (stored in localStorage)
+- [ ] Add  header detection for auto-select
+- [ ] Add  and  endpoints
+- [ ] Verify SPIFFS data directory updated and buildfs succeeds
+- [ ] Add unit tests for i18n string lookup and fallback
+
+### 10.4 — Factory Reset
+- [ ] Implement factory reset: hold BOOT button (GPIO 0) for 10 seconds
+- [ ] Add  — check button held > 10s on boot
+- [ ] On trigger: wipe SPIFFS (), reset WiFi credentials, restart
+- [ ] Add visual feedback: RGB LED flashes red 3 times, OLED shows "Factory Reset"
+- [ ] Add confirmation: require button hold during reset (not just on boot)
+- [ ] Add  HTTP endpoint (software trigger)
+- [ ] Verify compilation and test reset flow in native test environment
+
+### 10.5 — SPIFFS Atomic Writes
+- [ ] Create  — write to , then rename
+- [ ] Update all save functions to use atomicWrite:
+  - [ ]  / 
+  - [ ]  / 
+  - [ ]  / 
+  - [ ]  / 
+  - [ ]  / 
+- [ ] Add write verification: read back after write, retry on mismatch
+- [ ] Add unit tests for atomic write (mock SPIFFS rename failure)
+
+### 10.6 — Error Code System
+- [ ] Create  enum with all error codes:
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+- [ ] Update all API responses to include 
+- [ ] Add error code documentation in README
+- [ ] Add unit tests for error code propagation
+
+### 10.7 — Documentation & Polish
+- [ ] Update README with Phase 10 features (WebSocket, i18n, factory reset, atomic writes)
+- [ ] Update CHANGELOG.md with Phase 10 changes
+- [ ] Update TASKS.md with progress after each sub-task
+- [ ] Create PR when all 10.x sub-tasks complete
+
+## Implementation Rules
+- Create branch: feature/phase10-xxx
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress
+- Push when all features done
+- Create PR when complete
+
+## How This Works
+Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Phase 10: v1.1 Core Features Sprint
+
+**Branch:** feature/phase10-v1.1-core
+**Goal:** Implement the highest-impact v1.1 features that don't require hardware.
+**Priority:** Architecture cleanup → WebSocket → i18n → Factory reset
+
+### 10.1 — Architecture: Singleton AppState Refactor
+- [x] Create AppState.h / AppState.cpp singleton class
+- [x] Migrate all globals (g_pet, g_server, g_stats, g_multiPet, g_powerManager, g_wifiManager, g_ota, g_mqtt, g_notifications, g_achievements, g_oled, g_buttons, g_rgbLed) into AppState
+- [x] Add AppState::getInstance() accessor
+- [x] Update all modules to use AppState::getInstance() instead of extern globals
+- [x] Ensure thread-safe access where needed (mutex for shared state)
+- [x] Verify compilation: pio run -e esp32dev — zero errors
+- [x] Run unit tests: pio test -e native — all 61+ tests pass
+
+### 10.2 — WebSocket Real-Time Updates
+- [ ] Add WebSockets library to platformio.ini (e.g., Links2004/WebSockets)
+- [ ] Create WebSocket.h / WebSocket.cpp module
+- [ ] Implement WebSocket server on port 81 (separate from HTTP on 80)
+- [ ] Add real-time pet stat push (JSON broadcast on stat change)
+- [ ] Add real-time notification push (achievement unlock, pet death, evolution)
+- [ ] Update web UI (data/index.html) to use WebSocket instead of SSE polling
+- [ ] Add WebSocket connection status indicator in UI
+- [ ] Implement auto-reconnect with exponential backoff
+- [ ] Verify compilation and memory usage (ensure < 80% flash)
+- [ ] Add unit tests for WebSocket message serialization
+
+### 10.3 — i18n Multi-Language Support
+- [ ] Create i18n.h / i18n.cpp module
+- [ ] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
+- [ ] Translate all web UI strings: nav labels, button text, status messages, error messages
+- [ ] Add language selector in web UI (stored in localStorage)
+- [ ] Add Accept-Language header detection for auto-select
+- [ ] Add GET /api/settings/lang and POST /api/settings/lang endpoints
+- [ ] Verify SPIFFS data directory updated and buildfs succeeds
+- [ ] Add unit tests for i18n string lookup and fallback
+
+### 10.4 — Factory Reset
+- [ ] Implement factory reset: hold BOOT button (GPIO 0) for 10 seconds
+- [ ] Add Buttons::isFactoryResetPressed() — check button held > 10s on boot
+- [ ] On trigger: wipe SPIFFS (SPIFFS.format()), reset WiFi credentials, restart
+- [ ] Add visual feedback: RGB LED flashes red 3 times, OLED shows "Factory Reset"
+- [ ] Add confirmation: require button hold during reset (not just on boot)
+- [ ] Add POST /api/settings/factory-reset HTTP endpoint (software trigger)
+- [ ] Verify compilation and test reset flow in native test environment
+
+### 10.5 — SPIFFS Atomic Writes
+- [ ] Create Storage::atomicWrite(filename, content) — write to .tmp, then rename
+- [ ] Update all save functions to use atomicWrite:
+  - [ ] savePetState() / loadPetState()
+  - [ ] saveMultiPetState() / loadMultiPetState()
+  - [ ] saveSettings() / loadSettings()
+  - [ ] saveStats() / loadStats()
+  - [ ] saveAchievements() / loadAchievements()
+- [ ] Add write verification: read back after write, retry on mismatch
+- [ ] Add unit tests for atomic write (mock SPIFFS rename failure)
+
+### 10.6 — Error Code System
+- [ ] Create ErrorCode.h enum with all error codes:
+  - OK = 0
+  - ERR_SPIFFS_READ_FAIL = 100
+  - ERR_SPIFFS_WRITE_FAIL = 101
+  - ERR_JSON_PARSE_FAIL = 102
+  - ERR_PET_NOT_FOUND = 200
+  - ERR_PET_DEAD = 201
+  - ERR_INVALID_PARAM = 300
+  - ERR_RATE_LIMITED = 400
+  - ERR_WIFI_DISCONNECTED = 500
+  - ERR_MQTT_DISCONNECTED = 501
+  - ERR_OTA_FAIL = 600
+- [ ] Update all API responses to include structured error objects
+- [ ] Add error code documentation in README
+- [ ] Add unit tests for error code propagation
+
+### 10.7 — Documentation & Polish
+- [ ] Update README with Phase 10 features (WebSocket, i18n, factory reset, atomic writes)
+- [ ] Update CHANGELOG.md with Phase 10 changes
+- [ ] Update TASKS.md with progress after each sub-task
+- [ ] Create PR when all 10.x sub-tasks complete
+
+## Implementation Rules
+- Create branch: feature/phase10-xxx
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress

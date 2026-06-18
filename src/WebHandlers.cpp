@@ -52,17 +52,9 @@ void handleGetStats();
 void handleGetNotifications();
 
 // ============================================================
-// Module-level state
+// Module-level state (minimal — just the server pointer for callbacks)
 // ============================================================
-static Pet*        g_pet        = nullptr;
-static WebServer*  g_server     = nullptr;
-bool showWakeMessage             = false;
-unsigned long wakeMessageStartTime = 0;
-String previousState             = "";
-
-// Phase 5: External state references
-extern MultiPetState g_multiPet;
-extern GameStats g_stats;
+static WebServer* g_server = nullptr;
 
 WebServer* getServer() { return g_server; }
 
@@ -221,36 +213,37 @@ void handleSSEClients() {
   }
 
   // Broadcast pet state periodically
-  if (g_pet && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
+  AppState& state = APP_STATE;
+  if (state.pet.isAlive && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
     lastSSEBroadcast = millis();
 
     // Phase 7.2: Periodic rate limit bucket cleanup
     cleanupRateBuckets();
 
     DynamicJsonDocument jsonDoc(512);
-    jsonDoc["hunger"]      = g_pet->hunger;
-    jsonDoc["happiness"]   = g_pet->happiness;
-    jsonDoc["health"]      = g_pet->health;
-    jsonDoc["energy"]      = g_pet->energy;
-    jsonDoc["cleanliness"] = g_pet->cleanliness;
-    jsonDoc["isAlive"]     = g_pet->isAlive;
-    jsonDoc["state"]       = g_pet->state;
-    jsonDoc["age"]         = g_pet->age;
+    jsonDoc["hunger"]      = state.pet.hunger;
+    jsonDoc["happiness"]   = state.pet.happiness;
+    jsonDoc["health"]      = state.pet.health;
+    jsonDoc["energy"]      = state.pet.energy;
+    jsonDoc["cleanliness"] = state.pet.cleanliness;
+    jsonDoc["isAlive"]     = state.pet.isAlive;
+    jsonDoc["state"]       = state.pet.state;
+    jsonDoc["age"]         = state.pet.age;
 
     const char* stageStr = "baby";
-    switch (g_pet->stage) {
+    switch (state.pet.stage) {
       case BABY:  stageStr = "baby";  break;
       case CHILD: stageStr = "child"; break;
       case ADULT: stageStr = "adult"; break;
       case ELDER: stageStr = "elder"; break;
     }
     jsonDoc["stage"] = stageStr;
-    jsonDoc["isNight"] = g_pet->isNight;
-    jsonDoc["weather"] = getWeatherName(g_pet->weather);
-    jsonDoc["isDying"] = g_pet->isDying;
-    jsonDoc["isEvolving"] = g_pet->isEvolving;
-    jsonDoc["activeGame"] = g_pet->activeGame;
-    jsonDoc["gameCooldown"] = g_pet->gameCooldown;
+    jsonDoc["isNight"] = state.pet.isNight;
+    jsonDoc["weather"] = getWeatherName(state.pet.weather);
+    jsonDoc["isDying"] = state.pet.isDying;
+    jsonDoc["isEvolving"] = state.pet.isEvolving;
+    jsonDoc["activeGame"] = state.pet.activeGame;
+    jsonDoc["gameCooldown"] = state.pet.gameCooldown;
 
     String payload;
     serializeJson(jsonDoc, payload);
@@ -262,7 +255,6 @@ void handleSSEClients() {
 // Route Registration
 // ============================================================
 void registerHandlers(WebServer &server, Pet &pet) {
-  g_pet    = &pet;
   g_server = &server;
 
   // Phase 7.2: Register rate-limited 404 fallback
@@ -385,38 +377,38 @@ void handleRoot() {
 }
 
 void handleGetPet() {
-  if (!g_pet || !g_server) {
+  AppState& state = APP_STATE;
+  if (!g_server) {
     Serial.println("ERROR: null pointer in handleGetPet");
-    if (g_server) g_server->send(500, "text/plain", "Internal error");
     return;
   }
   DynamicJsonDocument jsonDoc(1024);
-  jsonDoc["hunger"]      = g_pet->hunger;
-  jsonDoc["happiness"]   = g_pet->happiness;
-  jsonDoc["health"]      = g_pet->health;
-  jsonDoc["energy"]      = g_pet->energy;
-  jsonDoc["cleanliness"] = g_pet->cleanliness;
-  jsonDoc["age"]         = g_pet->age;
-  jsonDoc["isAlive"]     = g_pet->isAlive;
-  jsonDoc["state"]       = g_pet->state;
+  jsonDoc["hunger"]      = state.pet.hunger;
+  jsonDoc["happiness"]   = state.pet.happiness;
+  jsonDoc["health"]      = state.pet.health;
+  jsonDoc["energy"]      = state.pet.energy;
+  jsonDoc["cleanliness"] = state.pet.cleanliness;
+  jsonDoc["age"]         = state.pet.age;
+  jsonDoc["isAlive"]     = state.pet.isAlive;
+  jsonDoc["state"]       = state.pet.state;
 
   // Phase 2: new fields
   const char* stageStr = "baby";
-  switch (g_pet->stage) {
+  switch (state.pet.stage) {
     case BABY:  stageStr = "baby";  break;
     case CHILD: stageStr = "child"; break;
     case ADULT: stageStr = "adult"; break;
     case ELDER: stageStr = "elder"; break;
   }
   jsonDoc["stage"]          = stageStr;
-  jsonDoc["isNight"]        = g_pet->isNight;
-  jsonDoc["virtualMinutes"] = g_pet->virtualMinutes;
+  jsonDoc["isNight"]        = state.pet.isNight;
+  jsonDoc["virtualMinutes"] = state.pet.virtualMinutes;
 
   // Phase 3: name + sound + type
-  jsonDoc["name"]         = g_pet->name;
-  jsonDoc["soundEnabled"] = g_pet->soundEnabled;
+  jsonDoc["name"]         = state.pet.name;
+  jsonDoc["soundEnabled"] = state.pet.soundEnabled;
   const char* typeStr = "blob";
-  switch (g_pet->type) {
+  switch (state.pet.type) {
     case BLOB: typeStr = "blob"; break;
     case CAT:  typeStr = "cat";  break;
     case DOG:  typeStr = "dog";  break;
@@ -424,28 +416,28 @@ void handleGetPet() {
   jsonDoc["type"] = typeStr;
 
   // Phase 3: achievements array
-  String achJson = getAchievementsJson(*g_pet);
+  String achJson = getAchievementsJson(state.pet);
   StaticJsonDocument<512> achDoc;
   deserializeJson(achDoc, achJson);
   jsonDoc["achievements"] = achDoc["achievements"];
 
   // Phase 4: new fields
-  jsonDoc["isDying"]      = g_pet->isDying;
-  jsonDoc["dyingStartTime"] = g_pet->dyingStartTime;
-  jsonDoc["isEvolving"]   = g_pet->isEvolving;
-  jsonDoc["weather"]      = getWeatherName(g_pet->weather);
-  jsonDoc["musicEnabled"] = g_pet->musicEnabled;
-  jsonDoc["difficulty"]   = getDifficultyName(g_pet->difficulty);
-  jsonDoc["gameCooldown"] = g_pet->gameCooldown;
-  jsonDoc["activeGame"]   = g_pet->activeGame;
+  jsonDoc["isDying"]      = state.pet.isDying;
+  jsonDoc["dyingStartTime"] = state.pet.dyingStartTime;
+  jsonDoc["isEvolving"]   = state.pet.isEvolving;
+  jsonDoc["weather"]      = getWeatherName(state.pet.weather);
+  jsonDoc["musicEnabled"] = state.pet.musicEnabled;
+  jsonDoc["difficulty"]   = getDifficultyName(state.pet.difficulty);
+  jsonDoc["gameCooldown"] = state.pet.gameCooldown;
+  jsonDoc["activeGame"]   = state.pet.activeGame;
 
   // Phase 7.5: mood & personality
-  jsonDoc["mood"]               = g_pet->mood;
-  jsonDoc["moodName"]           = getMoodName(g_pet->mood);
-  jsonDoc["moodEmoji"]          = getMoodEmoji(g_pet->mood);
-  jsonDoc["personalityCheerful"]  = g_pet->personalityCheerful;
-  jsonDoc["personalityEnergetic"] = g_pet->personalityEnergetic;
-  jsonDoc["personalityHungry"]    = g_pet->personalityHungry;
+  jsonDoc["mood"]               = state.pet.mood;
+  jsonDoc["moodName"]           = getMoodName(state.pet.mood);
+  jsonDoc["moodEmoji"]          = getMoodEmoji(state.pet.mood);
+  jsonDoc["personalityCheerful"]  = state.pet.personalityCheerful;
+  jsonDoc["personalityEnergetic"] = state.pet.personalityEnergetic;
+  jsonDoc["personalityHungry"]    = state.pet.personalityHungry;
 
   String response;
   serializeJson(jsonDoc, response);
@@ -458,14 +450,14 @@ void handleFeed() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
   // Phase 6: Clamp stat before action to prevent overflow
-  g_pet->hunger = constrain(g_pet->hunger, STAT_MIN, STAT_MAX);
-  feedPet(*g_pet);
-  savePetData(*g_pet);
-  checkAchievements(*g_pet);
-  saveAchievements(*g_pet);
+  state.pet.hunger = constrain(state.pet.hunger, STAT_MIN, STAT_MAX);
+  feedPet(state.pet);
+  savePetData(state.pet);
+  checkAchievements(state.pet);
+  saveAchievements(state.pet);
   sendJsonResponse(true);
 }
 
@@ -475,12 +467,13 @@ void handlePlay() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  if (g_pet->energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
-  playPet(*g_pet);
-  savePetData(*g_pet);
-  checkAchievements(*g_pet);
-  saveAchievements(*g_pet);
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (state.pet.energy < PLAY_ENERGY_MIN) { sendJsonResponse(false, "Pet is too tired to play"); return; }
+  playPet(state.pet);
+  savePetData(state.pet);
+  checkAchievements(state.pet);
+  saveAchievements(state.pet);
   sendJsonResponse(true);
 }
 
@@ -490,9 +483,10 @@ void handleClean() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  cleanPet(*g_pet);
-  savePetData(*g_pet);
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  cleanPet(state.pet);
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
@@ -502,9 +496,10 @@ void handleSleep() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  sleepPet(*g_pet);
-  savePetData(*g_pet);
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  sleepPet(state.pet);
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
@@ -514,9 +509,10 @@ void handleHeal() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive && !g_pet->isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
-  healPet(*g_pet);
-  savePetData(*g_pet);
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive && !state.pet.isDying) { sendJsonResponse(false, "Pet is not alive"); return; }
+  healPet(state.pet);
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
@@ -526,14 +522,15 @@ void handleReset() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  initPet(*g_pet);
+  AppState& state = APP_STATE;
+  initPet(state.pet);
   // Reset achievement tracking
-  g_pet->feedCount     = 0;
-  g_pet->playCount     = 0;
-  g_pet->hasBeenNamed  = false;
-  g_pet->elderAchieved = false;
-  savePetData(*g_pet);
-  saveAchievements(*g_pet);
+  state.pet.feedCount     = 0;
+  state.pet.playCount     = 0;
+  state.pet.hasBeenNamed  = false;
+  state.pet.elderAchieved = false;
+  savePetData(state.pet);
+  saveAchievements(state.pet);
   sendJsonResponse(true);
 }
 
@@ -547,10 +544,10 @@ void handleGameStart() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  if (g_pet->gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(g_pet->gameCooldown) + "s"); return; }
-  if (g_pet->energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (state.pet.gameCooldown > 0) { sendJsonResponse(false, "Game on cooldown: " + String(state.pet.gameCooldown) + "s"); return; }
+  if (state.pet.energy < 10) { sendJsonResponse(false, "Pet is too tired to play"); return; }
 
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
@@ -561,10 +558,10 @@ void handleGameStart() {
   if (!jsonDoc["game"].is<int>()) { sendJsonResponse(false, "Game type must be an integer"); return; }
   int gameType = jsonDoc["game"].as<int>();
   if (gameType < 1 || gameType > 3) { sendJsonResponse(false, "Invalid game type — must be 1, 2, or 3"); return; }
-  startGame(*g_pet, gameType);
-  savePetData(*g_pet);
+  startGame(state.pet, gameType);
+  savePetData(state.pet);
 
-  String gameState = getGameStateJSON(*g_pet);
+  String gameState = getGameStateJSON(state.pet);
   StaticJsonDocument<256> resp;
   resp["success"] = true;
   StaticJsonDocument<512> gs;
@@ -581,40 +578,41 @@ void handleGameAction() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  if (g_pet->activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  if (state.pet.activeGame == 0) { sendJsonResponse(false, "No active game"); return; }
 
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
   int input = jsonDoc["input"] | -1;
 
-  if (g_pet->activeGame == 1) {
-    checkMemoryInput(*g_pet, input);
-  } else if (g_pet->activeGame == 2) {
+  if (state.pet.activeGame == 1) {
+    checkMemoryInput(state.pet, input);
+  } else if (state.pet.activeGame == 2) {
     // Catch game: input is X coordinate, check proximity to target
-    int targetX = g_pet->catchTargetX;
-    int targetY = g_pet->catchTargetY;
+    int targetX = state.pet.catchTargetX;
+    int targetY = state.pet.catchTargetY;
     int dist = abs(input - targetX);
     if (dist < 15) {
-      g_pet->gameScore++;
+      state.pet.gameScore++;
     }
-    updateCatchTarget(*g_pet);
-  } else if (g_pet->activeGame == 3) {
+    updateCatchTarget(state.pet);
+  } else if (state.pet.activeGame == 3) {
     // Quiz game
     int answer = jsonDoc["answer"] | -1;
     // Correct answer is always 0 for now (simplified)
     if (answer == 0) {
-      g_pet->gameScore++;
+      state.pet.gameScore++;
     }
-    g_pet->gameRound++;
-    if (g_pet->gameRound >= 5) {
-      endGame(*g_pet, g_pet->gameScore >= 3);
+    state.pet.gameRound++;
+    if (state.pet.gameRound >= 5) {
+      endGame(state.pet, state.pet.gameScore >= 3);
     }
   }
 
-  savePetData(*g_pet);
-  String gameState = getGameStateJSON(*g_pet);
+  savePetData(state.pet);
+  String gameState = getGameStateJSON(state.pet);
   StaticJsonDocument<256> resp;
   resp["success"] = true;
   StaticJsonDocument<512> gs;
@@ -626,7 +624,8 @@ void handleGameAction() {
 }
 
 void handleGameState() {
-  String gameState = getGameStateJSON(*g_pet);
+  AppState& state = APP_STATE;
+  String gameState = getGameStateJSON(state.pet);
   g_server->send(200, "application/json", gameState);
 }
 
@@ -636,12 +635,13 @@ void handleSetMusic() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
-  g_pet->musicEnabled = !g_pet->musicEnabled;
-  savePetData(*g_pet);
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  state.pet.musicEnabled = !state.pet.musicEnabled;
+  savePetData(state.pet);
   StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
-  jsonDoc["musicEnabled"] = g_pet->musicEnabled;
+  jsonDoc["musicEnabled"] = state.pet.musicEnabled;
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
@@ -653,7 +653,7 @@ void handleSetDifficulty() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
+  AppState& state = APP_STATE;
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, body);
@@ -662,18 +662,18 @@ void handleSetDifficulty() {
   diffStr.trim();
 
   // Phase 6: Validate difficulty is one of the expected values
-  if (diffStr == "easy") g_pet->difficulty = 0;
-  else if (diffStr == "hard") g_pet->difficulty = 2;
-  else if (diffStr == "normal") g_pet->difficulty = 1;
+  if (diffStr == "easy") state.pet.difficulty = 0;
+  else if (diffStr == "hard") state.pet.difficulty = 2;
+  else if (diffStr == "normal") state.pet.difficulty = 1;
   else {
     sendJsonResponse(false, "Invalid difficulty: use easy, normal, or hard");
     return;
   }
 
-  savePetData(*g_pet);
+  savePetData(state.pet);
   StaticJsonDocument<256> resp;
   resp["success"] = true;
-  resp["difficulty"] = getDifficultyName(g_pet->difficulty);
+  resp["difficulty"] = getDifficultyName(state.pet.difficulty);
   String response;
   serializeJson(resp, response);
   g_server->send(200, "application/json", response);
@@ -685,15 +685,16 @@ void handleRevive() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (g_pet->isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
-  if (g_pet->isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
-  if (!canRevive(*g_pet)) {
-    unsigned long remaining = (300000 - (millis() - g_pet->lastReviveTime)) / 1000;
+  AppState& state = APP_STATE;
+  if (state.pet.isAlive) { sendJsonResponse(false, "Pet is already alive"); return; }
+  if (state.pet.isDying) { sendJsonResponse(false, "Window has closed — pet is dead"); return; }
+  if (!canRevive(state.pet)) {
+    unsigned long remaining = (300000 - (millis() - state.pet.lastReviveTime)) / 1000;
     sendJsonResponse(false, "Revive on cooldown: " + String(remaining) + "s remaining");
     return;
   }
-  revivePet(*g_pet);
-  savePetData(*g_pet);
+  revivePet(state.pet);
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
@@ -703,8 +704,8 @@ void handleSetType() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet) { sendJsonResponse(false, "Internal error"); return; }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
@@ -733,27 +734,29 @@ void handleSetType() {
   }
 
   // Reset pet with new type
-  g_pet->type = newType;
-  initPet(*g_pet);
-  g_pet->type = newType; // preserve type after reset
-  savePetData(*g_pet);
+  state.pet.type = newType;
+  initPet(state.pet);
+  state.pet.type = newType; // preserve type after reset
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
 void handleAchievements() {
-  String achJson = getAchievementsJson(*g_pet);
+  AppState& state = APP_STATE;
+  String achJson = getAchievementsJson(state.pet);
   g_server->send(200, "application/json", achJson);
 }
 
 void handleMute() {
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
-  g_pet->soundEnabled = !g_pet->soundEnabled;
-  savePetData(*g_pet);
+  state.pet.soundEnabled = !state.pet.soundEnabled;
+  savePetData(state.pet);
 
   StaticJsonDocument<256> jsonDoc;
   jsonDoc["success"] = true;
-  jsonDoc["soundEnabled"] = g_pet->soundEnabled;
+  jsonDoc["soundEnabled"] = state.pet.soundEnabled;
   String response;
   serializeJson(jsonDoc, response);
   g_server->send(200, "application/json", response);
@@ -765,7 +768,8 @@ void handleSetName() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
     return;
   }
-  if (!g_pet->isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
+  AppState& state = APP_STATE;
+  if (!state.pet.isAlive) { sendJsonResponse(false, "Pet is not alive"); return; }
 
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
@@ -800,11 +804,11 @@ void handleSetName() {
     return;
   }
 
-  g_pet->name = sanitized;
-  g_pet->hasBeenNamed = true;
-  savePetData(*g_pet);
-  saveAchievements(*g_pet);
-  checkAchievements(*g_pet);
+  state.pet.name = sanitized;
+  state.pet.hasBeenNamed = true;
+  savePetData(state.pet);
+  saveAchievements(state.pet);
+  checkAchievements(state.pet);
   sendJsonResponse(true);
 }
 
@@ -835,7 +839,8 @@ void handleSetMelodyConfig() {
 
 void handleGetPets() {
   if (!g_server) return;
-  String json = getMultiPetJson(g_multiPet);
+  AppState& state = APP_STATE;
+  String json = getMultiPetJson(state.multiPet);
   g_server->send(200, "application/json", json);
 }
 
@@ -845,6 +850,7 @@ void handleCreatePet() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
     return;
   }
+  AppState& state = APP_STATE;
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
@@ -852,7 +858,7 @@ void handleCreatePet() {
   String name = jsonDoc["name"] | "";
   int type = jsonDoc["type"] | 0;
   PetType pt = (PetType)constrain(type, 0, 2);
-  int slot = createPet(g_multiPet, name, pt);
+  int slot = createPet(state.multiPet, name, pt);
   if (slot >= 0) {
     StaticJsonDocument<256> resp;
     resp["success"] = true;
@@ -866,12 +872,13 @@ void handleCreatePet() {
 
 void handleSwitchPet() {
   if (!g_server) return;
+  AppState& state = APP_STATE;
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
-  if (switchPet(g_multiPet, slot)) {
+  if (switchPet(state.multiPet, slot)) {
     sendJsonResponse(true);
   } else {
     sendJsonResponse(false, "Invalid slot");
@@ -884,12 +891,13 @@ void handleDeletePet() {
     g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests\"}");
     return;
   }
+  AppState& state = APP_STATE;
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
   int slot = jsonDoc["slot"] | -1;
-  if (deletePet(g_multiPet, slot)) {
+  if (deletePet(state.multiPet, slot)) {
     sendJsonResponse(true);
   } else {
     sendJsonResponse(false, "Cannot delete");
@@ -902,13 +910,15 @@ void handleDeletePet() {
 
 void handleGetStats() {
   if (!g_server) return;
-  String json = getStatsJson(g_stats);
+  AppState& state = APP_STATE;
+  String json = getStatsJson(state.stats);
   g_server->send(200, "application/json", json);
 }
 
 void handleGetNotifications() {
   if (!g_server) return;
-  String json = getNotificationsJson(g_multiPet.activePetIndex);
+  AppState& state = APP_STATE;
+  String json = getNotificationsJson(state.multiPet.activePetIndex);
   g_server->send(200, "application/json", json);
 }
 
@@ -917,52 +927,52 @@ void handleGetNotifications() {
 // ============================================================
 
 void handleGetMood() {
-  if (!g_server || !g_pet) {
-    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+  if (!g_server) {
     return;
   }
+  AppState& state = APP_STATE;
   String result = "{";
-  result += "\"mood\":" + String(g_pet->mood) + ",";
-  result += "\"moodName\":\"" + getMoodName(g_pet->mood) + "\",";
-  result += "\"moodEmoji\":\"" + getMoodEmoji(g_pet->mood) + "\",";
-  result += "\"personalityCheerful\":" + String(g_pet->personalityCheerful) + ",";
-  result += "\"personalityEnergetic\":" + String(g_pet->personalityEnergetic) + ",";
-  result += "\"personalityHungry\":" + String(g_pet->personalityHungry);
+  result += "\"mood\":" + String(state.pet.mood) + ",";
+  result += "\"moodName\":\"" + getMoodName(state.pet.mood) + "\",";
+  result += "\"moodEmoji\":\"" + getMoodEmoji(state.pet.mood) + "\",";
+  result += "\"personalityCheerful\":" + String(state.pet.personalityCheerful) + ",";
+  result += "\"personalityEnergetic\":" + String(state.pet.personalityEnergetic) + ",";
+  result += "\"personalityHungry\":" + String(state.pet.personalityHungry);
   result += "}";
   g_server->send(200, "application/json", result);
 }
 
 void handleGetScheduledFeed() {
-  if (!g_server || !g_pet) {
-    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+  if (!g_server) {
     return;
   }
-  g_server->send(200, "application/json", getScheduledFeedJson(*g_pet));
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", getScheduledFeedJson(state.pet));
 }
 
 void handleSetScheduledFeed() {
-  if (!g_server || !g_pet) {
-    if (g_server) g_server->send(500, "application/json", "{\"success\":false}");
+  if (!g_server) {
     return;
   }
+  AppState& state = APP_STATE;
   String body = g_server->arg("plain");
   StaticJsonDocument<256> jsonDoc;
   DeserializationError err = deserializeJson(jsonDoc, body);
   if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
 
   if (jsonDoc["enabled"].is<bool>()) {
-    g_pet->scheduledFeedEnabled = jsonDoc["enabled"].as<bool>();
+    state.pet.scheduledFeedEnabled = jsonDoc["enabled"].as<bool>();
   }
   if (jsonDoc["intervalHours"].is<int>()) {
     int hours = jsonDoc["intervalHours"].as<int>();
-    g_pet->scheduledFeedInterval = constrain(hours, 1, 24) * 3600000UL;
+    state.pet.scheduledFeedInterval = constrain(hours, 1, 24) * 3600000UL;
   }
   if (jsonDoc["amount"].is<int>()) {
-    g_pet->scheduledFeedAmount = constrain(jsonDoc["amount"].as<int>(), 5, 50);
+    state.pet.scheduledFeedAmount = constrain(jsonDoc["amount"].as<int>(), 5, 50);
   }
 
-  g_pet->lastScheduledFeed = millis(); // Reset timer on config change
-  savePetData(*g_pet);
+  state.pet.lastScheduledFeed = millis(); // Reset timer on config change
+  savePetData(state.pet);
   sendJsonResponse(true);
 }
 
