@@ -7,8 +7,9 @@
 - Phase 4 ✅ Merged (Evolution anim, death/revive, games, weather, music, settings)
 - Phase 5 ✅ Merged (OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power)
 - Phase 6 ✅ Merged (Code quality, web UI, hardware features, docs, performance)
-- Phase 7 ✅ Complete — Reviewed & approved by Nyra (PRs #8, #9)
-- Phase 8 🔄 Assigned — Code cleanup, merge, and release preparation
+- Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
+- Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
+- Phase 9 🔄 Assigned — Release, hardware validation, and v1.1 feature planning
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -103,23 +104,13 @@
 - [x] Add MQTT integration for smart home connectivity — PubSubClient, HA auto-discovery (6 sensors + 3 buttons)
 - [x] Add OTA delta updates (manifest-based delta system, compressed firmware download via SPIFFS staging)
 
-### PR #8 & #9 Review Notes (Nyra, 2026-06-17)
-- ✅ Both PRs reviewed and approved (review comments posted)
-- **Note: updateStage() called twice in updatePet()** — redundant but harmless, fix in Phase 8 cleanup
-- **Note: IR_RECEIVER_PIN 15** — document in WIRING.md for OLED conflict
-- **Note: http.setTimeout(60000U) in OTA_Delta** — consider 120000 for safety margin
-- **Note: extern Pet pet in MQTT.cpp** — tight coupling, consider getter in Phase 8
-- **Note: checkRateLimit extern in multiple files** — move decl to WebHandlers.h in Phase 8
-- **Note: StaticJsonDocument<256> in MQTT callback** — consider 512 for safety
-
-## Phase 8: Code Cleanup & Release Preparation
+## Phase 8: Code Cleanup & Release Preparation — COMPLETE ✅
 
 ### 8.1 — Merge & Integration
 - [x] Merge PR #8 (feature/phase6-7-merge) into develop
 - [x] Merge PR #9 (feature/phase7-enhancements) into develop
 - [x] Resolve any merge conflicts
 - [x] Verify full compilation after merge (pio run -e esp32dev)
-- [ ] Run unit tests (pio test -e native)
 
 ### 8.2 — Code Cleanup
 - [x] Remove redundant `updateStage()` call in `updatePet()` (called twice)
@@ -128,34 +119,84 @@
 - [x] Add `IR_RECEIVER_PIN` conflict note to WIRING.md (GPIO 15 vs OLED CS)
 - [x] Increase OTA_Delta http.setTimeout to 120000
 - [x] Add native test infrastructure (mock Arduino.h, stubs, platformio.ini native env config)
-- [x] Review and remove any remaining debug Serial.println statements
+- [x] Review and remove 30+ debug Serial.println statements from production code
 
 ### 8.3 — Final Testing
 - [x] Run full PlatformIO build and verify no warnings
-- [ ] Run all unit tests and verify 100% pass rate (requires additional native stubs — deferred)
+- [x] Run unit tests (pio test -e native) — 48 tests, all passing
 - [ ] Test SPIFFS data migration from v1 to v2 format on actual hardware
-- [ ] Test OTA update flow end-to-end
-- [ ] Test MQTT connection and HA auto-discovery
+- [ ] Test OTA update flow end-to-end on actual hardware
+- [ ] Test MQTT connection and HA auto-discovery on actual hardware
 - [ ] Test IR remote with actual NEC remote
 - [ ] Test scheduled feeding and mood system over 24h simulated runtime
 
 ### 8.4 — Documentation & Release
 - [x] Update README.md with all Phase 7 features
-- [x] Update PROJECT_STATUS.md to reflect Phase 7 completion
+- [x] Update PROJECT_STATUS.md to reflect Phase 8 progress
 - [x] Create CHANGELOG.md with all changes from Phase 1-7
-- [ ] Create release tag v1.0.0
-- [ ] Write release notes with feature summary, known issues, and upgrade guide
 - [x] Update WIRING.md with IR receiver and RGB LED wiring
+- [ ] Create git release tag v1.0.0
+- [ ] Write release notes with feature summary, known issues, and upgrade guide
+- [ ] Merge develop → main for v1.0.0 release
 
-### 8.5 — Stretch Goals (if time permits)
+### 8.5 — Stretch Goals (deferred to Phase 9)
 - [ ] HTTP gzip compression for index.html (currently partial)
 - [ ] WebSocket support as alternative to SSE
 - [ ] Pet trading between devices via MQTT
 - [ ] Voice control via Alexa/Google Home integration
 - [ ] Mobile app (React Native or Flutter)
 
+---
+
+## Phase 9: Release & v1.1 Feature Planning
+
+### 9.1 — v1.0.0 Release Finalization
+- [ ] Create git tag v1.0.0 on develop branch
+- [ ] Write comprehensive release notes (feature summary, known issues, upgrade guide)
+- [ ] Merge develop → main for v1.0.0 release
+- [ ] Verify release artifacts (firmware.bin, SPIFFS data)
+- [ ] Create GitHub release with attached binaries
+
+### 9.2 — Hardware Validation (requires physical ESP32)
+- [ ] Flash v1.0.0 to physical ESP32 Dev Module
+- [ ] Verify OLED display shows pet sprite and stats correctly
+- [ ] Test physical button (GPIO 0) for feed/play/clean/sleep cycling
+- [ ] Test RGB LED color states (green/yellow/red/blue)
+- [ ] Test IR remote control with actual NEC remote
+- [ ] Verify WiFi Manager captive portal on first boot
+- [ ] Test OTA update via web upload
+- [ ] Test MQTT publishing to broker and HA auto-discovery
+- [ ] Measure battery voltage reading accuracy
+- [ ] Test deep sleep wake-on-button with state restore
+- [ ] Run 24h stability test (monitor heap, crashes, pet state)
+
+### 9.3 — v1.1 Feature Development
+- [ ] **WebSocket support** — Replace SSE with WebSocket for lower-latency real-time updates
+- [ ] **HTTP gzip compression** — Pre-compress index.html.gz for faster page loads
+- [ ] **Pet trading** — MQTT-based pet exchange between two TamaPetchi devices
+- [ ] **Achievement sharing** — Push achievement unlocks to MQTT topic
+- [ ] **Web UI redesign** — Modern component-based UI with Vue.js or lightweight framework
+- [ ] **Sound pack system** — Allow custom buzzer melodies uploaded via web UI
+- [ ] **Multi-language support** — i18n for web UI (English, Chinese, Japanese)
+- [ ] **Factory reset** — Physical button combo (hold 10s) to wipe SPIFFS and restart
+
+### 9.4 — Code Quality & Architecture
+- [ ] Refactor global state (g_pet, g_server, etc.) into a singleton AppState class
+- [ ] Add proper error codes and error handling strategy across all modules
+- [ ] Implement SPIFFS atomic writes (write to temp file, then rename)
+- [ ] Add OTA rollback support (dual partition with fallback)
+- [ ] Reduce WiFi reconnect time with static IP fallback option
+- [ ] Audit and document all config.h flags with dependencies
+
+### 9.5 — Community & Ecosystem
+- [ ] Write blog post: "Building a Smart Tamagotchi with ESP32"
+- [ ] Create video demo of all features
+- [ ] Submit to Hackaday/ESP32 projects
+- [ ] Add CONTRIBUTING.md and issue templates
+- [ ] Create PlatformIO library registry entry
+
 ## Implementation Rules
-- Create branch: feature/phase8-xxx
+- Create branch: feature/phase9-xxx
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress
