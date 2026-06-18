@@ -59,14 +59,9 @@ void updateDayNightCycle(Pet &pet) {
   bool wasNight = pet.isNight;
   pet.isNight = isNightTime(pet.virtualMinutes);
 
-  if (pet.isNight && !wasNight) {
-    Serial.println("Night has fallen...");
-  }
-
   if (pet.isNight && pet.energy < 50 && pet.state != "sleeping" && pet.state != "dead") {
     pet.state = "sleeping";
     pet.stateChangeTime = millis();
-    Serial.println("Pet went to sleep (night time, low energy)");
   }
 }
 
@@ -161,7 +156,6 @@ void updatePet(Pet &pet) {
   // Phase 4: Check evolution animation timeout
   if (pet.isEvolving && millis() - pet.evolutionStartTime > 3000) {
     pet.isEvolving = false;
-    Serial.println("Evolution animation complete");
   }
 
   // Phase 4: Check dying state
@@ -172,7 +166,6 @@ void updatePet(Pet &pet) {
       pet.isAlive = false;
       pet.state = "dead";
       if (pet.soundEnabled) soundDeath();
-      Serial.println("Pet has died (dying window expired)");
       return;
     }
     // While dying, don't do other state updates
@@ -197,9 +190,6 @@ void updatePet(Pet &pet) {
   // Update day/night cycle
   updateDayNightCycle(pet);
 
-  // Update evolution stage
-  updateStage(pet);
-
   // Get stage multiplier for decay rates
   int mult = getStageDecayMultiplier(pet);
 
@@ -219,14 +209,12 @@ void updatePet(Pet &pet) {
       pet.state          = "normal";
       pet.stateChangeTime = millis();
       if (pet.soundEnabled) soundWake();
-      Serial.println("Pet woke up automatically after full rest");
     }
     // Wake up if it's daytime and energy >= 80
     else if (!pet.isNight && pet.energy >= 80) {
       pet.state          = "normal";
       pet.stateChangeTime = millis();
       if (pet.soundEnabled) soundWake();
-      Serial.println("Pet woke up with the sunrise");
     }
   } else {
     int diffMult = getDifficultyMultiplier(pet.difficulty);
@@ -437,8 +425,6 @@ void triggerEvolution(Pet &pet) {
   pet.evolutionStartTime = millis();
   pet.state = "evolving";
   pet.stateChangeTime = millis();
-  Serial.print("Pet evolving to stage ");
-  Serial.println(pet.stage);
 }
 
 void triggerDying(Pet &pet) {
@@ -446,7 +432,6 @@ void triggerDying(Pet &pet) {
   pet.dyingStartTime = millis();
   pet.state = "dying";
   pet.stateChangeTime = millis();
-  Serial.println("Pet is dying! 30 second window to heal!");
 }
 
 bool canRevive(const Pet &pet) {
@@ -470,7 +455,6 @@ void revivePet(Pet &pet) {
   pet.stateChangeTime = millis();
   pet.lastReviveTime = millis();
   if (pet.soundEnabled) soundWake();
-  Serial.println("Pet revived!");
   // Phase 6: Force save on critical event
   savePetDataForce(pet);
 }
@@ -486,10 +470,6 @@ void updateWeather(Pet &pet) {
     int oldWeather = pet.weather;
     pet.weather = random(0, 5); // 0-4
     pet.weatherChangeTime = millis();
-    if (pet.weather != oldWeather) {
-      Serial.print("Weather changed to: ");
-      Serial.println(getWeatherName(pet.weather));
-    }
   }
 }
 
@@ -556,9 +536,6 @@ void startGame(Pet &pet, int gameType) {
   } else if (gameType == 2) {
     updateCatchTarget(pet);
   }
-
-  Serial.print("Game started: ");
-  Serial.println(gameType);
 }
 
 void endGame(Pet &pet, bool won) {
@@ -994,7 +971,6 @@ void checkScheduledFeed(Pet &pet) {
     pet.stateChangeTime = now;
     pet.lastInteractionTime = now;
     if (pet.soundEnabled) soundFeed();
-    Serial.println("Scheduled feeding triggered!");
   }
 }
 

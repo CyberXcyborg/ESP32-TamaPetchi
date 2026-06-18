@@ -1,54 +1,44 @@
 # FROM_KAEL.md — Status Report
 
 **Date:** 2026-06-17
-**Branch:** feature/phase7-enhancements
-**Commit:** d0a682f
+**Branch:** feature/phase8-cleanup
+**Commits:** 3 (5c04ea7, 159a2d6, a329b97)
 
 ## What I Worked On
 
-### Phase 7.3 — Performance & Memory (Complete ✅)
+### Phase 8.1 — Merge & Integration ✅
+- Merged `feature/phase6-7-merge` into develop (no conflicts)
+- Merged `feature/phase7-enhancements` into develop (no conflicts)
+- Verified full compilation: RAM 16.6%, Flash 74.7% — SUCCESS
 
-1. **StaticJsonDocument Optimization** — Replaced 25 `DynamicJsonDocument` allocations with `StaticJsonDocument` across 6 modules:
-   - `PowerManager.cpp` — battery JSON (256 bytes)
-   - `OTA.cpp` — OTA status (256 bytes)
-   - `WebHandlers.cpp` — 17 simple request/response handlers (256-512 bytes)
-   - `WiFiManager.cpp` — WiFi credential save/load/status (256 bytes)
-   - `Stats.cpp` — stats save/load/serialize (512 bytes)
-   - `Achievements.cpp` — achievements save (256 bytes)
-   - Remaining 12 DynamicJsonDocument usages are for variable-size content (Storage, MultiPet, Notifications, large nested JSON) — correctly kept as DynamicJsonDocument.
+### Phase 8.2 — Code Cleanup ✅
+1. **Removed duplicate `updateStage()` call** in `updatePet()` — was called at line 192 and 201, removed the redundant second call
+2. **Consolidated `checkRateLimit` declaration** — removed `extern` from MQTT.cpp and OTA_Delta.cpp, added `#include "WebHandlers.h"` instead
+3. **Increased MQTT StaticJsonDocument to 512 bytes** — from 256, for safety margin per Nyra's review note
+4. **Added IR_RECEIVER_PIN conflict note to WIRING.md** — documents GPIO 15 vs OLED CS conflict
+5. **Increased OTA_Delta http.setTimeout to 120000** — from 60000, per Nyra's review note
+6. **Added native test infrastructure** — mock Arduino.h, stubs.cpp, platformio.ini native env config
 
-2. **Heap Logging** — Added periodic heap logging in `updatePet()` (every 10 ticks = 10 minutes) reporting free heap and min free heap for memory leak detection.
-
-3. **HTTP Gzip Compression** — Updated `handleRoot()` to serve `index.html.gz` from SPIFFS with `Content-Encoding: gzip` header, with fallback to uncompressed `index.html`. Added `Cache-Control` headers.
-
-### Phase 7.4 — Web UI Polish (Complete ✅)
-
-- Verified all pet types (BLOB, CAT, DOG) have complete SVG sprite coverage for all states (normal, eating, sleeping, sick, playing, hungry). Task already complete from previous work.
-
-### Phase 7.5 — New Features (Partial ✅)
-
-1. **IR Remote Control (NEC Protocol)** — New `IRRemote` module:
-   - `IRRemote.h` / `IRRemote.cpp` — NEC protocol decoder using polling approach
-   - Maps remote buttons to pet actions: CH- (feed), CH (play), CH+ (clean), |<< (sleep), >>| (wake), >|| (toggle sound), 0 (revive), 1-3 (switch pet slot)
-   - Web UI endpoints: `GET /ir/status`, `POST /ir/config`
-   - Compile-time feature flag: `DISABLE_IR_REMOTE` in config.h
-   - Default IR pin: GPIO 15 (configurable in config.h)
-   - Integrated into main `setup()` and `loop()`
+### Phase 8.4 — Documentation & Release (Partial ✅)
+1. **Updated README.md** — added all Phase 7 features (21 new entries), 17 new API endpoints, fixed table formatting
+2. **Updated PROJECT_STATUS.md** — reflects Phase 8 progress
+3. **Updated WIRING.md** — added IR receiver wiring, pin conflict notes
 
 ## Commits
-
-- `d0a682f` — perf(Phase 7.3): Replace DynamicJsonDocument with StaticJsonDocument + heap logging + gzip + IR remote
+- `5c04ea7` — Phase 8.2: Code cleanup
+- `159a2d6` — Phase 8.4: Documentation updates
+- `a329b97` — Phase 8: TASKS.md progress update
 
 ## Compilation
-
-✅ **SUCCESS** — RAM 16.6% (54,364/327,680), Flash 72.5% (949,893/1,310,720)
+✅ **SUCCESS** — RAM 16.6% (54,556/327,680), Flash 74.7% (979,289/1,310,720)
 
 ## Pushed
-
-- Branch `feature/phase7-enhancements` pushed to origin
-- PR needs to be created (gh CLI not authenticated in this environment)
+- Branch `feature/phase8-cleanup` pushed to origin
+- PR creation pending (gh CLI auth needed)
 
 ## What's Next
-
-- Phase 7.5 remaining stretch tasks: MQTT integration, OTA delta updates
-- Awaiting Nyra's review and next phase assignment
+- Create CHANGELOG.md with all Phase 1-7 changes
+- Create release tag v1.0.0
+- Write release notes
+- Fix native unit test compilation (mock infrastructure needs refinement)
+- Remaining Phase 8.2: Review and remove debug Serial.println statements

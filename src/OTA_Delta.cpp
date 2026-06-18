@@ -1,14 +1,12 @@
 #include "OTA_Delta.h"
 #include "config.h"
+#include "WebHandlers.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Update.h>
 #include <SPIFFS.h>
 #include <esp_ota_ops.h>
-
-// Forward declaration from WebHandlers.cpp
-extern bool checkRateLimit(const String &clientIP);
 
 // ============================================================
 // Delta Manifest Format (JSON):
@@ -49,7 +47,7 @@ static bool applyCompressedFirmware(const String &url) {
 
   HTTPClient http;
   http.begin(url);
-  http.setTimeout(60000U); // 1 minute (max int16 for some HTTPClient versions)
+  http.setTimeout(120000U); // 2 minutes (max int16 for some HTTPClient versions)
 
   int httpCode = http.GET();
   if (httpCode != HTTP_CODE_OK) {
@@ -145,7 +143,7 @@ static bool applySPIFFSFile(const String &url, const String &filename) {
 
   HTTPClient http;
   http.begin(url);
-  http.setTimeout(60000);
+  http.setTimeout(120000);
 
   int httpCode = http.GET();
   if (httpCode != HTTP_CODE_OK) {

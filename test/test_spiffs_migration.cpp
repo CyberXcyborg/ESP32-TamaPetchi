@@ -7,10 +7,8 @@
 // SPIFFS Data Migration Tests (Phase 7.2)
 // Tests backward compatibility when loading data from
 // different versions of the save format
+// Note: setUp/tearDown/main are in test_pet_statemachine.cpp
 // ============================================================
-
-void setUp(void) {}
-void tearDown(void) {}
 
 // --- v1 format: only original 7 fields (pre-Phase 2) ---
 // Simulates loading a save file from the original monolithic .ino
@@ -249,37 +247,4 @@ void test_migration_preserves_alive_state(void) {
   TEST_ASSERT_FALSE(pet.isAlive);
   TEST_ASSERT_EQUAL_STRING("dead", pet.state.c_str());
   TEST_ASSERT_EQUAL(0, pet.health);
-}
-
-// --- Run all tests ---
-
-int main(int argc, char **argv) {
-  UNITY_BEGIN();
-
-  // v1 migration
-  RUN_TEST(test_v1_format_minimal_fields);
-
-  // v2 migration
-  RUN_TEST(test_v2_format_phase2_fields);
-
-  // v3 migration
-  RUN_TEST(test_v3_format_phase3_fields);
-
-  // v4 migration
-  RUN_TEST(test_v4_format_phase4_fields);
-
-  // v5 migration
-  RUN_TEST(test_v5_format_phase5_fields);
-
-  // Full modern format
-  RUN_TEST(test_full_modern_format);
-
-  // Edge cases
-  RUN_TEST(test_corrupted_values_get_clamped);
-  RUN_TEST(test_invalid_enums_get_defaulted);
-  RUN_TEST(test_empty_name_gets_default);
-  RUN_TEST(test_migration_preserves_alive_state);
-
-  UNITY_END();
-  return 0;
 }

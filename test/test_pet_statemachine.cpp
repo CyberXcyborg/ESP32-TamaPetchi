@@ -8,6 +8,18 @@
 // Tests core logic without hardware dependencies
 // ============================================================
 
+// Forward declarations for SPIFFS migration tests (test_spiffs_migration.cpp)
+void test_v1_format_minimal_fields(void);
+void test_v2_format_phase2_fields(void);
+void test_v3_format_phase3_fields(void);
+void test_v4_format_phase4_fields(void);
+void test_v5_format_phase5_fields(void);
+void test_full_modern_format(void);
+void test_corrupted_values_get_clamped(void);
+void test_invalid_enums_get_defaulted(void);
+void test_empty_name_gets_default(void);
+void test_migration_preserves_alive_state(void);
+
 void setUp(void) {
   // Called before each test
 }
@@ -520,6 +532,18 @@ int main(int argc, char **argv) {
   RUN_TEST(test_isNightTime_at_noon);
   RUN_TEST(test_isNightTime_at_22);
   RUN_TEST(test_isNightTime_at_06);
+
+  // SPIFFS Migration tests (defined in test_spiffs_migration.cpp)
+  RUN_TEST(test_v1_format_minimal_fields);
+  RUN_TEST(test_v2_format_phase2_fields);
+  RUN_TEST(test_v3_format_phase3_fields);
+  RUN_TEST(test_v4_format_phase4_fields);
+  RUN_TEST(test_v5_format_phase5_fields);
+  RUN_TEST(test_full_modern_format);
+  RUN_TEST(test_corrupted_values_get_clamped);
+  RUN_TEST(test_invalid_enums_get_defaulted);
+  RUN_TEST(test_empty_name_gets_default);
+  RUN_TEST(test_migration_preserves_alive_state);
 
   UNITY_END();
   return 0;

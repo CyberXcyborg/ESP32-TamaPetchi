@@ -17,9 +17,29 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 
 - 🐣 **Life Simulation**: Your pet grows, needs care, experiences different states
 - 🔌 **Fully Offline**: No accounts, no data collection, no internet dependency
-- 🖥️ **Web Interface**: Control through a beautiful browser interface
+- 🖥️ **Web Interface**: Control through a beautiful browser interface (mobile-responsive with dark mode)
 - 🔧 **Customizable**: Easily modify behaviors, visuals, and interactions
 - 🔄 **State Tracking**: Monitors hunger, happiness, energy, cleanliness, and health
+- 🌅 **Day/Night Cycle**: Virtual time system with day/night transitions
+- 🎮 **Mini-Games**: Memory, Catch, and Quiz games to boost stats
+- 🌦️ **Weather System**: Dynamic weather affecting pet mood and stats
+- 🏆 **Achievements**: Unlock achievements through gameplay
+- 📊 **Statistics Dashboard**: Track play time, feeds, scores, and more
+- 🔔 **Notifications**: Per-pet notification system with buzzer patterns
+- 🔋 **Power Management**: Deep sleep and battery monitoring
+- 📡 **OTA Updates**: Over-the-air firmware updates with password protection
+- 📶 **WiFi Manager**: Auto-connect with captive portal for first-time setup
+- 🐾 **Multi-Pet Support**: Manage up to 3 pets with individual profiles
+- 🎵 **Buzzer Melodies**: User-selectable melodies per event
+- 📺 **OLED Support**: SSD1306 OLED display for status
+- 🔘 **Physical Buttons**: GPIO button support for feed/play/clean/sleep
+- 💡 **RGB LED**: Status indicator (green/yellow/red/blue)
+- 🎭 **Pet Mood System**: 7 mood levels based on stats and personality traits
+- ⏰ **Scheduled Feeding**: Timer-based auto-feed with configurable interval
+- 📻 **IR Remote Control**: NEC protocol remote for all actions
+- 🏠 **MQTT/Smart Home**: Home Assistant auto-discovery with 6 sensors + 3 buttons
+- 🔄 **OTA Delta Updates**: Manifest-based delta update system
+- 🌐 **SSE Real-Time**: Server-Sent Events for live pet stat updates
 
 
 ## Why This Hits Different
@@ -92,6 +112,9 @@ TamaPetchi supports compile-time feature flags to reduce flash/RAM usage when fe
 | `DISABLE_OLED` | OLED display support | ~4KB |
 | `DISABLE_BUTTONS` | Physical button support | ~2KB |
 | `DISABLE_RGB_LED` | RGB LED indicator | ~2KB |
+| `DISABLE_IR_REMOTE` | IR remote control support | ~3KB |
+| `DISABLE_MQTT` | MQTT smart home integration | ~8KB |
+| `DISABLE_OTA_DELTA` | OTA delta updates | ~5KB |
 
 ### Example: Minimal Build
 For a minimal build with just core pet simulation:
@@ -143,6 +166,23 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 | GET | `/events` | SSE stream for real-time updates |
 | GET | `/melodies` | Get melody configuration |
 | POST | `/melodies/config` | Set melody configuration |
+| GET | `/mqtt/status` | Get MQTT connection status |
+| POST | `/mqtt/config` | Update MQTT configuration |
+| POST | `/mqtt/test` | Test MQTT connection |
+| GET | `/ota/delta/status` | Check delta update availability |
+| POST | `/ota/delta/check` | Trigger manifest check |
+| POST | `/ota/delta/apply` | Apply pending delta update |
+| GET | `/ir/status` | Get IR remote status |
+| POST | `/ir/config` | Configure IR remote |
+| GET | `/mood` | Get pet mood |
+| GET | `/scheduled-feed` | Get scheduled feeding config |
+| POST | `/scheduled-feed` | Set scheduled feeding |
+| GET | `/pets` | List all pets (multi-pet) |
+| POST | `/pets` | Create new pet |
+| POST | `/pets/switch` | Switch active pet |
+| DELETE | `/pets/:id` | Delete a pet |
+| GET | `/stats` | Get statistics dashboard |
+| GET | `/notifications` | Get notifications |
 
 ### SSE Events
 The `/events` endpoint provides Server-Sent Events with pet state updates every 2 seconds. Connect with:
