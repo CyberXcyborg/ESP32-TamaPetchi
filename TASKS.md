@@ -123,7 +123,7 @@
 
 ### 8.3 — Final Testing
 - [x] Run full PlatformIO build and verify no warnings
-- [x] Run unit tests (pio test -e native) — 48 tests, all passing
+- [x] Run unit tests (pio test - e native) — 61 tests, all passing
 - [ ] Test SPIFFS data migration from v1 to v2 format on actual hardware
 - [ ] Test OTA update flow end-to-end on actual hardware
 - [ ] Test MQTT connection and HA auto-discovery on actual hardware
@@ -135,9 +135,9 @@
 - [x] Update PROJECT_STATUS.md to reflect Phase 8 progress
 - [x] Create CHANGELOG.md with all changes from Phase 1-7
 - [x] Update WIRING.md with IR receiver and RGB LED wiring
-- [ ] Create git release tag v1.0.0
-- [ ] Write release notes with feature summary, known issues, and upgrade guide
-- [ ] Merge develop → main for v1.0.0 release
+- [x] Create git release tag v1.0.0
+- [x] Write release notes with feature summary, known issues, and upgrade guide
+- [x] Merge develop → main for v1.0.0 release
 
 ### 8.5 — Stretch Goals (deferred to Phase 9)
 - [ ] HTTP gzip compression for index.html (currently partial)
@@ -151,10 +151,10 @@
 ## Phase 9: Release & v1.1 Feature Planning
 
 ### 9.1 — v1.0.0 Release Finalization
-- [ ] Create git tag v1.0.0 on develop branch
-- [ ] Write comprehensive release notes (feature summary, known issues, upgrade guide)
-- [ ] Merge develop → main for v1.0.0 release
-- [ ] Verify release artifacts (firmware.bin, SPIFFS data)
+- [x] Create git tag v1.0.0 on develop branch
+- [x] Write comprehensive release notes (feature summary, known issues, upgrade guide)
+- [x] Merge develop → main for v1.0.0 release
+- [x] Verify release artifacts (firmware.bin, SPIFFS data)
 - [ ] Create GitHub release with attached binaries
 
 ### 9.2 — Hardware Validation (requires physical ESP32)
