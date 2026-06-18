@@ -306,21 +306,20 @@ void updatePet(Pet &pet) {
 void feedPet(Pet &pet) {
   if (!pet.isAlive) return;
 
+  pet.feedCount++;
+
+  // If very hungry, improve health too (check BEFORE feeding)
+  if (pet.hunger < HEALTH_DECAY_THRESHOLD) {
+    pet.health = clampStat(pet.health + FEED_HEALTH_BONUS);
+  }
+
   pet.hunger  = clampStat(pet.hunger  + FEED_HUNGER_GAIN);
   pet.energy  = clampStat(pet.energy  - FEED_ENERGY_COST);
   pet.state   = "eating";
   pet.stateChangeTime    = millis();
   pet.lastInteractionTime = millis();
 
-  // Phase 3: track feed count for achievements
-  pet.feedCount++;
-
   if (pet.soundEnabled) soundFeed();
-
-  // If very hungry, improve health too
-  if (pet.hunger < HEALTH_DECAY_THRESHOLD) {
-    pet.health = clampStat(pet.health + FEED_HEALTH_BONUS);
-  }
 }
 
 void playPet(Pet &pet) {
