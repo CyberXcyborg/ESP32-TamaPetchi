@@ -5,25 +5,7 @@
 #include "config.h"
 
 // --- Buzzer stubs ---
-void soundFeed() {}
-void soundPlay() {}
-void soundDeath() {}
-void soundWake() {}
-void playMelody(const int *melody, int length, int tempo) {}
-void playStateMelody(const Pet &pet) {}
-void stopMusic() {}
-void playMelodyById(int melodyId) {}
-void setMelodyConfig(int event, int melodyIndex) {}
-int getMelodyConfig(int event) { return 0; }
-String getMelodyConfigJson() { return "{}"; }
-void setMelodyConfigFromJson(const String &json) {}
-
-// --- Melody library stubs ---
-int melodyConfig[MELODY_COUNT] = {0,1,2,3,4,5,6,7};
-const int *melodyLibrary[8] = {nullptr};
-const int melodyLengths[8] = {0};
-const char *melodyNames[8] = {nullptr};
-const int melodyCount = 0;
+// (Full buzzer melody implementations moved to test_impls.cpp)
 
 // --- RGB LED stub ---
 void initRGBLED() {}

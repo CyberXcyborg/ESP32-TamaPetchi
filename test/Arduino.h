@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <time.h>
+#include <ctime>
 
 // Type aliases
 typedef uint8_t byte;
@@ -57,6 +58,10 @@ void analogWrite(uint8_t pin, int val);
 #define pgm_read_float(addr) (*(const float*)(addr))
 #define pgm_read_ptr(addr) (*(const void**)(addr))
 
+// Flash string helper
+class __FlashStringHelper {};
+#define FPSTR(pstr_pointer) (pstr_pointer)
+
 // min/max/constrain as inline functions to avoid macro conflicts with std::
 #ifndef min
 inline int min(int a, int b) { return a < b ? a : b; }
@@ -66,6 +71,25 @@ inline int max(int a, int b) { return a > b ? a : b; }
 #endif
 inline int constrain(int x, int lo, int hi) {
   return x < lo ? lo : (x > hi ? hi : x);
+}
+
+// map function (Arduino-compatible)
+inline long map(long x, long in_min, long in_max, long out_min, long out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+// Arduino random() overloads
+long random(long max);
+long random(long min, long max);
+
+// tone/noTone
+void tone(uint8_t pin, unsigned int frequency, unsigned long duration = 0);
+void noTone(uint8_t pin);
+
+// ESP32 stubs
+namespace ESP {
+  unsigned long getFreeHeap();
+  unsigned long getMinFreeHeap();
 }
 
 // String class (simplified wrapper around std::string)
@@ -78,6 +102,7 @@ public:
   String(const std::string& s) : str(s) {}
   String(int n) : str(std::to_string(n)) {}
   String(long n) : str(std::to_string(n)) {}
+  String(unsigned long n) : str(std::to_string(n)) {}
   String(float n) : str(std::to_string(n)) {}
   String(double n) : str(std::to_string(n)) {}
   operator const char*() const { return str.c_str(); }
@@ -85,8 +110,6 @@ public:
   int length() const { return (int)str.length(); }
   bool operator==(const String& other) const { return str == other.str; }
   bool operator==(const char* other) const { return str == other; }
-  String operator+(const String& other) const { return String(str + other.str); }
-  String operator+(const char* other) const { return String(str + other); }
   String& operator+=(const String& other) { str += other.str; return *this; }
   String& operator+=(const char* other) { str += other; return *this; }
   String substring(int from, int to = -1) const {
@@ -119,6 +142,19 @@ public:
   void setCharAt(unsigned int index, char c) { str[index] = c; }
   long toInt() const { return strtol(str.c_str(), nullptr, 10); }
   float toFloat() const { return strtof(str.c_str(), nullptr); }
+
+  // ArduinoJson compatibility
+  size_t write(uint8_t c) { str += (char)c; return 1; }
+  size_t write(const uint8_t* s, size_t n) { str.append((const char*)s, n); return n; }
+  int available() { return 0; }
+  int read() { return -1; }
+  int peek() { return -1; }
+  void flush() {}
 };
+
+// Non-member operators for String concatenation
+inline String operator+(const char* lhs, const String& rhs) { return String(lhs) + rhs; }
+inline String operator+(const String& lhs, const String& rhs) { return String(lhs.str + rhs.str); }
+inline String operator+(const String& lhs, const char* rhs) { return String(lhs.str + rhs); }
 
 #endif // ARDUINO_H_MOCK
