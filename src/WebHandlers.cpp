@@ -52,11 +52,12 @@ void handleGetStats();
 void handleGetNotifications();
 
 // ============================================================
-// Module-level state (minimal — just the server pointer for callbacks)
+// Module-level state (minimal)
+// g_server is a convenience macro for APP_STATE.server to avoid
+// 100+ line changes. In a future cleanup, call sites can be
+// migrated to use APP_STATE.server directly.
 // ============================================================
-static WebServer* g_server = nullptr;
-
-WebServer* getServer() { return g_server; }
+#define g_server (&APP_STATE.server)
 
 // ============================================================
 // Rate Limiting (Phase 7.2) — Token bucket per IP
@@ -154,14 +155,7 @@ void cleanupRateBuckets() {
 // Route Registration
 // ============================================================
 void registerHandlers(WebServer &server, Pet &pet) {
-  g_server = &server;
-
-  // Phase 7.2: Register rate-limited 404 fallback
-  server.onNotFound([]() {
-    if (g_server) {
-      g_server->send(404, "application/json", "{\"success\":false,\"error\":\"not_found\"}");
-    }
-  });
+  // g_server macro points to APP_STATE.server (set in setup())
 
   server.on("/",       HTTP_GET,  handleRoot);
   server.on("/pet",    HTTP_GET,  handleGetPet);
@@ -388,6 +382,8 @@ void handleClean() {
   cleanPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("clean", "Cleaned " + state.pet.name);
 }
 
 void handleSleep() {
@@ -401,6 +397,8 @@ void handleSleep() {
   sleepPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("sleep", state.pet.name + " is now sleeping");
 }
 
 void handleHeal() {
@@ -414,6 +412,8 @@ void handleHeal() {
   healPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("heal", "Healed " + state.pet.name);
 }
 
 void handleReset() {

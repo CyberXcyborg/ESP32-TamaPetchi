@@ -19,15 +19,13 @@ void registerHandlers(WebServer &server, Pet &pet);
 bool checkRateLimit(const String &clientIP);
 void cleanupRateBuckets();
 
-// Getter/setter for web handlers to access server (set during registration)
-WebServer* getServer();
+// Server access: use APP_STATE.server directly (g_server is a convenience macro in WebHandlers.cpp)
 
 // ============================================================
 // WebSocket Support (Phase 10.2) — replaces SSE
-// ============================================================
-void handleWebSocketBroadcast();
-void webSocketBroadcastNotification(const String &notificationType, const String &message);
-void handleSetMelodyConfig();
+// Note: handleWebSocketBroadcast() and webSocketBroadcastNotification()
+// are declared in WebSocket.h — include that header instead of duplicating.
+// ===========================================================
 
 // Phase 5: Forward declarations
 void handleGetPets();

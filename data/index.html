@@ -663,7 +663,7 @@
         window.onload = function() {
             setupEventListeners();
             updatePetData();
-            startSSE();  // Phase 6: Try SSE first for real-time updates
+            startWebSocket();  // Phase 10.2: WebSocket for real-time updates
             updateInterval = setInterval(updatePetData, 5000);  // Polling fallback
         };
         
@@ -809,51 +809,82 @@
         }
 
         // ============================================================
-        // Phase 6: SSE (Server-Sent Events) for real-time updates
-        // Falls back to polling if SSE is not supported
+        // Phase 10.2: WebSocket for real-time updates
+        // Falls back to polling if WebSocket is not supported
         // ============================================================
-        let evtSource = null;
-        let sseConnected = false;
+        let ws = null;
+        let wsConnected = false;
+        let wsReconnectAttempts = 0;
+        let wsReconnectTimer = null;
 
-        function startSSE() {
-            if (typeof EventSource === 'undefined') {
-                console.log('SSE not supported, using polling fallback');
+        function startWebSocket() {
+            if (typeof WebSocket === 'undefined') {
+                console.log('WebSocket not supported, using polling fallback');
                 return;
             }
 
-            evtSource = new EventSource('/events');
+            const wsProto = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+            const wsUrl = wsProto + '//' + window.location.hostname + ':81/';
 
-            evtSource.onopen = function() {
-                sseConnected = true;
-                console.log('SSE connected — real-time updates active');
-                // We still poll occasionally as a fallback in case SSE drops
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                wsConnected = true;
+                wsReconnectAttempts = 0;
+                console.log('WebSocket connected — real-time updates active');
+                updateConnectionStatus(true);
             };
 
-            evtSource.onmessage = function(e) {
+            ws.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
-                    if (previousState !== data.state) {
-                        handleStateChange(previousState, data.state);
+                    if (data.type === 'notification') {
+                        // Show notification toast
+                        showMessage(data.message, data.notificationType === 'reset' ? 'info' : 'success');
+                        return;
                     }
-                    previousState = data.state;
-                    pet = data;
-                    updateDisplay();
-                    updateMoodDisplay();
-                    updateScheduledFeedUI();
+                    if (data.type === 'init' || data.type === 'update') {
+                        if (previousState !== data.state) {
+                            handleStateChange(previousState, data.state);
+                        }
+                        previousState = data.state;
+                        pet = data;
+                        updateDisplay();
+                        updateMoodDisplay();
+                        updateScheduledFeedUI();
+                    }
                 } catch (err) {
-                    console.error('SSE parse error:', err);
+                    console.error('WebSocket parse error:', err);
                 }
             };
 
-            evtSource.onerror = function() {
-                console.log('SSE connection lost, falling back to polling');
-                sseConnected = false;
-                if (evtSource) {
-                    evtSource.close();
-                    evtSource = null;
-                }
-                // Polling fallback continues via updateInterval
+            ws.onerror = function(err) {
+                console.error('WebSocket error:', err);
+                wsConnected = false;
+                updateConnectionStatus(false);
             };
+
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+                wsConnected = false;
+                updateConnectionStatus(false);
+                // Auto-reconnect with exponential backoff (max 30s)
+                if (wsReconnectAttempts < 10) {
+                    const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+                    wsReconnectAttempts++;
+                    console.log(`WebSocket reconnecting in ${delay}ms (attempt ${wsReconnectAttempts})`);
+                    wsReconnectTimer = setTimeout(startWebSocket, delay);
+                }
+            };
+        }
+
+        function updateConnectionStatus(connected) {
+            // Update a connection indicator if one exists in the UI
+            const indicator = document.getElementById('connection-status');
+            if (indicator) {
+                indicator.className = connected ? 'text-green-500' : 'text-red-500';
+                indicator.title = connected ? 'WebSocket connected' : 'WebSocket disconnected — using polling';
+            }
         }
         
         // Handle state changes and trigger animations
