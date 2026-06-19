@@ -1,0 +1,15 @@
+{
+  "name": "default",
+  "default": true,
+  "description": "Classic TamaPetchi melodies",
+  "melodies": {
+    "happy": 0,
+    "sleep": 1,
+    "sick": 2,
+    "dying": 3,
+    "evolve": 4,
+    "feed": 5,
+    "play": 6,
+    "death": 7
+  }
+}

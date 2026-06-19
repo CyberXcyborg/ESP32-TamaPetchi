@@ -12,6 +12,7 @@
 #include "WebSocket.h"
 #include "i18n.h"
 #include "OTARollback.h"
+#include "SoundPack.h"
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
@@ -244,6 +245,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 11.1: OTA rollback routes
   registerRollbackRoutes();
+
+  // Phase 11.3: Sound pack routes
+  registerSoundPackRoutes();
 }
 
 // ============================================================

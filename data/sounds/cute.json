@@ -1,0 +1,15 @@
+{
+  "name": "cute",
+  "default": false,
+  "description": "Cute and playful melodies with ascending tones",
+  "melodies": {
+    "happy": 8,
+    "sleep": 11,
+    "sick": 2,
+    "dying": 3,
+    "evolve": 8,
+    "feed": 5,
+    "play": 6,
+    "death": 7
+  }
+}
