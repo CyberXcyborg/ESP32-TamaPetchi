@@ -25,6 +25,73 @@
             overflow: hidden;
         }
         
+        /* Phase 11.2: WebSocket Connection Status */
+        .ws-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .ws-status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+        .ws-status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+        .ws-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .ws-dot.connected { background: #4caf50; box-shadow: 0 0 4px #4caf50; }
+        .ws-dot.disconnected { background: #f44336; }
+
+        /* Phase 11.2: Toast Notification System */
+        #toast-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            min-width: 200px;
+            max-width: 320px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: auto;
+            animation: toast-in 0.3s ease-out, toast-out 0.3s ease-in 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-success { background: linear-gradient(135deg, #c8e6c9, #a5d6a7); color: #2e7d32; border-left: 4px solid #4caf50; }
+        .toast-info { background: linear-gradient(135deg, #bbdefb, #90caf9); color: #1565c0; border-left: 4px solid #2196f3; }
+        .toast-warning { background: linear-gradient(135deg, #fff9c4, #fff176); color: #f57f17; border-left: 4px solid #ffeb3b; }
+        .toast-error { background: linear-gradient(135deg, #ffcdd2, #ef9a9a); color: #c62828; border-left: 4px solid #f44336; }
+        @keyframes toast-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toast-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Phase 11.2: Pet sprite animation enhancement */
         .pet-sprite {
             transition: all 0.5s ease;
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
@@ -373,6 +440,8 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4">
+    <!-- Phase 11.2: Toast Notification Container -->
+    <div id="toast-container"></div>
     <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
@@ -380,6 +449,10 @@
                 <i class="fas fa-heart text-pink-300"></i>
                 <span id="header-name">ESP32 TamaPetchi</span>
                 <i class="fas fa-star text-yellow-300"></i>
+                <span id="ws-status" class="ws-status disconnected">
+                    <span class="ws-dot disconnected" id="ws-dot"></span>
+                    <span id="ws-text">Connecting...</span>
+                </span>
             </h1>
             <div id="pet-name-display" class="text-sm mt-1 opacity-80" style="display:none;">
                 Meet <span id="pet-name-text" class="font-bold"></span>!
@@ -588,6 +661,49 @@
             </div>
         </div>
 
+        <!-- Sound Pack Selector (Phase 11.3) -->
+        <div class="px-6 pb-2">
+            <div class="bg-green-50 rounded-xl p-3 border border-green-200">
+                <h3 class="text-sm font-bold text-green-700 mb-2"><i class="fas fa-music"></i> Sound Pack</h3>
+                <div class="flex gap-2 items-center">
+                    <select id="soundpack-select" class="flex-1 border rounded px-2 py-1 text-xs">
+                        <option value="default">Default</option>
+                        <option value="cute">Cute</option>
+                    </select>
+                    <button id="soundpack-apply" class="game-button px-3 py-1 text-xs text-green-600">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pet Trading (Phase 11.4) -->
+        <div class="px-6 pb-2">
+            <div class="bg-purple-50 rounded-xl p-3 border border-purple-200">
+                <h3 class="text-sm font-bold text-purple-700 mb-2"><i class="fas fa-exchange-alt"></i> Pet Trading</h3>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="text" id="trade-peer-input" placeholder="Peer Client ID" maxlength="32"
+                            class="flex-1 border border-purple-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-purple-400">
+                        <input type="text" id="trade-pin-input" placeholder="4-digit PIN" maxlength="4"
+                            class="w-20 border border-purple-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-purple-400">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="trade-request-btn" class="game-button flex-1 px-2 py-1 text-xs text-purple-600">
+                            <i class="fas fa-paper-plane"></i> Send Request
+                        </button>
+                        <button id="trade-accept-btn" class="game-button flex-1 px-2 py-1 text-xs text-green-600">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button id="trade-cancel-btn" class="game-button flex-1 px-2 py-1 text-xs text-red-600">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                    <div id="trade-status" class="text-xs text-center text-gray-500"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="p-6 grid grid-cols-2 gap-3">
             <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700">
@@ -692,6 +808,14 @@
             document.getElementById('name-input').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') setPetName();
             });
+
+            // Phase 11.3: Sound pack
+            document.getElementById('soundpack-apply').addEventListener('click', applySoundPack);
+
+            // Phase 11.4: Pet trading
+            document.getElementById('trade-request-btn').addEventListener('click', sendTradeRequest);
+            document.getElementById('trade-accept-btn').addEventListener('click', acceptTradeRequest);
+            document.getElementById('trade-cancel-btn').addEventListener('click', cancelTrade);
         }
 
         function setPetType(type) {
@@ -765,6 +889,91 @@
             .catch(() => showMessage('Error setting name', 'error'));
         }
 
+        // ============================================================
+        // Phase 11.3: Sound Pack Selection
+        // ============================================================
+        function applySoundPack() {
+            const select = document.getElementById('soundpack-select');
+            const packName = select.value;
+            fetch('/api/sounds/select', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: packName})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast(`Sound pack "${packName}" applied!`, 'success');
+                } else {
+                    showToast(d.message || 'Failed to apply sound pack', 'error');
+                }
+            })
+            .catch(() => showToast('Error applying sound pack', 'error'));
+        }
+
+        // ============================================================
+        // Phase 11.4: Pet Trading
+        // ============================================================
+        function sendTradeRequest() {
+            const peerId = document.getElementById('trade-peer-input').value.trim();
+            const pin = document.getElementById('trade-pin-input').value.trim();
+            if (!peerId) { showToast('Enter peer Client ID', 'error'); return; }
+            if (pin.length !== 4) { showToast('PIN must be 4 digits', 'error'); return; }
+            fetch('/api/trade/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({peerClientId: peerId, pin: pin})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast('Trade request sent!', 'success');
+                    updateTradeStatus();
+                } else {
+                    showToast(d.message || 'Failed to send request', 'error');
+                }
+            })
+            .catch(() => showToast('Error sending trade request', 'error'));
+        }
+
+        function acceptTradeRequest() {
+            fetch('/api/trade/accept', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast('Trade accepted! Waiting for pet data...', 'success');
+                    updateTradeStatus();
+                } else {
+                    showToast(d.message || 'No pending request', 'error');
+                }
+            })
+            .catch(() => showToast('Error accepting trade', 'error'));
+        }
+
+        function cancelTrade() {
+            fetch('/api/trade/cancel', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                showToast('Trade cancelled', 'info');
+                updateTradeStatus();
+            })
+            .catch(() => showToast('Error cancelling trade', 'error'));
+        }
+
+        function updateTradeStatus() {
+            fetch('/api/trade/status')
+            .then(r => r.json())
+            .then(d => {
+                const statusEl = document.getElementById('trade-status');
+                const states = ['Idle', 'Request Sent', 'Request Received', 'Accepted', 'Data Sent', 'Data Received', 'Confirmed', 'Cancelled'];
+                statusEl.textContent = 'Status: ' + (states[d.state] || 'Unknown');
+                if (d.peerClientId) {
+                    statusEl.textContent += ' | Peer: ' + d.peerClientId;
+                }
+            })
+            .catch(() => {});
+        }
+        // Fetch pet data from server
         function renderAchievements() {
             const section = document.getElementById('achievements-section');
             const grid = document.getElementById('achievements-grid');
@@ -826,6 +1035,7 @@
         let wsConnected = false;
         let wsReconnectAttempts = 0;
         let wsReconnectTimer = null;
+        let wsHeartbeatTimer = null;
 
         function startWebSocket() {
             if (typeof WebSocket === 'undefined') {
@@ -843,22 +1053,54 @@
                 wsReconnectAttempts = 0;
                 console.log('WebSocket connected — real-time updates active');
                 updateConnectionStatus(true);
+                // Start heartbeat — ping every 30s
+                wsHeartbeatTimer = setInterval(function() {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({type: 'ping'}));
+                    }
+                }, 30000);
             };
 
             ws.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.type === 'notification') {
-                        // Show notification toast
-                        showMessage(data.message, data.notificationType === 'reset' ? 'info' : 'success');
+                    if (data.type === 'notification' || data.t === 'n') {
+                        // Phase 11.2: Show toast notification
+                        const toastType = (data.notificationType === 'reset' || data.nt === 'reset') ? 'info' : 'success';
+                        showToast(data.message || data.m, toastType);
                         return;
                     }
-                    if (data.type === 'init' || data.type === 'update') {
-                        if (previousState !== data.state) {
-                            handleStateChange(previousState, data.state);
+                    if (data.type === 'pong') {
+                        // Heartbeat response — ignore
+                        return;
+                    }
+                    // Phase 11.5: Handle both compact (short keys) and full (long keys) formats
+                    if (data.type === 'init' || data.type === 'update' || data.t === 'u' || data.t === 'i') {
+                        if (previousState !== (data.state || data.st)) {
+                            handleStateChange(previousState, (data.state || data.st));
                         }
-                        previousState = data.state;
-                        pet = data;
+                        previousState = data.state || data.st;
+                        // Merge data into pet object (handle both key formats)
+                        if (data.hunger !== undefined) pet.hunger = data.hunger;
+                        if (data.h !== undefined) pet.hunger = data.h;
+                        if (data.happiness !== undefined) pet.happiness = data.happiness;
+                        if (data.ha !== undefined) pet.happiness = data.ha;
+                        if (data.health !== undefined) pet.health = data.health;
+                        if (data.he !== undefined) pet.health = data.he;
+                        if (data.energy !== undefined) pet.energy = data.energy;
+                        if (data.e !== undefined) pet.energy = data.e;
+                        if (data.cleanliness !== undefined) pet.cleanliness = data.cleanliness;
+                        if (data.c !== undefined) pet.cleanliness = data.c;
+                        if (data.age !== undefined) pet.age = data.age;
+                        if (data.a !== undefined) pet.age = data.a;
+                        if (data.stage !== undefined) pet.stage = data.stage;
+                        if (data.s !== undefined) pet.stage = data.s;
+                        if (data.isNight !== undefined) pet.isNight = data.isNight;
+                        if (data.n !== undefined) pet.isNight = data.n;
+                        if (data.state !== undefined) pet.state = data.state;
+                        if (data.st !== undefined) pet.state = data.st;
+                        if (data.mood !== undefined) pet.mood = data.mood;
+                        if (data.mo !== undefined) pet.mood = data.mo;
                         updateDisplay();
                         updateMoodDisplay();
                         updateScheduledFeedUI();
@@ -878,6 +1120,11 @@
                 console.log('WebSocket connection closed');
                 wsConnected = false;
                 updateConnectionStatus(false);
+                // Clear heartbeat
+                if (wsHeartbeatTimer) {
+                    clearInterval(wsHeartbeatTimer);
+                    wsHeartbeatTimer = null;
+                }
                 // Auto-reconnect with exponential backoff (max 30s)
                 if (wsReconnectAttempts < 10) {
                     const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
@@ -889,12 +1136,42 @@
         }
 
         function updateConnectionStatus(connected) {
-            // Update a connection indicator if one exists in the UI
-            const indicator = document.getElementById('connection-status');
-            if (indicator) {
-                indicator.className = connected ? 'text-green-500' : 'text-red-500';
-                indicator.title = connected ? 'WebSocket connected' : 'WebSocket disconnected — using polling';
+            const statusEl = document.getElementById('ws-status');
+            const dotEl = document.getElementById('ws-dot');
+            const textEl = document.getElementById('ws-text');
+            if (statusEl && dotEl && textEl) {
+                if (connected) {
+                    statusEl.className = 'ws-status connected';
+                    dotEl.className = 'ws-dot connected';
+                    textEl.textContent = 'Live';
+                } else {
+                    statusEl.className = 'ws-status disconnected';
+                    dotEl.className = 'ws-dot disconnected';
+                    textEl.textContent = 'Reconnecting...';
+                }
             }
+        }
+
+        // ============================================================
+        // Phase 11.2: Toast Notification System
+        // ============================================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icons = {
+                success: '<i class="fas fa-check-circle"></i>',
+                info: '<i class="fas fa-info-circle"></i>',
+                warning: '<i class="fas fa-exclamation-triangle"></i>',
+                error: '<i class="fas fa-times-circle"></i>'
+            };
+            toast.innerHTML = (icons[type] || icons.info) + ' ' + message;
+            container.appendChild(toast);
+            // Remove after animation completes
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 3200);
         }
 
         // ============================================================

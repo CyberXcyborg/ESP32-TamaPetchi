@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Phase 11 — v1.1 Advanced Features
+- **OTA Rollback Support** (11.1): Dual-partition OTA with crash detection and fallback
+  - Boot count tracking in RTC memory with XOR checksum validation
+  - Auto-rollback after 3 consecutive crash boots
+  - Manual rollback via `GET /api/ota/rollback` endpoint
+  - OTA status endpoint: `GET /api/ota/status` (current version, rollback available)
+  - Auto-confirm firmware after 5 minutes stable uptime
+- **Web UI Redesign** (11.2): WebSocket-native modern interface
+  - Full WebSocket integration (ws://ip:81) replacing SSE/polling
+  - Auto-reconnect with exponential backoff in JS client
+  - Toast notification system (success/info/warning/error variants)
+  - Connection status indicator (green/red dot)
+  - Dark mode with localStorage persistence
+  - Mobile-first responsive design
+  - SVG pet sprites with state-driven animations (normal, eating, playing, sleeping, sick, hungry, dying, dead, evolution)
+  - Particle effects for feed/play/heal/sleep actions
+- **Sound Pack System** (11.3): JSON-based buzzer melody packs
+  - `data/sounds/` directory with JSON schema for melody definitions
+  - Default and cute sound packs included
+  - `POST /api/sounds/upload` — upload custom sound packs
+  - `GET /api/sounds/list` — list available sound packs
+  - `POST /api/sounds/select` — choose active sound pack
+  - Active pack persistence in SPIFFS
+- **Pet Trading via MQTT** (11.4): Trade pets between devices
+  - MQTT topic scheme: `tamapetchi/trade/request`, `tamapetchi/trade/accept`, `tamapetchi/trade/reject`
+  - Full trade protocol: request → accept → transfer pet data → confirm
+  - Serialized pet state transfer (stats, achievements, history)
+  - Trade history log in SPIFFS
+  - Trade PIN/security confirmation required
+- **Performance Optimization** (11.5): Memory and efficiency improvements
+  - Compact JSON documents (StaticJsonDocument where possible)
+  - HTTP ETag support for static resource caching
+  - DNS caching for MQTT broker connection
+  - State-change-only WebSocket broadcasts (no periodic spam)
+  - Final memory budget: Flash 78.0%, RAM 17.1%
+
 #### Phase 10 — v1.1 Core Features
 - **WebSocket Real-Time Updates** (10.2): WebSocket server on port 81 replacing SSE for lower-latency updates
   - Real-time pet stat push (JSON broadcast on stat change)
@@ -154,8 +190,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IR_RECEIVER_PIN (GPIO 15) conflicts with OLED CS pin — use one or the other
 - Unit tests require ESP32 toolchain for full hardware abstraction (native tests need additional stubs)
 - MQTT broker must be configured at compile time via config.h
+- OTA rollback requires ESP32 partition scheme with at least 2 OTA partitions (default most boards)
+- Pet trading requires MQTT broker connection and both devices on same MQTT network
 
 ### Upgrade Guide
 - **From v1 (monolithic .ino)**: Flash new firmware, SPIFFS will auto-migrate save data
 - **From v2-v7**: OTA update preserves all settings and pet data
+- **From v1.0.0**: OTA update preserves all settings and pet data; OTA rollback available if update causes issues
+- **From v1.1.0+**: OTA rollback — if new firmware crashes 3 times, device auto-reverts to previous version
 - First boot after flash: connect to "TamaPetchi" AP for WiFi configuration
