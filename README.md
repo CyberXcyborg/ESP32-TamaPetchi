@@ -45,6 +45,10 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🔄 **Factory Reset**: Hold BOOT button 10s or HTTP endpoint to wipe all data
 - 💾 **Atomic SPIFFS Writes**: Crash-safe storage with write verification
 - 📋 **Structured Error Codes**: Consistent API error responses with codes
+- 🔄 **OTA Rollback**: Auto-rollback on crash with dual-partition OTA support
+- 🎵 **Sound Packs**: JSON-based buzzer melody packs with upload/select API
+- 🔄 **Pet Trading**: Trade pets between devices via MQTT with security PIN
+- ⚡ **Performance Optimized**: Compact JSON, ETag caching, DNS caching, state-change broadcasts
 
 
 ## Why This Hits Different
@@ -118,8 +122,11 @@ TamaPetchi supports compile-time feature flags to reduce flash/RAM usage when fe
 | `DISABLE_BUTTONS` | Physical button support | ~2KB |
 | `DISABLE_RGB_LED` | RGB LED indicator | ~2KB |
 | `DISABLE_IR_REMOTE` | IR remote control support | ~3KB |
-| `DISABLE_MQTT` | MQTT smart home integration | ~8KB |
-| `DISABLE_OTA_DELTA` | OTA delta updates | ~5KB |
+|| `DISABLE_MQTT` | MQTT smart home integration | ~8KB |
+|| `DISABLE_OTA_DELTA` | OTA delta updates | ~5KB |
+|| `DISABLE_OTA_ROLLBACK` | OTA rollback support | ~3KB |
+|| `DISABLE_SOUND_PACKS` | Sound pack system | ~3KB |
+|| `DISABLE_PET_TRADING` | Pet trading via MQTT | ~4KB |
 
 ### Example: Minimal Build
 For a minimal build with just core pet simulation:
@@ -187,11 +194,20 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 | POST | `/pets/switch` | Switch active pet |
 | DELETE | `/pets/:id` | Delete a pet |
 | GET | `/stats` | Get statistics dashboard |
-|| GET | `/notifications` | Get notifications |
-|| GET | `/api/settings/lang` | Get current language |
-|| POST | `/api/settings/lang` | Set language (en/zh/ja) |
-|| GET | `/api/locales/current` | Get current locale strings (JSON) |
-|| POST | `/api/settings/factory-reset` | Factory reset (wipe all data + restart) |
+| GET | `/notifications` | Get notifications |
+| GET | `/api/settings/lang` | Get current language |
+| POST | `/api/settings/lang` | Set language (en/zh/ja) |
+| GET | `/api/locales/current` | Get current locale strings (JSON) |
+| POST | `/api/settings/factory-reset` | Factory reset (wipe all data + restart) |
+| GET | `/api/ota/status` | Get OTA status (current version, rollback available) |
+| GET | `/api/ota/rollback` | Trigger manual OTA rollback |
+| GET | `/api/sounds/list` | List available sound packs |
+| POST | `/api/sounds/select` | Select active sound pack |
+| POST | `/api/sounds/upload` | Upload custom sound pack |
+| GET | `/api/trade/history` | Get pet trade history |
+| POST | `/api/trade/request` | Send pet trade request |
+| POST | `/api/trade/accept` | Accept incoming trade |
+| POST | `/api/trade/reject` | Reject incoming trade |
 
 ### WebSocket
 Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:
@@ -233,6 +249,8 @@ SSE is kept for backward compatibility.
 - **OLED Not Working?** Add `-DENABLE_OLED` to build flags
 - **Factory Reset**: Hold BOOT button (GPIO 0) for 10 seconds on boot, or POST to `/api/settings/factory-reset`
 - **SPIFFS Atomic Writes**: All saves are crash-safe — data won't corrupt on power loss (Phase 10.5)
+- **OTA Rollback**: If new firmware crashes 3 times, device auto-reverts. Manual rollback: `GET /api/ota/rollback`
+- **Sound Packs**: Upload custom buzzer melodies via `POST /api/sounds/upload` (JSON format)
 
 ## Contribute
 
