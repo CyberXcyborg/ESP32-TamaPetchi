@@ -11,6 +11,7 @@
 #include "PowerManager.h"
 #include "WebSocket.h"
 #include "i18n.h"
+#include "OTARollback.h"
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
@@ -240,6 +241,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 10.4: Factory reset route
   server.on("/api/settings/factory-reset", HTTP_POST, handleFactoryReset);
+
+  // Phase 11.1: OTA rollback routes
+  registerRollbackRoutes();
 }
 
 // ============================================================
