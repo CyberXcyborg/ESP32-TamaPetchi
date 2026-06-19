@@ -1,9 +1,22 @@
-# Build artifacts
+# PlatformIO
 .pio/
-.DS_Store
-*.swp
-*~
+.pioenvs/
+.piolibdeps/
+
+# Build artifacts
+build/
+*.o
+*.elf
+*.bin
+*.map
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
