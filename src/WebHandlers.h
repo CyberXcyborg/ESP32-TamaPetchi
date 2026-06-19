@@ -56,4 +56,23 @@ void registerMQTTRoutes(WebServer &server);
 void registerDeltaRoutes(WebServer &server);
 #endif
 
+// Phase 12.1: Achievements 2.0
+void handleGetAchievementsProgress();
+
+// Phase 12.2: Pet Lineage
+void handleGetLineage();
+
+// Phase 12.3: Analytics & Export
+void handleGetStatsTrends();
+void handleExportCsv();
+void handleExportJson();
+
+// Phase 12.4: Accessibility
+void handleGetAccessibility();
+void handleSetAccessibility();
+
+// Phase 12.5: Backup & Restore
+void handleGetBackup();
+void handlePostRestore();
+
 #endif // WEBHANDLERS_H

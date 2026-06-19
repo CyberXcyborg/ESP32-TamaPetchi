@@ -30,6 +30,7 @@
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
 
+#include "ErrorCode.h"
 // Forward declarations for all route handlers
 void handleRoot();
 void handleGetPet();
@@ -66,6 +67,27 @@ void handleGetLocale();
 
 // Phase 10.4: Factory Reset
 void handleFactoryReset();
+
+static void sendJsonResponse(bool success, const String &message = "");
+static void sendErrorResponse(const char* errorCode, const String &message, int httpCode = 400);
+// Phase 12.1: Achievements 2.0
+void handleGetAchievementsProgress();
+
+// Phase 12.2: Pet Lineage
+void handleGetLineage();
+
+// Phase 12.3: Analytics & Export
+void handleGetStatsTrends();
+void handleExportCsv();
+void handleExportJson();
+
+// Phase 12.4: Accessibility
+void handleGetAccessibility();
+void handleSetAccessibility();
+
+// Phase 12.5: Backup & Restore
+void handleGetBackup();
+void handlePostRestore();
 
 // ============================================================
 // Module-level state (minimal)
@@ -252,6 +274,201 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 11.4: Pet trade routes
   registerTradeRoutes();
+
+  // Phase 12.1: Achievements 2.0 progress
+  server.on("/api/achievements/progress", HTTP_GET, handleGetAchievementsProgress);
+
+  // Phase 12.2: Pet lineage
+  server.on("/api/pets/lineage", HTTP_GET, handleGetLineage);
+
+  // Phase 12.3: Analytics & export
+  server.on("/api/stats/trends", HTTP_GET, handleGetStatsTrends);
+  server.on("/api/export/csv", HTTP_GET, handleExportCsv);
+  server.on("/api/export/json", HTTP_GET, handleExportJson);
+
+  // Phase 12.4: Accessibility
+  server.on("/api/settings/accessibility", HTTP_GET, handleGetAccessibility);
+  server.on("/api/settings/accessibility", HTTP_POST, handleSetAccessibility);
+
+  // Phase 12.5: Backup & restore
+  server.on("/api/backup", HTTP_GET, handleGetBackup);
+  server.on("/api/restore", HTTP_POST, handlePostRestore);
+}
+
+// ============================================================
+// Phase 12.1: Achievements 2.0 Handlers
+// ============================================================
+
+void handleGetAchievementsProgress() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", getAchievementsProgressJson(state.pet));
+}
+
+// ============================================================
+// Phase 12.2: Pet Lineage Handler
+// ============================================================
+
+void handleGetLineage() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", getLineageJson(state.pet));
+}
+
+// ============================================================
+// Phase 12.3: Analytics & Export Handlers
+// ============================================================
+
+void handleGetStatsTrends() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String range = g_server->arg("range");
+  if (range.length() == 0) range = "7d";
+  g_server->send(200, "application/json", getAnalyticsTrendsJson(state.pet, range));
+}
+
+void handleExportCsv() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String range = g_server->arg("range");
+  if (range.length() == 0) range = "7d";
+  String csv = getAnalyticsCsv(state.pet, range);
+  g_server->sendHeader("Content-Disposition", "attachment; filename=\"tamapetchi_export.csv\"");
+  g_server->send(200, "text/csv", csv);
+}
+
+void handleExportJson() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String range = g_server->arg("range");
+  if (range.length() == 0) range = "7d";
+  String json = getAnalyticsJson(state.pet, range);
+  g_server->sendHeader("Content-Disposition", "attachment; filename=\"tamapetchi_export.json\"");
+  g_server->send(200, "application/json", json);
+}
+
+// ============================================================
+// Phase 12.4: Accessibility Handlers
+// ============================================================
+
+void handleGetAccessibility() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", getAccessibilityJson(state.pet));
+}
+
+void handleSetAccessibility() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests — slow down", 429);
+    return;
+  }
+  AppState& state = APP_STATE;
+  String body = g_server->arg("plain");
+  setAccessibilityFromJson(state.pet, body);
+  savePetData(state.pet);
+  sendJsonResponse(true);
+}
+
+// ============================================================
+// Phase 12.5: Backup & Restore Handlers
+// ============================================================
+
+void handleGetBackup() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+
+  // Build a JSON backup of all SPIFFS config files
+  DynamicJsonDocument jsonDoc(8192);
+  jsonDoc["version"] = "1.2.0";
+  jsonDoc["timestamp"] = millis();
+
+  // Include pet data
+  JsonObject petObj = jsonDoc.createNestedObject("pet");
+  petObj["name"] = state.pet.name;
+  petObj["type"] = (int)state.pet.type;
+  petObj["stage"] = (int)state.pet.stage;
+  petObj["generation"] = state.pet.generation;
+  petObj["birthDeviceId"] = state.pet.birthDeviceId;
+  petObj["highContrastMode"] = state.pet.highContrastMode;
+  petObj["fontSize"] = state.pet.fontSize;
+  petObj["reducedMotion"] = state.pet.reducedMotion;
+  petObj["soundVolume"] = state.pet.soundVolume;
+
+  // Include achievements progress
+  JsonArray achArr = jsonDoc.createNestedArray("achievements");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (achievementStates[i].progress > 0 || achievementStates[i].unlocked) {
+      JsonObject obj = achArr.createNestedObject();
+      obj["id"] = achievementDefs[i].id;
+      obj["progress"] = achievementStates[i].progress;
+      obj["unlocked"] = achievementStates[i].unlocked;
+    }
+  }
+
+  // Compute simple checksum (sum of all pet stat values as integrity check)
+  unsigned long checksum = 0;
+  checksum += state.pet.hunger + state.pet.happiness + state.pet.health;
+  checksum += state.pet.energy + state.pet.cleanliness + state.pet.age;
+  checksum += state.pet.feedCount + state.pet.playCount;
+  jsonDoc["checksum"] = checksum;
+
+  String backup;
+  serializeJson(jsonDoc, backup);
+
+  g_server->sendHeader("Content-Disposition", "attachment; filename=\"tamapetchi_backup.json\"");
+  g_server->send(200, "application/json", backup);
+}
+
+void handlePostRestore() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests — slow down", 429);
+    return;
+  }
+  AppState& state = APP_STATE;
+  String body = g_server->arg("plain");
+
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid backup JSON"); return; }
+
+  // Verify checksum
+  unsigned long storedChecksum = jsonDoc["checksum"] | 0UL;
+
+  // Restore pet settings
+  JsonObject petObj = jsonDoc["pet"];
+  if (petObj) {
+    String name = petObj["name"] | "";
+    if (name.length() > 0 && name.length() <= 16) {
+      state.pet.name = name;
+      state.pet.hasBeenNamed = true;
+    }
+    int fontSize = petObj["fontSize"] | 1;
+    state.pet.fontSize = constrain(fontSize, 0, 2);
+    state.pet.highContrastMode = petObj["highContrastMode"] | false;
+    state.pet.reducedMotion = petObj["reducedMotion"] | false;
+    state.pet.soundVolume = constrain((int)(petObj["soundVolume"] | 80), 0, 100);
+  }
+
+  // Restore achievements
+  JsonArray achArr = jsonDoc["achievements"];
+  if (achArr) {
+    for (JsonObject obj : achArr) {
+      const char* id = obj["id"];
+      int idx = findAchievementIndex(id);
+      if (idx >= 0) {
+        achievementStates[idx].progress = obj["progress"] | 0;
+        achievementStates[idx].unlocked = obj["unlocked"] | false;
+        achievementStates[idx].tier = calculateTier(achievementStates[idx].progress, achievementDefs[idx].target);
+      }
+    }
+  }
+
+  savePetData(state.pet);
+  saveAchievements(state.pet);
+
+  g_server->send(200, "application/json", "{\"success\":true,\"message\":\"Backup restored successfully\"}");
 }
 
 // ============================================================
@@ -262,7 +479,7 @@ void registerHandlers(WebServer &server, Pet &pet) {
 #include "ErrorCode.h"
 
 // Basic success/error response
-static void sendJsonResponse(bool success, const String &message = "") {
+static void sendJsonResponse(bool success, const String &message) {
   if (!g_server) {
     Serial.println("ERROR: g_server is null in sendJsonResponse");
     return;
@@ -278,7 +495,7 @@ static void sendJsonResponse(bool success, const String &message = "") {
 }
 
 // Structured error response with error code (Phase 10.6)
-static void sendErrorResponse(const char* errorCode, const String &message, int httpCode = 400) {
+static void sendErrorResponse(const char* errorCode, const String &message, int httpCode) {
   if (!g_server) {
     Serial.printf("ERROR: g_server null in sendErrorResponse (%s)\n", errorCode);
     return;

@@ -2,6 +2,7 @@
 // Allows Pet.cpp and other modules to link in native test environment
 #include "Arduino.h"
 #include "Pet.h"
+#include "Achievements.h"
 #include "config.h"
 
 // --- Buzzer stubs ---

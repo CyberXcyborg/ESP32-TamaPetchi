@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "Pet.h"
+#include "Achievements.h"
 #include "config.h"
 
 // ============================================================
@@ -19,6 +20,107 @@ void test_corrupted_values_get_clamped(void);
 void test_invalid_enums_get_defaulted(void);
 void test_empty_name_gets_default(void);
 void test_migration_preserves_alive_state(void);
+
+// Forward declarations for Phase 12.1: Achievements 2.0 tests (test_achievements.cpp)
+void test_tier_none_when_zero_progress(void);
+void test_tier_bronze_at_1_percent(void);
+void test_tier_bronze_at_24_percent(void);
+void test_tier_silver_at_25_percent(void);
+void test_tier_silver_at_49_percent(void);
+void test_tier_gold_at_50_percent(void);
+void test_tier_gold_at_74_percent(void);
+void test_tier_platinum_at_75_percent(void);
+void test_tier_platinum_at_100_percent(void);
+void test_tier_platinum_capped_at_target(void);
+void test_tier_none_for_zero_target(void);
+void test_tier_to_string_none(void);
+void test_tier_to_string_bronze(void);
+void test_tier_to_string_silver(void);
+void test_tier_to_string_gold(void);
+void test_tier_to_string_platinum(void);
+void test_category_to_string_care(void);
+void test_category_to_string_evolution(void);
+void test_category_to_string_social(void);
+void test_category_to_string_exploration(void);
+void test_record_progress_increments_progress(void);
+void test_record_progress_caps_at_target(void);
+void test_record_progress_updates_tier(void);
+void test_record_progress_ignores_invalid_id(void);
+void test_record_progress_ignores_already_unlocked(void);
+void test_record_progress_sets_notified_false_on_new_tier(void);
+void test_achievement_count_is_16(void);
+void test_achievement_have_valid_targets(void);
+void test_achievement_categories_valid(void);
+void test_achievements_progress_json_format(void);
+void test_achievements_progress_json_contains_all_achievements(void);
+void test_newly_unlocked_json_empty_when_none(void);
+void test_newly_unlocked_json_returns_unnotified(void);
+void test_unlocked_rewards_empty_when_none_unlocked(void);
+void test_unlocked_rewards_includes_unlocked_rewards(void);
+void test_legacy_achievements_json_format(void);
+
+// Forward declarations for Phase 12.2: Pet Lineage tests (test_lineage.cpp)
+void test_initLineage_sets_default_values(void);
+void test_initLineage_birthDeviceId_not_empty(void);
+void test_inheritTraits_averages_personality(void);
+void test_inheritTraits_sets_parent_ids(void);
+void test_inheritTraits_increments_generation(void);
+void test_inheritTraits_zero_generation(void);
+void test_inheritTraits_personality_within_bounds(void);
+void test_getLineageJson_format(void);
+void test_getLineageJson_with_parents(void);
+void test_getLineageJson_generation_zero(void);
+void test_recordTradeLineage_outgoing(void);
+void test_recordTradeLineage_incoming(void);
+void test_recordTradeLineage_updates_birth_timestamp(void);
+
+// Forward declarations for Phase 12.3: Analytics tests (test_stats.cpp)
+void test_initAnalytics_resets_all_counters(void);
+void test_initAnalytics_sets_reset_timestamps(void);
+void test_analyticsOnFeed_increments_daily_feed_count(void);
+void test_analyticsOnPlay_increments_daily_play_count(void);
+void test_analyticsOnSleep_increments_daily_sleep_count(void);
+void test_analyticsOnClean_increments_daily_clean_count(void);
+void test_analyticsOnHeal_increments_daily_heal_count(void);
+void test_resetDailyCounters_resets_all_daily_fields(void);
+void test_resetDailyCounters_preserves_weekly_play_time(void);
+void test_resetWeeklyCounters_resets_weekly_play_time(void);
+void test_resetWeeklyCounters_preserves_daily_counts(void);
+void test_getAnalyticsTrendsJson_format(void);
+void test_getAnalyticsTrendsJson_today_values(void);
+void test_getAnalyticsCsv_format(void);
+void test_getAnalyticsCsv_contains_all_metrics(void);
+void test_analyticsTick_no_reset_before_day_passed(void);
+void test_getAnalyticsJson_alias_for_trends(void);
+
+// Forward declarations for Phase 12.4: Accessibility tests (test_accessibility.cpp)
+void test_initAccessibility_defaults(void);
+void test_getAccessibilityJson_format(void);
+void test_getAccessibilityJson_default_values(void);
+void test_setAccessibilityFromJson_highContrast(void);
+void test_setAccessibilityFromJson_fontSize(void);
+void test_setAccessibilityFromJson_reducedMotion(void);
+void test_setAccessibilityFromJson_soundVolume(void);
+void test_setAccessibilityFromJson_clamps_fontSize(void);
+void test_setAccessibilityFromJson_clamps_soundVolume(void);
+void test_setAccessibilityFromJson_ignores_invalid_json(void);
+void test_setAccessibilityFromJson_full_settings(void);
+void test_setAccessibilityFromJson_partial_settings(void);
+
+// Forward declarations for Phase 12.5: Backup & Restore tests (test_backup.cpp)
+void test_backup_json_contains_version(void);
+void test_backup_json_contains_pet_object(void);
+void test_backup_json_contains_checksum(void);
+void test_backup_json_contains_timestamp(void);
+void test_backup_json_contains_achievements_array(void);
+void test_backup_restore_roundtrip_pet_name(void);
+void test_backup_restore_roundtrip_accessibility(void);
+void test_backup_restore_roundtrip_achievements(void);
+void test_backup_checksum_changes_with_stats(void);
+void test_backup_checksum_same_for_identical_pets(void);
+void test_backup_empty_name(void);
+void test_backup_no_achievements_unlocked(void);
+void test_backup_generation_preserved(void);
 
 void setUp(void) {
   // Called before each test
@@ -544,6 +646,107 @@ int main(int argc, char **argv) {
   RUN_TEST(test_invalid_enums_get_defaulted);
   RUN_TEST(test_empty_name_gets_default);
   RUN_TEST(test_migration_preserves_alive_state);
+
+  // Phase 12.1: Achievements 2.0 tests (defined in test_achievements.cpp)
+  RUN_TEST(test_tier_none_when_zero_progress);
+  RUN_TEST(test_tier_bronze_at_1_percent);
+  RUN_TEST(test_tier_bronze_at_24_percent);
+  RUN_TEST(test_tier_silver_at_25_percent);
+  RUN_TEST(test_tier_silver_at_49_percent);
+  RUN_TEST(test_tier_gold_at_50_percent);
+  RUN_TEST(test_tier_gold_at_74_percent);
+  RUN_TEST(test_tier_platinum_at_75_percent);
+  RUN_TEST(test_tier_platinum_at_100_percent);
+  RUN_TEST(test_tier_platinum_capped_at_target);
+  RUN_TEST(test_tier_none_for_zero_target);
+  RUN_TEST(test_tier_to_string_none);
+  RUN_TEST(test_tier_to_string_bronze);
+  RUN_TEST(test_tier_to_string_silver);
+  RUN_TEST(test_tier_to_string_gold);
+  RUN_TEST(test_tier_to_string_platinum);
+  RUN_TEST(test_category_to_string_care);
+  RUN_TEST(test_category_to_string_evolution);
+  RUN_TEST(test_category_to_string_social);
+  RUN_TEST(test_category_to_string_exploration);
+  RUN_TEST(test_record_progress_increments_progress);
+  RUN_TEST(test_record_progress_caps_at_target);
+  RUN_TEST(test_record_progress_updates_tier);
+  RUN_TEST(test_record_progress_ignores_invalid_id);
+  RUN_TEST(test_record_progress_ignores_already_unlocked);
+  RUN_TEST(test_record_progress_sets_notified_false_on_new_tier);
+  RUN_TEST(test_achievement_count_is_16);
+  RUN_TEST(test_achievement_have_valid_targets);
+  RUN_TEST(test_achievement_categories_valid);
+  RUN_TEST(test_achievements_progress_json_format);
+  RUN_TEST(test_achievements_progress_json_contains_all_achievements);
+  RUN_TEST(test_newly_unlocked_json_empty_when_none);
+  RUN_TEST(test_newly_unlocked_json_returns_unnotified);
+  RUN_TEST(test_unlocked_rewards_empty_when_none_unlocked);
+  RUN_TEST(test_unlocked_rewards_includes_unlocked_rewards);
+  RUN_TEST(test_legacy_achievements_json_format);
+
+  // Phase 12.2: Pet Lineage tests (defined in test_lineage.cpp)
+  RUN_TEST(test_initLineage_sets_default_values);
+  RUN_TEST(test_initLineage_birthDeviceId_not_empty);
+  RUN_TEST(test_inheritTraits_averages_personality);
+  RUN_TEST(test_inheritTraits_sets_parent_ids);
+  RUN_TEST(test_inheritTraits_increments_generation);
+  RUN_TEST(test_inheritTraits_zero_generation);
+  RUN_TEST(test_inheritTraits_personality_within_bounds);
+  RUN_TEST(test_getLineageJson_format);
+  RUN_TEST(test_getLineageJson_with_parents);
+  RUN_TEST(test_getLineageJson_generation_zero);
+  RUN_TEST(test_recordTradeLineage_outgoing);
+  RUN_TEST(test_recordTradeLineage_incoming);
+  RUN_TEST(test_recordTradeLineage_updates_birth_timestamp);
+
+  // Phase 12.3: Analytics tests (defined in test_stats.cpp)
+  RUN_TEST(test_initAnalytics_resets_all_counters);
+  RUN_TEST(test_initAnalytics_sets_reset_timestamps);
+  RUN_TEST(test_analyticsOnFeed_increments_daily_feed_count);
+  RUN_TEST(test_analyticsOnPlay_increments_daily_play_count);
+  RUN_TEST(test_analyticsOnSleep_increments_daily_sleep_count);
+  RUN_TEST(test_analyticsOnClean_increments_daily_clean_count);
+  RUN_TEST(test_analyticsOnHeal_increments_daily_heal_count);
+  RUN_TEST(test_resetDailyCounters_resets_all_daily_fields);
+  RUN_TEST(test_resetDailyCounters_preserves_weekly_play_time);
+  RUN_TEST(test_resetWeeklyCounters_resets_weekly_play_time);
+  RUN_TEST(test_resetWeeklyCounters_preserves_daily_counts);
+  RUN_TEST(test_getAnalyticsTrendsJson_format);
+  RUN_TEST(test_getAnalyticsTrendsJson_today_values);
+  RUN_TEST(test_getAnalyticsCsv_format);
+  RUN_TEST(test_getAnalyticsCsv_contains_all_metrics);
+  RUN_TEST(test_analyticsTick_no_reset_before_day_passed);
+  RUN_TEST(test_getAnalyticsJson_alias_for_trends);
+
+  // Phase 12.4: Accessibility tests (defined in test_accessibility.cpp)
+  RUN_TEST(test_initAccessibility_defaults);
+  RUN_TEST(test_getAccessibilityJson_format);
+  RUN_TEST(test_getAccessibilityJson_default_values);
+  RUN_TEST(test_setAccessibilityFromJson_highContrast);
+  RUN_TEST(test_setAccessibilityFromJson_fontSize);
+  RUN_TEST(test_setAccessibilityFromJson_reducedMotion);
+  RUN_TEST(test_setAccessibilityFromJson_soundVolume);
+  RUN_TEST(test_setAccessibilityFromJson_clamps_fontSize);
+  RUN_TEST(test_setAccessibilityFromJson_clamps_soundVolume);
+  RUN_TEST(test_setAccessibilityFromJson_ignores_invalid_json);
+  RUN_TEST(test_setAccessibilityFromJson_full_settings);
+  RUN_TEST(test_setAccessibilityFromJson_partial_settings);
+
+  // Phase 12.5: Backup & Restore tests (defined in test_backup.cpp)
+  RUN_TEST(test_backup_json_contains_version);
+  RUN_TEST(test_backup_json_contains_pet_object);
+  RUN_TEST(test_backup_json_contains_checksum);
+  RUN_TEST(test_backup_json_contains_timestamp);
+  RUN_TEST(test_backup_json_contains_achievements_array);
+  RUN_TEST(test_backup_restore_roundtrip_pet_name);
+  RUN_TEST(test_backup_restore_roundtrip_accessibility);
+  RUN_TEST(test_backup_restore_roundtrip_achievements);
+  RUN_TEST(test_backup_checksum_changes_with_stats);
+  RUN_TEST(test_backup_checksum_same_for_identical_pets);
+  RUN_TEST(test_backup_empty_name);
+  RUN_TEST(test_backup_no_achievements_unlocked);
+  RUN_TEST(test_backup_generation_preserved);
 
   UNITY_END();
   return 0;

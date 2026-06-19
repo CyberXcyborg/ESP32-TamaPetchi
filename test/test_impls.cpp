@@ -1,6 +1,7 @@
 // test_impls.cpp - Testable implementations extracted from Pet.cpp
 // Strips hardware dependencies (Serial, tone, analogRead, etc.) for native unit testing
 #include "Pet.h"
+#include "Achievements.h"
 #include "config.h"
 #include <ArduinoJson.h>
 
@@ -134,6 +135,9 @@ void initPet(Pet &pet) {
 
   initMoodSystem(pet);
   initScheduledFeed(pet);
+  initLineage(pet);
+  initAnalytics(pet);
+  initAccessibility(pet);
 }
 
 // ============================================================
@@ -623,3 +627,403 @@ void setMelodyConfigFromJson(const String &json) { (void)json; }
 // ============================================================
 
 void updateBatteryLevel(Pet &pet) { (void)pet; }
+
+// ============================================================
+// Phase 12.2: Pet Lineage & Genealogy
+// ============================================================
+
+void initLineage(Pet &pet) {
+  pet.parentIds[0] = "";
+  pet.parentIds[1] = "";
+  pet.generation = 0;
+  pet.birthTimestamp = millis();
+  pet.birthDeviceId = "local";
+}
+
+void inheritTraits(Pet &pet, const Pet &parent1, const Pet &parent2) {
+  // Weighted average of parents' personality traits + random mutation (±10%)
+  pet.personalityCheerful = (parent1.personalityCheerful + parent2.personalityCheerful) / 2;
+  pet.personalityEnergetic = (parent1.personalityEnergetic + parent2.personalityEnergetic) / 2;
+  pet.personalityHungry = (parent1.personalityHungry + parent2.personalityHungry) / 2;
+
+  // Apply mutation: ±10%
+  int mutCheer = pet.personalityCheerful / 10;
+  int mutEnerg = pet.personalityEnergetic / 10;
+  int mutHung = pet.personalityHungry / 10;
+  pet.personalityCheerful = constrain(pet.personalityCheerful + random(-mutCheer, mutCheer + 1), 0, 100);
+  pet.personalityEnergetic = constrain(pet.personalityEnergetic + random(-mutEnerg, mutEnerg + 1), 0, 100);
+  pet.personalityHungry = constrain(pet.personalityHungry + random(-mutHung, mutHung + 1), 0, 100);
+
+  // Set lineage
+  pet.parentIds[0] = parent1.birthDeviceId;
+  pet.parentIds[1] = parent2.birthDeviceId;
+  pet.generation = max(parent1.generation, parent2.generation) + 1;
+  pet.birthTimestamp = millis();
+  pet.birthDeviceId = "local";
+}
+
+String getLineageJson(const Pet &pet) {
+  StaticJsonDocument<512> jsonDoc;
+  jsonDoc["generation"] = pet.generation;
+  jsonDoc["birthTimestamp"] = pet.birthTimestamp;
+  jsonDoc["birthDeviceId"] = pet.birthDeviceId.c_str();
+
+  JsonArray parents = jsonDoc.createNestedArray("parents");
+  if (pet.parentIds[0].length() > 0) parents.add(pet.parentIds[0].c_str());
+  if (pet.parentIds[1].length() > 0) parents.add(pet.parentIds[1].c_str());
+
+  // Include personality traits (genetic)
+  JsonObject traits = jsonDoc.createNestedObject("traits");
+  traits["cheerful"] = pet.personalityCheerful;
+  traits["energetic"] = pet.personalityEnergetic;
+  traits["hungry"] = pet.personalityHungry;
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+void recordTradeLineage(Pet &pet, const String &partnerDeviceId, bool isOutgoing) {
+  if (isOutgoing) {
+    // Record that this pet was traded out
+    pet.parentIds[0] = pet.birthDeviceId;
+    pet.parentIds[1] = partnerDeviceId;
+  } else {
+    // Received pet: mark as new generation
+    pet.parentIds[0] = partnerDeviceId;
+    pet.parentIds[1] = "";
+    pet.generation = pet.generation; // Keep existing generation
+  }
+  pet.birthTimestamp = millis();
+}
+
+// ============================================================
+// Phase 12.3: Analytics
+// ============================================================
+
+void initAnalytics(Pet &pet) {
+  pet.dailyFeedCount = 0;
+  pet.dailyPlayCount = 0;
+  pet.dailySleepCount = 0;
+  pet.dailyPlayTimeSec = 0;
+  pet.weeklyPlayTimeSec = 0;
+  pet.dailyCleanCount = 0;
+  pet.dailyHealCount = 0;
+  pet.lastDayReset = millis();
+  pet.lastWeekReset = millis();
+}
+
+void resetDailyCounters(Pet &pet) {
+  pet.dailyFeedCount = 0;
+  pet.dailyPlayCount = 0;
+  pet.dailySleepCount = 0;
+  pet.dailyPlayTimeSec = 0;
+  pet.dailyCleanCount = 0;
+  pet.dailyHealCount = 0;
+  pet.lastDayReset = millis();
+}
+
+void resetWeeklyCounters(Pet &pet) {
+  pet.weeklyPlayTimeSec = 0;
+  pet.lastWeekReset = millis();
+}
+
+void analyticsOnFeed(Pet &pet) {
+  pet.dailyFeedCount++;
+}
+
+void analyticsOnPlay(Pet &pet) {
+  pet.dailyPlayCount++;
+}
+
+void analyticsOnSleep(Pet &pet) {
+  pet.dailySleepCount++;
+}
+
+void analyticsOnClean(Pet &pet) {
+  pet.dailyCleanCount++;
+}
+
+void analyticsOnHeal(Pet &pet) {
+  pet.dailyHealCount++;
+}
+
+void analyticsTick(Pet &pet, unsigned long intervalMs) {
+  // Check if day has passed (simplified: 86400000 ms = 24h)
+  unsigned long now = millis();
+  if (now - pet.lastDayReset >= 86400000UL) {
+    resetDailyCounters(pet);
+  }
+  if (now - pet.lastWeekReset >= 604800000UL) {
+    resetWeeklyCounters(pet);
+  }
+}
+
+String getAnalyticsTrendsJson(const Pet &pet, const String &range) {
+  StaticJsonDocument<512> jsonDoc;
+  jsonDoc["range"] = range.c_str();
+
+  JsonObject today = jsonDoc.createNestedObject("today");
+  today["feeds"] = pet.dailyFeedCount;
+  today["plays"] = pet.dailyPlayCount;
+  today["sleeps"] = pet.dailySleepCount;
+  today["playTimeSec"] = pet.dailyPlayTimeSec;
+  today["cleans"] = pet.dailyCleanCount;
+  today["heals"] = pet.dailyHealCount;
+
+  JsonObject week = jsonDoc.createNestedObject("week");
+  week["playTimeSec"] = pet.weeklyPlayTimeSec;
+
+  // Cumulative stats
+  JsonObject cumulative = jsonDoc.createNestedObject("cumulative");
+  cumulative["totalFeeds"] = pet.timesFed;
+  cumulative["totalPlays"] = pet.timesPlayed;
+  cumulative["totalSleeps"] = pet.timesSlept;
+  cumulative["totalCleans"] = pet.timesCleaned;
+  cumulative["totalHeals"] = pet.timesHealed;
+  cumulative["totalPlayTimeSec"] = pet.totalPlayTime;
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+String getAnalyticsCsv(const Pet &pet, const String &range) {
+  String csv = "metric,value\n";
+  csv += "dailyFeeds,";
+  csv += String(pet.dailyFeedCount);
+  csv += "\n";
+  csv += "dailyPlays,";
+  csv += String(pet.dailyPlayCount);
+  csv += "\n";
+  csv += "totalFeeds,";
+  csv += String(pet.timesFed);
+  csv += "\n";
+  csv += "totalPlays,";
+  csv += String(pet.timesPlayed);
+  csv += "\n";
+  csv += "totalPlayTimeSec,";
+  csv += String(pet.totalPlayTime);
+  csv += "\n";
+  return csv;
+}
+
+String getAnalyticsJson(const Pet &pet, const String &range) {
+  return getAnalyticsTrendsJson(pet, range);
+}
+
+// ============================================================
+// Phase 12.4: Accessibility
+// ============================================================
+
+void initAccessibility(Pet &pet) {
+  pet.highContrastMode = false;
+  pet.fontSize = 1;       // medium
+  pet.reducedMotion = false;
+  pet.soundVolume = 80;   // 80%
+}
+
+String getAccessibilityJson(const Pet &pet) {
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["highContrastMode"] = pet.highContrastMode;
+  jsonDoc["fontSize"] = pet.fontSize;
+  jsonDoc["reducedMotion"] = pet.reducedMotion;
+  jsonDoc["soundVolume"] = pet.soundVolume;
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+void setAccessibilityFromJson(Pet &pet, const String &json) {
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return;
+
+  if (jsonDoc["highContrastMode"].is<bool>()) {
+    pet.highContrastMode = jsonDoc["highContrastMode"].as<bool>();
+  }
+  if (jsonDoc["fontSize"].is<int>()) {
+    pet.fontSize = constrain(jsonDoc["fontSize"].as<int>(), 0, 2);
+  }
+  if (jsonDoc["reducedMotion"].is<bool>()) {
+    pet.reducedMotion = jsonDoc["reducedMotion"].as<bool>();
+  }
+  if (jsonDoc["soundVolume"].is<int>()) {
+    pet.soundVolume = constrain(jsonDoc["soundVolume"].as<int>(), 0, 100);
+  }
+}
+
+// ============================================================
+// Phase 12.1: Achievements 2.0 — Test-safe implementations
+// These mirror Achievements.cpp but without SPIFFS dependencies
+// ============================================================
+
+const AchievementDef achievementDefs[ACHIEVEMENT_COUNT] = {
+  // Care
+  { ACH_FED_10X,        "Feeding Fledgling",    CAT_CARE,       10,    "skin_green" },
+  { ACH_FED_100X,       "Master Feeder",        CAT_CARE,       100,   "skin_gold" },
+  { ACH_CLEANED_10X,    "Sparkle Clean",        CAT_CARE,       10,    "acc_brush" },
+  { ACH_HEALED_5X,      "Pet Medic",            CAT_CARE,       5,     "acc_medkit" },
+  { ACH_PLAYED_10X,     "Playful Pal",          CAT_CARE,       10,    "acc_ball" },
+  { ACH_PLAYED_100X,    "Fun Master",           CAT_CARE,       100,   "skin_rainbow" },
+  { ACH_NAMED_PET,      "Name Bearer",          CAT_CARE,       1,     "acc_nameplate" },
+  { ACH_SCHEDULED_FEED, "Auto-Caregiver",       CAT_CARE,       1,     "acc_clock" },
+  // Evolution
+  { ACH_REACHED_CHILD,  "Growing Up",           CAT_EVOLUTION,  1,     NULL },
+  { ACH_REACHED_ADULT,  "Coming of Age",        CAT_EVOLUTION,  1,     "acc_crown" },
+  { ACH_REACHED_ELDER,  "Elder Wisdom",         CAT_EVOLUTION,  1,     "skin_elder" },
+  { ACH_FULLY_EVOLVED,  "Full Evolution",       CAT_EVOLUTION,  1,     "acc_wings" },
+  // Social
+  { ACH_TRADE_COMPLETED,"Trading Post",         CAT_SOCIAL,     1,     NULL },
+  { ACH_TRADE_RECEIVED, "Welcome Gift",         CAT_SOCIAL,     1,     NULL },
+  // Exploration
+  { ACH_GAME_WON_1X,    "Game Winner",          CAT_EXPLORATION,1,     "acc_trophy" },
+  { ACH_GAME_WON_10X,   "Game Champion",        CAT_EXPLORATION,10,    "skin_champion" },
+};
+
+AchievementState achievementStates[ACHIEVEMENT_COUNT];
+
+int findAchievementIndex(const char* id) {
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (strcmp(achievementDefs[i].id, id) == 0) return i;
+  }
+  return -1;
+}
+
+void recordAchievementProgress(const char* achId, int amount) {
+  int idx = findAchievementIndex(achId);
+  if (idx < 0) return;
+  if (achievementStates[idx].unlocked) return;
+  achievementStates[idx].progress += amount;
+  if (achievementStates[idx].progress > achievementDefs[idx].target) {
+    achievementStates[idx].progress = achievementDefs[idx].target;
+  }
+  AchievementTier newTier = calculateTier(achievementStates[idx].progress, achievementDefs[idx].target);
+  if (newTier != achievementStates[idx].tier) {
+    achievementStates[idx].tier = newTier;
+    achievementStates[idx].notified = false;
+  }
+  if (newTier == TIER_PLATINUM) {
+    achievementStates[idx].unlocked = true;
+  }
+}
+
+String getAchievementsProgressJson(const Pet &pet) {
+  StaticJsonDocument<2048> jsonDoc;
+  JsonArray arr = jsonDoc.createNestedArray("achievements");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    JsonObject obj = arr.createNestedObject();
+    obj["id"]       = achievementDefs[i].id;
+    obj["name"]     = achievementDefs[i].name;
+    obj["tier"]     = tierToString(achievementStates[i].tier);
+    obj["category"] = categoryToString(achievementDefs[i].category);
+    obj["progress"] = achievementStates[i].progress;
+    obj["target"]   = achievementDefs[i].target;
+    obj["unlocked"] = achievementStates[i].unlocked;
+    if (achievementDefs[i].rewardId) {
+      obj["reward"] = achievementDefs[i].rewardId;
+    }
+  }
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+String getNewlyUnlockedJson() {
+  StaticJsonDocument<1024> jsonDoc;
+  JsonArray arr = jsonDoc.createNestedArray("newAchievements");
+  bool any = false;
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (!achievementStates[i].notified && achievementStates[i].tier >= TIER_BRONZE) {
+      JsonObject obj = arr.createNestedObject();
+      obj["id"]   = achievementDefs[i].id;
+      obj["name"] = achievementDefs[i].name;
+      obj["tier"] = tierToString(achievementStates[i].tier);
+      achievementStates[i].notified = true;
+      any = true;
+    }
+  }
+  if (!any) return "{\"newAchievements\":[]}";
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+String getUnlockedRewardsJson() {
+  StaticJsonDocument<512> jsonDoc;
+  JsonArray arr = jsonDoc.createNestedArray("rewards");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (achievementStates[i].unlocked && achievementDefs[i].rewardId) {
+      arr.add(achievementDefs[i].rewardId);
+    }
+  }
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+String getAchievementsJson(const Pet &pet) {
+  StaticJsonDocument<512> jsonDoc;
+  JsonArray arr = jsonDoc.createNestedArray("achievements");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (achievementStates[i].unlocked) {
+      arr.add(achievementDefs[i].id);
+    }
+  }
+  if (pet.age >= 60) arr.add("survived_1h");
+  if (pet.age >= 1440) arr.add("survived_24h");
+  if (pet.feedCount >= 10) arr.add("fed_10x");
+  if (pet.playCount >= 10) arr.add("played_10x");
+  if (pet.hasBeenNamed) arr.add("named_pet");
+  if (pet.elderAchieved || pet.stage == ELDER) arr.add("reached_elder");
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+void loadAchievements(Pet &pet) {
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    achievementStates[i].progress = 0;
+    achievementStates[i].tier = TIER_NONE;
+    achievementStates[i].unlocked = false;
+    achievementStates[i].notified = false;
+  }
+  int idx;
+  idx = findAchievementIndex(ACH_FED_10X);
+  if (idx >= 0) achievementStates[idx].progress = pet.feedCount;
+  idx = findAchievementIndex(ACH_PLAYED_10X);
+  if (idx >= 0) achievementStates[idx].progress = pet.playCount;
+  idx = findAchievementIndex(ACH_NAMED_PET);
+  if (idx >= 0) achievementStates[idx].progress = pet.hasBeenNamed ? 1 : 0;
+  idx = findAchievementIndex(ACH_REACHED_ELDER);
+  if (idx >= 0) achievementStates[idx].progress = pet.elderAchieved ? 1 : 0;
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    achievementStates[i].tier = calculateTier(achievementStates[i].progress, achievementDefs[i].target);
+    achievementStates[i].unlocked = (achievementStates[i].tier == TIER_PLATINUM);
+  }
+}
+
+void saveAchievements(const Pet &pet) {
+  // No-op in test environment (no SPIFFS)
+}
+
+void checkAchievements(Pet &pet) {
+  if (!pet.isAlive) return;
+  if (pet.feedCount >= 10)  recordAchievementProgress(ACH_FED_10X, 0);
+  if (pet.feedCount >= 100) recordAchievementProgress(ACH_FED_100X, 0);
+  if (pet.playCount >= 10)  recordAchievementProgress(ACH_PLAYED_10X, 0);
+  if (pet.playCount >= 100) recordAchievementProgress(ACH_PLAYED_100X, 0);
+  if (pet.hasBeenNamed)    recordAchievementProgress(ACH_NAMED_PET, 1);
+  if (pet.scheduledFeedEnabled) recordAchievementProgress(ACH_SCHEDULED_FEED, 1);
+  if (pet.timesCleaned >= 10) recordAchievementProgress(ACH_CLEANED_10X, 0);
+  if (pet.timesHealed >= 5)   recordAchievementProgress(ACH_HEALED_5X, 0);
+  if (pet.stage >= CHILD)  recordAchievementProgress(ACH_REACHED_CHILD, 1);
+  if (pet.stage >= ADULT)  recordAchievementProgress(ACH_REACHED_ADULT, 1);
+  if (pet.stage == ELDER && !pet.elderAchieved) {
+    pet.elderAchieved = true;
+    recordAchievementProgress(ACH_REACHED_ELDER, 1);
+    recordAchievementProgress(ACH_FULLY_EVOLVED, 1);
+  }
+  if (pet.age >= 1440) recordAchievementProgress(ACH_SURVIVED_24H, 1);
+  if (pet.age >= 10080) recordAchievementProgress(ACH_SURVIVED_7D, 1);
+}

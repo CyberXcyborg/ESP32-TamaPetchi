@@ -1,6 +1,7 @@
 #include "Pet.h"
 #include "config.h"
 #include <ArduinoJson.h>
+#include <WiFi.h>
 
 // --- Helpers ---
 static int clampStat(int value) {
@@ -997,4 +998,198 @@ String getScheduledFeedJson(Pet &pet) {
   result += "\"nextFeedMs\":" + String(remaining);
   result += "}";
   return result;
+}
+
+// ============================================================
+// Phase 12.2: Pet Lineage & Genealogy
+// ============================================================
+
+void initLineage(Pet &pet) {
+  pet.parentIds[0] = "";
+  pet.parentIds[1] = "";
+  pet.generation = 0;
+  pet.birthTimestamp = millis();
+  pet.birthDeviceId = WiFi.macAddress();
+  pet.birthDeviceId.replace(":", "");
+}
+
+void inheritTraits(Pet &pet, const Pet &parent1, const Pet &parent2) {
+  pet.personalityCheerful = (parent1.personalityCheerful + parent2.personalityCheerful) / 2;
+  pet.personalityEnergetic = (parent1.personalityEnergetic + parent2.personalityEnergetic) / 2;
+  pet.personalityHungry = (parent1.personalityHungry + parent2.personalityHungry) / 2;
+
+  int mutCheer = pet.personalityCheerful / 10;
+  int mutEnerg = pet.personalityEnergetic / 10;
+  int mutHung = pet.personalityHungry / 10;
+  pet.personalityCheerful = constrain(pet.personalityCheerful + random(-mutCheer, mutCheer + 1), 0, 100);
+  pet.personalityEnergetic = constrain(pet.personalityEnergetic + random(-mutEnerg, mutEnerg + 1), 0, 100);
+  pet.personalityHungry = constrain(pet.personalityHungry + random(-mutHung, mutHung + 1), 0, 100);
+
+  pet.parentIds[0] = parent1.birthDeviceId;
+  pet.parentIds[1] = parent2.birthDeviceId;
+  pet.generation = max(parent1.generation, parent2.generation) + 1;
+  pet.birthTimestamp = millis();
+  pet.birthDeviceId = WiFi.macAddress();
+  pet.birthDeviceId.replace(":", "");
+}
+
+String getLineageJson(const Pet &pet) {
+  StaticJsonDocument<512> jsonDoc;
+  jsonDoc["generation"] = pet.generation;
+  jsonDoc["birthTimestamp"] = pet.birthTimestamp;
+  jsonDoc["birthDeviceId"] = pet.birthDeviceId;
+
+  JsonArray parents = jsonDoc.createNestedArray("parents");
+  if (pet.parentIds[0].length() > 0) parents.add(pet.parentIds[0]);
+  if (pet.parentIds[1].length() > 0) parents.add(pet.parentIds[1]);
+
+  JsonObject traits = jsonDoc.createNestedObject("traits");
+  traits["cheerful"] = pet.personalityCheerful;
+  traits["energetic"] = pet.personalityEnergetic;
+  traits["hungry"] = pet.personalityHungry;
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+void recordTradeLineage(Pet &pet, const String &partnerDeviceId, bool isOutgoing) {
+  if (isOutgoing) {
+    pet.parentIds[0] = pet.birthDeviceId;
+    pet.parentIds[1] = partnerDeviceId;
+  } else {
+    pet.parentIds[0] = partnerDeviceId;
+    pet.parentIds[1] = "";
+  }
+  pet.birthTimestamp = millis();
+}
+
+// ============================================================
+// Phase 12.3: Analytics
+// ============================================================
+
+void initAnalytics(Pet &pet) {
+  pet.dailyFeedCount = 0;
+  pet.dailyPlayCount = 0;
+  pet.dailySleepCount = 0;
+  pet.dailyPlayTimeSec = 0;
+  pet.weeklyPlayTimeSec = 0;
+  pet.dailyCleanCount = 0;
+  pet.dailyHealCount = 0;
+  pet.lastDayReset = millis();
+  pet.lastWeekReset = millis();
+}
+
+void resetDailyCounters(Pet &pet) {
+  pet.dailyFeedCount = 0;
+  pet.dailyPlayCount = 0;
+  pet.dailySleepCount = 0;
+  pet.dailyPlayTimeSec = 0;
+  pet.dailyCleanCount = 0;
+  pet.dailyHealCount = 0;
+  pet.lastDayReset = millis();
+}
+
+void resetWeeklyCounters(Pet &pet) {
+  pet.weeklyPlayTimeSec = 0;
+  pet.lastWeekReset = millis();
+}
+
+void analyticsOnFeed(Pet &pet) { pet.dailyFeedCount++; }
+void analyticsOnPlay(Pet &pet) { pet.dailyPlayCount++; }
+void analyticsOnSleep(Pet &pet) { pet.dailySleepCount++; }
+void analyticsOnClean(Pet &pet) { pet.dailyCleanCount++; }
+void analyticsOnHeal(Pet &pet) { pet.dailyHealCount++; }
+
+void analyticsTick(Pet &pet, unsigned long intervalMs) {
+  unsigned long now = millis();
+  if (now - pet.lastDayReset >= 86400000UL) resetDailyCounters(pet);
+  if (now - pet.lastWeekReset >= 604800000UL) resetWeeklyCounters(pet);
+}
+
+String getAnalyticsTrendsJson(const Pet &pet, const String &range) {
+  StaticJsonDocument<1024> jsonDoc;
+  jsonDoc["range"] = range;
+
+  JsonObject today = jsonDoc.createNestedObject("today");
+  today["feeds"] = pet.dailyFeedCount;
+  today["plays"] = pet.dailyPlayCount;
+  today["sleeps"] = pet.dailySleepCount;
+  today["playTimeSec"] = pet.dailyPlayTimeSec;
+  today["cleans"] = pet.dailyCleanCount;
+  today["heals"] = pet.dailyHealCount;
+
+  JsonObject week = jsonDoc.createNestedObject("week");
+  week["playTimeSec"] = pet.weeklyPlayTimeSec;
+
+  JsonObject cumulative = jsonDoc.createNestedObject("cumulative");
+  cumulative["totalFeeds"] = pet.timesFed;
+  cumulative["totalPlays"] = pet.timesPlayed;
+  cumulative["totalSleeps"] = pet.timesSlept;
+  cumulative["totalCleans"] = pet.timesCleaned;
+  cumulative["totalHeals"] = pet.timesHealed;
+  cumulative["totalPlayTimeSec"] = pet.totalPlayTime;
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+String getAnalyticsCsv(const Pet &pet, const String &range) {
+  String csv = "metric,value\n";
+  csv += "dailyFeeds," + String(pet.dailyFeedCount) + "\n";
+  csv += "dailyPlays," + String(pet.dailyPlayCount) + "\n";
+  csv += "dailySleeps," + String(pet.dailySleepCount) + "\n";
+  csv += "dailyPlayTimeSec," + String(pet.dailyPlayTimeSec) + "\n";
+  csv += "dailyCleans," + String(pet.dailyCleanCount) + "\n";
+  csv += "dailyHeals," + String(pet.dailyHealCount) + "\n";
+  csv += "weeklyPlayTimeSec," + String(pet.weeklyPlayTimeSec) + "\n";
+  csv += "totalFeeds," + String(pet.timesFed) + "\n";
+  csv += "totalPlays," + String(pet.timesPlayed) + "\n";
+  csv += "totalSleeps," + String(pet.timesSlept) + "\n";
+  csv += "totalCleans," + String(pet.timesCleaned) + "\n";
+  csv += "totalHeals," + String(pet.timesHealed) + "\n";
+  csv += "totalPlayTimeSec," + String(pet.totalPlayTime) + "\n";
+  return csv;
+}
+
+String getAnalyticsJson(const Pet &pet, const String &range) {
+  return getAnalyticsTrendsJson(pet, range);
+}
+
+// ============================================================
+// Phase 12.4: Accessibility
+// ============================================================
+
+void initAccessibility(Pet &pet) {
+  pet.highContrastMode = false;
+  pet.fontSize = 1;
+  pet.reducedMotion = false;
+  pet.soundVolume = 80;
+}
+
+String getAccessibilityJson(const Pet &pet) {
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["highContrastMode"] = pet.highContrastMode;
+  jsonDoc["fontSize"] = pet.fontSize;
+  jsonDoc["reducedMotion"] = pet.reducedMotion;
+  jsonDoc["soundVolume"] = pet.soundVolume;
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+void setAccessibilityFromJson(Pet &pet, const String &json) {
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, json);
+  if (err) return;
+
+  if (jsonDoc["highContrastMode"].is<bool>())
+    pet.highContrastMode = jsonDoc["highContrastMode"].as<bool>();
+  if (jsonDoc["fontSize"].is<int>())
+    pet.fontSize = constrain(jsonDoc["fontSize"].as<int>(), 0, 2);
+  if (jsonDoc["reducedMotion"].is<bool>())
+    pet.reducedMotion = jsonDoc["reducedMotion"].as<bool>();
+  if (jsonDoc["soundVolume"].is<int>())
+    pet.soundVolume = constrain(jsonDoc["soundVolume"].as<int>(), 0, 100);
 }

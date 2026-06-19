@@ -209,3 +209,154 @@
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Nyra's Code Review — Phase 11.4 (Pet Trading via MQTT) ✅ APPROVED
+
+**Files reviewed:** PetTrade.h (74 lines), PetTrade.cpp (430 lines)
+**Build:** ✅ pio run -e esp32dev — SUCCESS (RAM 17.1%, Flash 78.0%)
+**Tests:** ✅ 61/61 native tests pass
+
+**Findings:**
+- ✅ Clean state machine: IDLE → REQUEST_SENT/RECEIVED → ACCEPTED → DATA_SENT/RECEIVED → CONFIRMED
+- ✅ Full pet serialization with all stats, personality, achievements
+- ✅ Trade history logging in SPIFFS with circular buffer (max 10 entries)
+- ✅ Web API routes: status, request, accept, cancel, history — all with rate limiting
+- ✅ MQTT topic scheme well-structured: tamapetchi/trade/{request,accept,reject,data,confirm}
+- ✅ PIN-based security (4-digit) for trade confirmation
+- ✅ WebSocket + notification integration for real-time trade events
+- ✅ All external dependencies resolve: mqttPublishNotification, webSocketBroadcastNotification, getAchievementsJson
+- ⚠️ Minor: serializePetForTrade() uses DynamicJsonDocument(2048) — could use StaticJsonDocument for stack safety. Acceptable for v1.1.
+- ⚠️ Minor: Trade data sent via mqttPublishNotification() on the accept path piggybacks on notification channel rather than dedicated /data topic. Functional but worth noting.
+- ⚠️ Missing: Unit tests for trade protocol serialization/deserialization
+
+**Verdict:** Approved. Solid implementation. Two minor items acceptable for v1.1 — log as tech debt for v1.2.
+
+---
+
+## Phase 12: v1.2 Feature Sprint — TASK ASSIGNMENTS
+
+**Branch:** feature/phase12-v1.2 (create from develop)
+**Goal:** Enhanced user experience, data insights, and ecosystem expansion.
+**Priority order:** 12.1 → 12.2 → 12.3 → 12.4 → 12.5 → 12.6
+
+### 12.1 — Achievements 2.0 System — START HERE
+
+**Files to create/modify:**
+- src/Achievements.h — Add tier enum, progress tracking struct, reward definitions
+- src/Achievements.cpp — Implement tier logic, progress tracking, reward unlocking
+- src/WebHandlers.cpp — Add GET /api/achievements/progress endpoint
+- data/index.html — Add achievement progress bars and unlock animation
+- test/test_achievements.cpp — Unit tests for tier calculation and progress
+
+**Requirements:**
+- 4 tiers: Bronze (0-25%), Silver (25-50%), Gold (50-75%), Platinum (75-100%)
+- 4 categories: Care (feeding, cleaning), Evolution (stage-ups), Social (trading), Exploration (games, weather)
+- Progress tracking: store current progress per achievement in SPIFFS
+- Rewards: unlock pet skins/accessories (store as string IDs in pet state)
+- Achievement notification in web UI when unlocked (WebSocket event)
+- GET /api/achievements/progress returns: {achievements: [{id, name, tier, category, progress, target, reward}]}
+- Minimum 15 unit tests
+
+### 12.2 — Pet Lineage & Genealogy
+
+**Files to create/modify:**
+- src/Pet.h — Add parentIds[2], generation, lineageTree fields
+- src/Pet.cpp — Implement genetic trait inheritance (personality biases from parents)
+- src/PetTrade.cpp — Record lineage on trade (traded pets get new parent IDs)
+- src/WebHandlers.cpp — Add GET /api/pets/lineage endpoint
+- data/index.html — Add family tree visualization (use SVG or Canvas)
+- test/test_lineage.cpp — Unit tests for trait inheritance
+
+**Requirements:**
+- Track: parent device IDs (2), generation number, creation timestamp
+- Genetic inheritance: child personality = weighted average of parents + random mutation (±10%)
+- Lineage endpoint returns full ancestry tree up to 5 generations
+- Family tree visualization: clickable nodes, zoom, pan
+- Minimum 10 unit tests
+
+### 12.3 — Data Dashboard & Analytics
+
+**Files to create/modify:**
+- src/Stats.h — Add daily/weekly/monthly summary structs
+- src/Stats.cpp — Implement trend tracking, data aggregation
+- src/WebHandlers.cpp — Add GET /api/export/csv, GET /api/export/json, GET /api/stats/trends
+- data/index.html — Add Chart.js dashboard with stat trends
+- test/test_stats.cpp — Unit tests for aggregation logic
+
+**Requirements:**
+- Track: feed count, play time, sleep hours per day
+- Track: weight trend, mood history, activity level
+- Export: CSV and JSON formats with date range filtering
+- Dashboard: line charts for stats over time, bar charts for daily summaries
+- GET /api/stats/trends?range=7d|30d|90d returns aggregated data
+- Minimum 10 unit tests
+
+### 12.4 — Accessibility & UX Improvements
+
+**Files to create/modify:**
+- data/index.html — Keyboard nav, ARIA labels, high-contrast, font sizing, reduced motion
+- src/WebHandlers.cpp — Add GET /api/settings/accessibility endpoint
+- test/test_accessibility.cpp — Tests for settings validation
+
+**Requirements:**
+- Keyboard navigation: Tab/Enter/Space for all interactive elements
+- ARIA labels on all buttons, status indicators, and dynamic content
+- High-contrast mode toggle (CSS class switch)
+- Font size: small/medium/large (CSS variable)
+- Reduced-motion mode: disable all CSS animations and transitions
+- Volume control slider for sound effects (0-100%)
+- All settings persisted in SPIFFS
+- Minimum 8 unit tests
+
+### 12.5 — Backup & Restore
+
+**Files to create/modify:**
+- src/Storage.h — Add backup/restore function declarations
+- src/Storage.cpp — Implement tar creation and extraction for SPIFFS
+- src/WebHandlers.cpp — Add GET /api/backup, POST /api/restore
+- test/test_backup.cpp — Round-trip backup/restore tests
+
+**Requirements:**
+- GET /api/backup returns tar of all SPIFFS config files with SHA-256 checksum header
+- POST /api/restore accepts tar upload, verifies checksum, extracts and applies
+- Auto-backup option: daily/weekly to SPIFFS (if space available)
+- Integrity verification: SHA-256 checksum of backup contents
+- Minimum 8 unit tests
+
+### 12.6 — v1.2 Release
+
+- Run full PlatformIO build with all Phase 12 features
+- Run all unit tests (target: 80+ tests)
+- Update README with Phase 12 features
+- Update CHANGELOG.md
+- Create v1.2.0 release tag
+- Write v1.2.0 release notes
+- Merge develop → main for v1.2.0 release
+
+---
+
+## Nyra's Review Summary — 2026-06-19
+
+### Phase 11 Final Status: ALL COMPLETE
+
+| Phase | Feature | Status | Review |
+|-------|---------|--------|--------|
+| 11.1 | OTA Rollback | Merged | Approved |
+| 11.2 | Web UI Redesign | Merged | Approved |
+| 11.3 | Sound Pack System | Merged | Approved |
+| 11.4 | Pet Trading via MQTT | Merged | Approved |
+| 11.5 | Performance Optimization | Merged | Approved |
+| 11.6 | Final Testing and Release | Complete | v1.1.0 tagged |
+
+### Build Health
+- Build: SUCCESS (RAM 17.1%, Flash 78.0%)
+- Tests: 61/61 pass
+- Open PRs: 0
+- Branch: develop (clean, up to date with origin)
+
+### Next Actions
+1. Create branch feature/phase12-v1.2 from develop
+2. Start with 12.1 — Achievements 2.0 System
+3. Follow implementation rules: one feature per commit, test compilation after each

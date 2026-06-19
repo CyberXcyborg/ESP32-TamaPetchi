@@ -90,11 +90,34 @@ struct Pet {
   int personalityHungry;      // 0-100: how quickly hunger decays
   unsigned long lastMoodUpdate;
 
-  // --- Phase 7.5: Scheduled Feeding ---
+  // --- Phase 7.5: Scheduled Feeding --
   bool scheduledFeedEnabled;
   unsigned long scheduledFeedInterval;  // Interval in ms (default 4 hours)
   unsigned long lastScheduledFeed;
   int scheduledFeedAmount;              // How much hunger to restore (default 15)
+
+  // --- Phase 12.2: Pet Lineage & Genealogy ---
+  String parentIds[2];         // Parent device IDs (empty if original pet)
+  int generation;              // Generation number (0 = original)
+  unsigned long birthTimestamp; // When this pet was created
+  String birthDeviceId;        // Device ID of birth device
+
+  // --- Phase 12.3: Daily/Weekly Analytics ---
+  int dailyFeedCount;          // Feeds today (reset at midnight)
+  int dailyPlayCount;          // Plays today
+  int dailySleepCount;         // Sleeps today
+  unsigned long dailyPlayTimeSec;  // Play time today in seconds
+  unsigned long weeklyPlayTimeSec; // Play time this week in seconds
+  int dailyCleanCount;
+  int dailyHealCount;
+  unsigned long lastDayReset;  // When daily counters were last reset
+  unsigned long lastWeekReset; // When weekly counters were last reset
+
+  // --- Phase 12.4: Accessibility Settings ---
+  bool highContrastMode;       // High-contrast UI
+  int fontSize;                // 0=small, 1=medium, 2=large
+  bool reducedMotion;           // Disable animations
+  int soundVolume;             // 0-100% volume for sound effects
 };
 
 // --- Lifecycle ---
@@ -205,5 +228,30 @@ void initScheduledFeed(Pet &pet);
 void checkScheduledFeed(Pet &pet);
 void setScheduledFeed(bool enabled, unsigned long intervalMs, int amount);
 String getScheduledFeedJson(Pet &pet);
+
+// --- Phase 12.2: Pet Lineage & Genealogy ---
+void initLineage(Pet &pet);
+void inheritTraits(Pet &pet, const Pet &parent1, const Pet &parent2);
+String getLineageJson(const Pet &pet);
+void recordTradeLineage(Pet &pet, const String &partnerDeviceId, bool isOutgoing);
+
+// --- Phase 12.3: Analytics ---
+void initAnalytics(Pet &pet);
+void resetDailyCounters(Pet &pet);
+void resetWeeklyCounters(Pet &pet);
+void analyticsOnFeed(Pet &pet);
+void analyticsOnPlay(Pet &pet);
+void analyticsOnSleep(Pet &pet);
+void analyticsOnClean(Pet &pet);
+void analyticsOnHeal(Pet &pet);
+void analyticsTick(Pet &pet, unsigned long intervalMs);
+String getAnalyticsTrendsJson(const Pet &pet, const String &range);
+String getAnalyticsCsv(const Pet &pet, const String &range);
+String getAnalyticsJson(const Pet &pet, const String &range);
+
+// --- Phase 12.4: Accessibility --
+void initAccessibility(Pet &pet);
+String getAccessibilityJson(const Pet &pet);
+void setAccessibilityFromJson(Pet &pet, const String &json);
 
 #endif // PET_H
