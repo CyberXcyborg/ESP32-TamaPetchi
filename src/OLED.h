@@ -14,6 +14,9 @@
 void setupOLED();
 void updateOLED(const Pet &pet);
 
+// Phase 10.4: Factory reset display
+void showFactoryResetOLED();
+
 #endif // ENABLE_OLED
 
 #endif // OLED_H

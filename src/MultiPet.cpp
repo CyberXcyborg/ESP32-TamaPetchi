@@ -1,4 +1,5 @@
 #include "MultiPet.h"
+#include "Storage.h"  // Phase 10.5: for atomicWrite()
 #include "config.h"
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
@@ -85,9 +86,6 @@ void loadMultiPetState(MultiPetState &state) {
 }
 
 void saveMultiPetState(const MultiPetState &state) {
-  File file = SPIFFS.open(MULTI_PET_FILE, "w");
-  if (!file) return;
-
   DynamicJsonDocument jsonDoc(4096);
   jsonDoc["activePetIndex"] = state.activePetIndex;
   JsonArray arr = jsonDoc.createNestedArray("pets");
@@ -136,8 +134,10 @@ void saveMultiPetState(const MultiPetState &state) {
     obj["lowBatteryWarning"] = p.lowBatteryWarning;
     obj["lastBatteryCheck"] = p.lastBatteryCheck;
   }
-  serializeJson(jsonDoc, file);
-  file.close();
+
+  String content;
+  serializeJson(jsonDoc, content);
+  atomicWrite(MULTI_PET_FILE, content);
 }
 
 int createPet(MultiPetState &state, const String &name, PetType type) {

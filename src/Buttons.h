@@ -44,6 +44,10 @@ void enterDeepSleep(Pet &pet);  // Save state and enter deep sleep
 bool wasDeepSleepWake();       // Check if we woke from deep sleep
 void restoreFromRTC(Pet &pet); // Restore pet state from RTC memory
 
+// Phase 10.4: Factory reset — hold BOOT button for 10 seconds on boot
+#define FACTORY_RESET_HOLD_MS  10000  // 10 seconds hold to trigger factory reset
+bool isFactoryResetPressed();         // Check if button held > FACTORY_RESET_HOLD_MS
+
 #else
 
 // Stubs when disabled
@@ -52,6 +56,7 @@ inline void checkButtons(Pet &) {}
 inline void enterDeepSleep(Pet &) {}
 inline bool wasDeepSleepWake() { return false; }
 inline void restoreFromRTC(Pet &) {}
+inline bool isFactoryResetPressed() { return false; }
 
 #endif // DISABLE_BUTTONS
 

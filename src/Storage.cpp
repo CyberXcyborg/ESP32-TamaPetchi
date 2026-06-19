@@ -4,6 +4,70 @@
 #include <ArduinoJson.h>
 
 // ============================================================
+// Phase 10.5: Atomic SPIFFS Writes
+// Write to .tmp file, then rename to final filename.
+// Includes write verification (read back and compare).
+// ============================================================
+
+#define ATOMIC_WRITE_RETRIES  3
+
+bool atomicWrite(const char* filename, const String& content) {
+  String tmpFile = String(filename) + ".tmp";
+
+  for (int attempt = 0; attempt < ATOMIC_WRITE_RETRIES; attempt++) {
+    // Write to temporary file
+    File file = SPIFFS.open(tmpFile.c_str(), "w");
+    if (!file) {
+      Serial.printf("atomicWrite: failed to open %s for writing (attempt %d)\n", tmpFile.c_str(), attempt + 1);
+      continue;
+    }
+
+    size_t written = file.print(content);
+    file.close();
+
+    if (written != content.length()) {
+      Serial.printf("atomicWrite: write size mismatch %d != %d (attempt %d)\n", written, content.length(), attempt + 1);
+      SPIFFS.remove(tmpFile.c_str());
+      continue;
+    }
+
+    // Verify: read back and compare
+    File verifyFile = SPIFFS.open(tmpFile.c_str(), "r");
+    if (!verifyFile) {
+      Serial.printf("atomicWrite: failed to open %s for verification\n", tmpFile.c_str());
+      SPIFFS.remove(tmpFile.c_str());
+      continue;
+    }
+
+    String readBack = verifyFile.readString();
+    verifyFile.close();
+
+    if (readBack != content) {
+      Serial.printf("atomicWrite: verification failed (attempt %d)\n", attempt + 1);
+      SPIFFS.remove(tmpFile.c_str());
+      continue;
+    }
+
+    // Remove old file if it exists
+    if (SPIFFS.exists(filename)) {
+      SPIFFS.remove(filename);
+    }
+
+    // Rename temp to final
+    if (!SPIFFS.rename(tmpFile.c_str(), filename)) {
+      Serial.printf("atomicWrite: rename failed (attempt %d)\n", attempt + 1);
+      SPIFFS.remove(tmpFile.c_str());
+      continue;
+    }
+
+    return true; // Success
+  }
+
+  Serial.printf("atomicWrite: FAILED after %d attempts for %s\n", ATOMIC_WRITE_RETRIES, filename);
+  return false;
+}
+
+// ============================================================
 // Phase 6: Wear leveling — limit save frequency
 // ============================================================
 static unsigned long lastPetSaveTime = 0;
@@ -15,12 +79,6 @@ void savePetData(const Pet &pet) {
     return; // Skip this save — too soon
   }
   lastPetSaveTime = now;
-
-  File file = SPIFFS.open(PET_DATA_FILE, "w");
-  if (!file) {
-    Serial.println("Failed to open pet data file for writing");
-    return;
-  }
 
   DynamicJsonDocument jsonDoc(1024);
   jsonDoc["hunger"]      = pet.hunger;
@@ -82,11 +140,13 @@ void savePetData(const Pet &pet) {
   jsonDoc["lastScheduledFeed"]    = pet.lastScheduledFeed;
   jsonDoc["scheduledFeedAmount"]  = pet.scheduledFeedAmount;
 
-  if (serializeJson(jsonDoc, file) == 0) {
-    Serial.println("Failed to write pet data to file");
+  String content;
+  if (serializeJson(jsonDoc, content) == 0) {
+    Serial.println("Failed to serialize pet data");
+    return;
   }
 
-  file.close();
+  atomicWrite(PET_DATA_FILE, content);
 }
 
 // Force save — bypasses wear leveling (for critical events like death/revive)

@@ -1,4 +1,5 @@
 #include "Achievements.h"
+#include "Storage.h"  // Phase 10.5: for atomicWrite()
 #include "config.h"
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
@@ -39,23 +40,19 @@ void saveAchievements(const Pet &pet) {
   }
   lastAchSaveTime = now;
 
-  File file = SPIFFS.open(ACHIEVEMENTS_FILE, "w");
-  if (!file) {
-    Serial.println("Failed to open achievements file for writing");
-    return;
-  }
-
   StaticJsonDocument<256> jsonDoc;
   jsonDoc["feedCount"]     = pet.feedCount;
   jsonDoc["playCount"]     = pet.playCount;
   jsonDoc["hasBeenNamed"]  = pet.hasBeenNamed;
   jsonDoc["elderAchieved"] = pet.elderAchieved;
 
-  if (serializeJson(jsonDoc, file) == 0) {
-    Serial.println("Failed to write achievements");
+  String content;
+  if (serializeJson(jsonDoc, content) == 0) {
+    Serial.println("Failed to serialize achievements");
+    return;
   }
 
-  file.close();
+  atomicWrite(ACHIEVEMENTS_FILE, content);
 }
 
 void checkAchievements(Pet &pet) {

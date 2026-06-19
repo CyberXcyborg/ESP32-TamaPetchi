@@ -40,6 +40,11 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🏠 **MQTT/Smart Home**: Home Assistant auto-discovery with 6 sensors + 3 buttons
 - 🔄 **OTA Delta Updates**: Manifest-based delta update system
 - 🌐 **SSE Real-Time**: Server-Sent Events for live pet stat updates
+- 🔌 **WebSocket Support**: Real-time bidirectional updates on port 81
+- 🌍 **Multi-Language (i18n)**: English, Chinese, Japanese web UI support
+- 🔄 **Factory Reset**: Hold BOOT button 10s or HTTP endpoint to wipe all data
+- 💾 **Atomic SPIFFS Writes**: Crash-safe storage with write verification
+- 📋 **Structured Error Codes**: Consistent API error responses with codes
 
 
 ## Why This Hits Different
@@ -182,17 +187,41 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 | POST | `/pets/switch` | Switch active pet |
 | DELETE | `/pets/:id` | Delete a pet |
 | GET | `/stats` | Get statistics dashboard |
-| GET | `/notifications` | Get notifications |
+|| GET | `/notifications` | Get notifications |
+|| GET | `/api/settings/lang` | Get current language |
+|| POST | `/api/settings/lang` | Set language (en/zh/ja) |
+|| GET | `/api/locales/current` | Get current locale strings (JSON) |
+|| POST | `/api/settings/factory-reset` | Factory reset (wipe all data + restart) |
 
-### SSE Events
-The `/events` endpoint provides Server-Sent Events with pet state updates every 2 seconds. Connect with:
-```javascript
-const evtSource = new EventSource('/events');
-evtSource.onmessage = (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Pet state:', data);
-};
+### WebSocket
+Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:
+- **Pet state changes**: JSON with full pet stats on any state change
+- **Notifications**: Feed, play, clean, sleep, heal, reset events
+
+### Error Codes (Phase 10.6)
+All API errors return a structured JSON response:
+```json
+{ "success": false, "error": "<code>", "message": "<description>" }
 ```
+
+| Code | Category | Description |
+|------|----------|-------------|
+| `spiffs_*` | SPIFFS | Storage read/write/format failures |
+| `json_*` | JSON | Parse/serialize errors |
+| `pet_*` | Pet | Pet state errors (dead, invalid slot, etc.) |
+| `wifi_*` | WiFi | Connection failures |
+| `ota_*` | OTA | Update failures |
+| `mqtt_*` | MQTT | Connection/publish failures |
+| `rate_limit` | Rate | Too many requests (429) |
+| `auth_*` | Auth | Authentication errors |
+| `param_*` | Param | Invalid/missing parameters |
+| `memory_*` | Memory | Allocation failures |
+| `system_*` | System | System-level errors |
+
+### SSE Events (Legacy)
+The `/events` endpoint provides Server-Sent Events with pet state updates every 2 seconds.
+**Note**: WebSocket (port 81) is the preferred real-time transport as of Phase 10.2.
+SSE is kept for backward compatibility.
 
 ## Troubleshooting
 
@@ -202,6 +231,8 @@ evtSource.onmessage = (e) => {
 - **Web UI Not Loading?** Re-upload SPIFFS filesystem
 - **Pet Dies Quickly?** Lower difficulty to "easy" in settings
 - **OLED Not Working?** Add `-DENABLE_OLED` to build flags
+- **Factory Reset**: Hold BOOT button (GPIO 0) for 10 seconds on boot, or POST to `/api/settings/factory-reset`
+- **SPIFFS Atomic Writes**: All saves are crash-safe — data won't corrupt on power loss (Phase 10.5)
 
 ## Contribute
 
