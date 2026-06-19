@@ -5,6 +5,46 @@ All notable changes to ESP32-TamaPetchi are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-06-19
+
+### Added
+
+#### Phase 10 — v1.1 Core Features
+- **WebSocket Real-Time Updates** (10.2): WebSocket server on port 81 replacing SSE for lower-latency updates
+  - Real-time pet stat push (JSON broadcast on stat change)
+  - Real-time notification push (feed, play, clean, sleep, heal, reset)
+  - Web UI updated to use WebSocket instead of SSE
+  - Auto-reconnect with exponential backoff in JS client
+- **i18n Multi-Language Support** (10.3): English, Chinese, Japanese web UI
+  - `GET /api/settings/lang` / `POST /api/settings/lang` endpoints
+  - `GET /api/locales/current` endpoint
+  - Accept-Language header detection with quality value parsing
+  - Language selector in web UI (stored in localStorage)
+- **Factory Reset** (10.4): Wipe all data and restart
+  - Hold BOOT button (GPIO 0) for 10 seconds on boot
+  - `POST /api/settings/factory-reset` HTTP endpoint (software trigger)
+  - Visual feedback: RGB LED flashes red 3 times, OLED shows "Factory Reset"
+  - Wipes SPIFFS, resets WiFi credentials, restarts device
+- **SPIFFS Atomic Writes** (10.5): Crash-safe storage
+  - Write to `.tmp` file, verify, then rename to final filename
+  - 3 retry attempts on failure with read-back verification
+  - All save functions updated: pet data, multi-pet, stats, achievements
+- **Structured Error Code System** (10.6): Consistent API error responses
+  - 40+ error codes across 11 categories (SPIFFS, JSON, Pet, WiFi, OTA, MQTT, Rate, Auth, Param, Memory, System)
+  - All API errors return `{ "success": false, "error": "<code>", "message": "<description>" }`
+  - Rate limit errors use `ERR_RATE_LIMIT` code
+
+### Changed
+- Web UI now uses WebSocket (port 81) as primary real-time transport (SSE kept for backward compatibility)
+- All SPIFFS writes now use atomic write pattern (crash-safe on power loss)
+- API error responses now include structured error codes
+
+### Security
+- Factory reset requires physical button hold (10s) or authenticated HTTP POST
+- Atomic SPIFFS writes prevent data corruption on unexpected power loss
+
+---
+
 ## [1.0.0] - 2026-06-18
 
 ### Added
