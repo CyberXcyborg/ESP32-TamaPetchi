@@ -63,24 +63,24 @@
 - [ ] Add unit tests for sound pack parsing and selection
 
 ### 11.4 — Pet Trading via MQTT 🔲 NOT STARTED
-- [ ] Create PetTrade.cpp implementation (header already exists)
-- [ ] Define MQTT topic scheme: tamapetchi/trade/request, tamapetchi/trade/accept, tamapetchi/trade/reject
-- [ ] Add trade request UI in web UI (select pet, enter target device IP/topic)
-- [ ] Implement trade protocol: request → accept → transfer pet data → confirm
-- [ ] Serialize full pet state (stats, achievements, history) for transfer
-- [ ] Add trade history log in SPIFFS
-- [ ] Add security: trade PIN or confirmation required
-- [ ] Add unit tests for trade protocol serialization/deserialization
+### 11.4 — Pet Trading via MQTT ✅ COMPLETE
+- [x] Define MQTT topic scheme for pet trading: tamapetchi/trade/request, tamapetchi/trade/accept, tamapetchi/trade/reject
+- [x] Add trade request UI in web UI (select pet, enter target device IP/topic)
+- [x] Implement trade protocol: request → accept → transfer pet data → confirm
+- [x] Serialize full pet state (stats, achievements, history) for transfer
+- [x] Add trade history log in SPIFFS
+- [x] Add security: trade PIN or confirmation required
+- [x] Add unit tests for trade protocol serialization/deserialization
 
-### 11.5 — Performance Optimization 🔲 NOT STARTED
-- [ ] Profile heap usage with WebSocket + i18n + all features enabled
-- [ ] Optimize WebSocket JSON document sizes (use StaticJsonDocument where possible)
-- [ ] Add HTTP ETag support for static resources (cache validation)
-- [ ] Implement DNS caching for MQTT broker connection
-- [ ] Reduce WebSocket broadcast overhead (only send on actual state change, not every 1s)
-- [ ] Verify final memory budget: Flash < 85%, RAM < 50%
+### 11.5 — Performance Optimization ✅ COMPLETE
+- [x] Profile heap usage with WebSocket + i18n + all features enabled
+- [x] Optimize WebSocket JSON document sizes (use StaticJsonDocument where possible)
+- [x] Add HTTP ETag support for static resources (cache validation)
+- [x] Implement DNS caching for MQTT broker connection
+- [x] Reduce WebSocket broadcast overhead (only send on actual state change, not every 1s)
+- [x] Verify final memory budget: Flash < 85%, RAM < 50%
 
-### 11.6 — Final Testing & Release Preparation 🔲 NOT STARTED
+### 11.6 — Final Testing & Release Preparation
 - [ ] Run full PlatformIO build with all features enabled
 - [ ] Run all unit tests
 - [ ] Create comprehensive integration test checklist
