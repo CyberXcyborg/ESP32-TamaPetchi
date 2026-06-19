@@ -1,30 +1,31 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: Phase 8 In Progress 🔄
+## Overall Status: v1.0.0 Released ✅
 
 ## Phase Summary
 | Phase | Description | Status | Branch |
 |-------|-------------|--------|--------|
 | 1 | Code modularization | ✅ Merged | main |
 | 2 | Evolution, day/night, warnings | ✅ Merged | main |
-| 3 | Naming, buzzer, OLED, achievements, pet types | ✅ Merged | develop |
-| 4 | Evolution anim, death/revive, games, weather, music, settings | ✅ Merged | develop |
-| 5 | OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power | ✅ Merged | develop |
-| 6 | Code quality, web UI, hardware features, docs, performance | ✅ Merged | develop |
-| 7 | Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood | ✅ Merged | develop |
-| 8 | Code cleanup & release preparation | 🔄 In Progress | feature/phase8-cleanup |
+| 3 | Naming, buzzer, OLED, achievements, pet types | ✅ Merged | main |
+| 4 | Evolution anim, death/revive, games, weather, music, settings | ✅ Merged | main |
+| 5 | OTA, WiFi Manager, Multi-Pet, Stats, Notifications, Power | ✅ Merged | main |
+| 6 | Code quality, web UI, hardware features, docs, performance | ✅ Merged | main |
+| 7 | Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood | ✅ Merged | main |
+| 8 | Code cleanup & release preparation | ✅ Merged | main |
+| 9 | v1.0.0 Release & v1.1 planning | 🔟 In Progress | develop |
 
-## Phase 8 Progress
-- [x] 8.1 — Merge feature branches into develop
-- [x] 8.2 — Code cleanup (remove duplicate updateStage, consolidate checkRateLimit, increase timeouts, IR pin docs)
-- [ ] 8.3 — Final testing (unit tests, build verification)
-- [ ] 8.4 — Documentation & release (README, CHANGELOG, release tag)
-- [ ] 8.5 — Stretch goals
+## v1.0.0 Release
+- **Tag:** v1.0.0 (ed155ba)
+- **Date:** 2026-06-18
+- **Build:** RAM 16.6%, Flash 74.6%, Zero warnings
+- **Tests:** 61/61 passed
+- **Branches:** main (released), develop (next features)
 
 ## Next Steps
-- Complete remaining Phase 8 tasks
-- Create release tag v1.0.0
-- Write release notes
+- Phase 9.2: Hardware validation (requires physical ESP32)
+- Phase 9.3: v1.1 feature development
+- Phase 9.5: Community outreach
 
 ## Key Technical Details
 - Framework: Arduino (PlatformIO)
@@ -32,7 +33,7 @@
 - Display: SSD1306 OLED (optional, -DENABLE_OLED)
 - Storage: SPIFFS
 - Web Server: Built-in WiFi WebServer
-- Dependencies: ArduinoJson, WiFiManager, PubSubClient
+- Dependencies: ArduinoJson, PubSubClient
 
 ## File Structure
 ```
@@ -60,5 +61,5 @@ src/
 ```
 
 ## Last Updated
-- Date: 2026-06-17
+- Date: 2026-06-18
 - By: Kael Nexus (autonomous)

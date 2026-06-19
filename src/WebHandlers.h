@@ -3,6 +3,7 @@
 
 #include <WebServer.h>
 #include "Pet.h"
+#include "AppState.h"
 
 // ============================================================
 // HTTP handler registration & implementation
@@ -18,21 +19,13 @@ void registerHandlers(WebServer &server, Pet &pet);
 bool checkRateLimit(const String &clientIP);
 void cleanupRateBuckets();
 
-// Global state for wake-up messages (owned by WebHandlers)
-extern bool showWakeMessage;
-extern unsigned long wakeMessageStartTime;
-extern String previousState;
-
-// Getter/setter for web handlers to access server (set during registration)
-WebServer* getServer();
+// Server access: use APP_STATE.server directly (g_server is a convenience macro in WebHandlers.cpp)
 
 // ============================================================
-// SSE Support (Phase 6.2)
-// ============================================================
-void beginSSE();
-void broadcastSSE(const String &data);
-void handleSSEClients();
-void handleSetMelodyConfig();
+// WebSocket Support (Phase 10.2) — replaces SSE
+// Note: handleWebSocketBroadcast() and webSocketBroadcastNotification()
+// are declared in WebSocket.h — include that header instead of duplicating.
+// ===========================================================
 
 // Phase 5: Forward declarations
 void handleGetPets();

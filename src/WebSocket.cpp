@@ -1,0 +1,191 @@
+#include "WebSocket.h"
+#include "AppState.h"
+#include "Pet.h"
+#include <WebSocketsServer.h>
+#include <ArduinoJson.h>
+
+// Forward declaration — defined in WebHandlers.cpp
+extern void cleanupRateBuckets();
+
+// ============================================================
+// Module-level state
+// ============================================================
+static WebSocketsServer webSocket = WebSocketsServer(WS_PORT);
+static unsigned long lastBroadcast = 0;
+#define WS_BROADCAST_INTERVAL 1000  // 1s (faster than SSE's 2s)
+
+// ============================================================
+// WebSocket Event Handler
+// ============================================================
+static void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+  switch (type) {
+    case WStype_DISCONNECTED:
+      Serial.printf("[WS] Client #%u disconnected\n", num);
+      break;
+
+    case WStype_CONNECTED: {
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.printf("[WS] Client #%u connected from %s\n", num, ip.toString().c_str());
+      // Send initial state immediately on connect
+      AppState &state = APP_STATE;
+      StaticJsonDocument<512> jsonDoc;
+      jsonDoc["type"] = "init";
+      jsonDoc["hunger"] = state.pet.hunger;
+      jsonDoc["happiness"] = state.pet.happiness;
+      jsonDoc["health"] = state.pet.health;
+      jsonDoc["energy"] = state.pet.energy;
+      jsonDoc["cleanliness"] = state.pet.cleanliness;
+      jsonDoc["isAlive"] = state.pet.isAlive;
+      jsonDoc["state"] = state.pet.state;
+      jsonDoc["age"] = state.pet.age;
+
+      const char *stageStr = "baby";
+      switch (state.pet.stage) {
+        case BABY:  stageStr = "baby";  break;
+        case CHILD: stageStr = "child"; break;
+        case ADULT: stageStr = "adult"; break;
+        case ELDER: stageStr = "elder"; break;
+      }
+      jsonDoc["stage"] = stageStr;
+      jsonDoc["isNight"] = state.pet.isNight;
+      jsonDoc["weather"] = getWeatherName(state.pet.weather);
+      jsonDoc["isDying"] = state.pet.isDying;
+      jsonDoc["isEvolving"] = state.pet.isEvolving;
+      jsonDoc["mood"] = state.pet.mood;
+      jsonDoc["moodName"] = getMoodName(state.pet.mood);
+      jsonDoc["moodEmoji"] = getMoodEmoji(state.pet.mood);
+
+      String msg;
+      serializeJson(jsonDoc, msg);
+      webSocket.sendTXT(num, msg);
+      break;
+    }
+
+    case WStype_TEXT: {
+      // Handle incoming messages from client
+      String message = String((char *)payload);
+      Serial.printf("[WS] Received from #%u: %s\n", num, message.c_str());
+
+      // Parse incoming JSON
+      StaticJsonDocument<256> jsonDoc;
+      DeserializationError error = deserializeJson(jsonDoc, message);
+      if (error) {
+        // Not valid JSON — ignore
+        break;
+      }
+
+      // Handle ping/pong for heartbeat
+      const char *msgType = jsonDoc["type"] | "";
+      if (strcmp(msgType, "ping") == 0) {
+        // Respond with pong
+        webSocket.sendTXT(num, "{\"type\":\"pong\"}");
+      }
+      break;
+    }
+
+    case WStype_BIN:
+      // Binary frames not used — ignore
+      break;
+
+    case WStype_ERROR:
+      Serial.printf("[WS] Error on client #%u\n", num);
+      break;
+
+    case WStype_FRAGMENT_TEXT_START:
+    case WStype_FRAGMENT_BIN_START:
+    case WStype_FRAGMENT:
+    case WStype_FRAGMENT_FIN:
+      // Fragmented frames — not used
+      break;
+  }
+}
+
+// ============================================================
+// Public API
+// ============================================================
+
+void webSocketBegin(uint16_t port) {
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
+  Serial.printf("[WS] WebSocket server started on port %d\n", port);
+}
+
+void webSocketLoop() {
+  webSocket.loop();
+}
+
+void webSocketBroadcast(const String &data) {
+  // Broadcast to all connected clients
+  // Note: broadcastTXT takes non-const String& so we need a mutable copy
+  String payload = data;
+  webSocket.broadcastTXT(payload);
+}
+
+int webSocketConnectedClients() {
+  return webSocket.connectedClients();
+}
+
+uint16_t webSocketPort() {
+  return WS_PORT;
+}
+
+// ============================================================
+// Periodic broadcast — call from loop() instead of handleSSEClients()
+// ============================================================
+void handleWebSocketBroadcast() {
+  AppState &state = APP_STATE;
+  if (state.pet.isAlive && millis() - lastBroadcast > WS_BROADCAST_INTERVAL) {
+    lastBroadcast = millis();
+
+    // Phase 7.2: Periodic rate limit bucket cleanup
+    cleanupRateBuckets();
+
+    StaticJsonDocument<512> jsonDoc;
+    jsonDoc["type"] = "update";
+    jsonDoc["hunger"] = state.pet.hunger;
+    jsonDoc["happiness"] = state.pet.happiness;
+    jsonDoc["health"] = state.pet.health;
+    jsonDoc["energy"] = state.pet.energy;
+    jsonDoc["cleanliness"] = state.pet.cleanliness;
+    jsonDoc["isAlive"] = state.pet.isAlive;
+    jsonDoc["state"] = state.pet.state;
+    jsonDoc["age"] = state.pet.age;
+
+    const char *stageStr = "baby";
+    switch (state.pet.stage) {
+      case BABY:  stageStr = "baby";  break;
+      case CHILD: stageStr = "child"; break;
+      case ADULT: stageStr = "adult"; break;
+      case ELDER: stageStr = "elder"; break;
+    }
+    jsonDoc["stage"] = stageStr;
+    jsonDoc["isNight"] = state.pet.isNight;
+    jsonDoc["weather"] = getWeatherName(state.pet.weather);
+    jsonDoc["isDying"] = state.pet.isDying;
+    jsonDoc["isEvolving"] = state.pet.isEvolving;
+    jsonDoc["activeGame"] = state.pet.activeGame;
+    jsonDoc["gameCooldown"] = state.pet.gameCooldown;
+    jsonDoc["mood"] = state.pet.mood;
+    jsonDoc["moodName"] = getMoodName(state.pet.mood);
+    jsonDoc["moodEmoji"] = getMoodEmoji(state.pet.mood);
+
+    String payload;
+    serializeJson(jsonDoc, payload);
+    webSocketBroadcast(payload);
+  }
+}
+
+// ============================================================
+// Notification broadcast — called when events happen
+// ============================================================
+void webSocketBroadcastNotification(const String &notificationType, const String &message) {
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["type"] = "notification";
+  jsonDoc["notificationType"] = notificationType;
+  jsonDoc["message"] = message;
+  jsonDoc["timestamp"] = millis();
+
+  String payload;
+  serializeJson(jsonDoc, payload);
+  webSocketBroadcast(payload);
+}

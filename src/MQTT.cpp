@@ -3,6 +3,7 @@
 #include "Pet.h"
 #include "Storage.h"
 #include "WebHandlers.h"
+#include "AppState.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -116,43 +117,43 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
-  // We need access to the pet — use extern
-  extern Pet pet;
+  // We need access to the pet — use AppState
+  AppState& state = APP_STATE;
   String action = jsonDoc["action"] | "";
 
-  if (action == "feed" && pet.isAlive) {
-    feedPet(pet);
-    savePetData(pet);
+  if (action == "feed" && state.pet.isAlive) {
+    feedPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: feed");
-  } else if (action == "play" && pet.isAlive && pet.energy >= PLAY_ENERGY_MIN) {
-    playPet(pet);
-    savePetData(pet);
+  } else if (action == "play" && state.pet.isAlive && state.pet.energy >= PLAY_ENERGY_MIN) {
+    playPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: play");
-  } else if (action == "clean" && pet.isAlive) {
-    cleanPet(pet);
-    savePetData(pet);
+  } else if (action == "clean" && state.pet.isAlive) {
+    cleanPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: clean");
-  } else if (action == "sleep" && pet.isAlive && pet.state != "sleeping") {
-    sleepPet(pet);
-    savePetData(pet);
+  } else if (action == "sleep" && state.pet.isAlive && state.pet.state != "sleeping") {
+    sleepPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: sleep");
-  } else if (action == "heal" && pet.isAlive) {
-    healPet(pet);
-    savePetData(pet);
+  } else if (action == "heal" && state.pet.isAlive) {
+    healPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: heal");
-  } else if (action == "revive" && !pet.isAlive) {
-    if (canRevive(pet)) {
-      revivePet(pet);
-      savePetData(pet);
+  } else if (action == "revive" && !state.pet.isAlive) {
+    if (canRevive(state.pet)) {
+      revivePet(state.pet);
+      savePetData(state.pet);
       Serial.println("[MQTT] Command: revive");
     }
   } else if (action == "reset") {
-    initPet(pet);
-    savePetData(pet);
+    initPet(state.pet);
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: reset");
   } else if (action == "toggle_sound") {
-    pet.soundEnabled = !pet.soundEnabled;
-    savePetData(pet);
+    state.pet.soundEnabled = !state.pet.soundEnabled;
+    savePetData(state.pet);
     Serial.println("[MQTT] Command: toggle_sound");
   } else {
     Serial.printf("[MQTT] Unknown or invalid action: %s\n", action.c_str());
@@ -334,22 +335,22 @@ void handleMQTT() {
 void mqttPublishState() {
   if (!mqttClient.connected()) return;
 
-  extern Pet pet;
+  AppState& state = APP_STATE;
   StaticJsonDocument<512> doc;
-  doc["hunger"] = pet.hunger;
-  doc["happiness"] = pet.happiness;
-  doc["health"] = pet.health;
-  doc["energy"] = pet.energy;
-  doc["cleanliness"] = pet.cleanliness;
-  doc["isAlive"] = pet.isAlive;
-  doc["state"] = pet.state;
-  doc["age"] = pet.age;
-  doc["stage"] = pet.stage;
-  doc["mood"] = pet.mood;
-  doc["battery"] = pet.batteryLevel;
-  doc["isDying"] = pet.isDying;
-  doc["isEvolving"] = pet.isEvolving;
-  doc["name"] = pet.name;
+  doc["hunger"] = state.pet.hunger;
+  doc["happiness"] = state.pet.happiness;
+  doc["health"] = state.pet.health;
+  doc["energy"] = state.pet.energy;
+  doc["cleanliness"] = state.pet.cleanliness;
+  doc["isAlive"] = state.pet.isAlive;
+  doc["state"] = state.pet.state;
+  doc["age"] = state.pet.age;
+  doc["stage"] = state.pet.stage;
+  doc["mood"] = state.pet.mood;
+  doc["battery"] = state.pet.batteryLevel;
+  doc["isDying"] = state.pet.isDying;
+  doc["isEvolving"] = state.pet.isEvolving;
+  doc["name"] = state.pet.name;
 
   String payload;
   serializeJson(doc, payload);

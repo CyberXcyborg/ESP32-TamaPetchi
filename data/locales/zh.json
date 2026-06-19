@@ -1,0 +1,134 @@
+{
+  "_lang": "简体中文",
+  "_code": "zh",
+  "app": {
+    "title": "ESP32 电子宠物",
+    "subtitle": "增强版 blob 宠物"
+  },
+  "nav": {
+    "pet": "宠物",
+    "achievements": "成就",
+    "games": "游戏",
+    "settings": "设置",
+    "mood": "心情",
+    "scheduledFeeding": "定时喂食"
+  },
+  "stats": {
+    "hunger": "饱食度",
+    "happiness": "快乐度",
+    "health": "健康值",
+    "energy": "精力值",
+    "cleanliness": "清洁度",
+    "age": "年龄",
+    "stage": "阶段",
+    "day": "白天",
+    "night": "夜晚"
+  },
+  "stages": {
+    "baby": "婴儿",
+    "child": "儿童",
+    "adult": "成年",
+    "elder": "老年"
+  },
+  "weather": {
+    "sunny": "晴天",
+    "cloudy": "多云",
+    "rainy": "下雨",
+    "snowy": "下雪"
+  },
+  "actions": {
+    "feed": "喂食",
+    "play": "玩耍",
+    "clean": "清洁",
+    "sleep": "睡觉",
+    "heal": "治疗",
+    "reset": "重置",
+    "revive": "复活",
+    "mute": "静音"
+  },
+  "petTypes": {
+    "blob": "软泥",
+    "cat": "猫",
+    "dog": "狗"
+  },
+  "games": {
+    "memory": "记忆",
+    "catch": "接球",
+    "quiz": "问答",
+    "score": "得分",
+    "round": "回合",
+    "memorize": "记住序列！",
+    "yourTurn": "轮到你了！重复序列：",
+    "tapTarget": "点击目标！",
+    "youWon": "你赢了！",
+    "gameOver": "游戏结束！"
+  },
+  "settings": {
+    "difficulty": "难度",
+    "easy": "简单 (80%)",
+    "normal": "普通 (100%)",
+    "hard": "困难 (120%)",
+    "music": "音乐",
+    "darkMode": "夜间模式",
+    "sound": "音效",
+    "volume": "音量",
+    "on": "开",
+    "off": "关"
+  },
+  "mood": {
+    "title": "心情",
+    "ecstatic": "狂喜",
+    "happy": "开心",
+    "content": "满足",
+    "neutral": "平静",
+    "sad": "难过",
+    "miserable": "痛苦",
+    "dying": "濒死"
+  },
+  "scheduledFeed": {
+    "title": "定时喂食",
+    "enable": "启用自动喂食",
+    "every": "每隔",
+    "hours": "小时",
+    "amount": "数量"
+  },
+  "connection": {
+    "connected": "WebSocket 已连接",
+    "disconnected": "WebSocket 已断开 — 使用轮询",
+    "error": "连接错误，请检查设备是否在线"
+  },
+  "notifications": {
+    "petFed": "喂食了 {name}",
+    "petPlayed": "和 {name} 玩耍了",
+    "petCleaned": "清洁了 {name}",
+    "petSleeping": "{name} 正在睡觉",
+    "petHealed": "治疗了 {name}",
+    "petReset": "宠物已重置",
+    "petRevived": "宠物复活了！",
+    "petDied": "你的宠物去世了。点击重置重新开始。",
+    "petWokeUp": "你的宠物醒来后精神焕发！",
+    "typeChanged": "宠物类型变更为 {type}！",
+    "nameChanged": "名字变更为 \"{name}\"！",
+    "difficultySet": "难度设置为 {difficulty}"
+  },
+  "confirm": {
+    "changeType": "更改宠物类型将重置你的宠物。继续吗？",
+    "enterName": "请输入名字"
+  },
+  "errors": {
+    "petNotAlive": "宠物已死亡",
+    "petTooTired": "宠物太累了，无法玩耍",
+    "gameOnCooldown": "游戏冷却中：{seconds}秒",
+    "noActiveGame": "没有正在进行的游戏",
+    "invalidJson": "无效的 JSON",
+    "cannotRevive": "无法复活",
+    "reviveCooldown": "复活冷却中：还剩 {seconds} 秒",
+    "nameEmpty": "名字不能为空",
+    "invalidType": "无效的类型 — 必须是软泥、猫或狗",
+    "invalidDifficulty": "无效的难度 — 请使用简单、普通或困难",
+    "invalidGameType": "无效的游戏类型 — 必须是 1、2 或 3",
+    "noFreeSlots": "没有空位",
+    "invalidSlot": "无效的位置",
+    "cannotDelete": "无法删除"
+  }
+}
