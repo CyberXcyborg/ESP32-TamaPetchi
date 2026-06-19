@@ -10,7 +10,7 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 9 ✅ Complete — v1.0.0 released, v1.1 features in development
-- Phase 10 🔄 In Progress — 10.1 ✅, 10.2 ✅, 10.3 ✅, PR #11 merged, 10.4-10.7 pending
+- Phase 10 🔄 In Progress — 10.1 ✅, 10.2 ✅, 10.3 ✅, PR #11 merged, 10.4 ✅, 10.5 ✅, 10.6 ✅, 10.7 ✅
 
 ## Phase 10: v1.1 Core Features Sprint
 
@@ -52,36 +52,36 @@
 - [x] Verify SPIFFS data directory updated and buildfs succeeds
 - [ ] Add unit tests for i18n string lookup and fallback
 
-### 10.4 — Factory Reset
-- [ ] Implement factory reset: hold BOOT button (GPIO 0) for 10 seconds
-- [ ] Add Buttons::isFactoryResetPressed() — check button held > 10s on boot
-- [ ] On trigger: wipe SPIFFS (SPIFFS.format()), reset WiFi credentials, restart
-- [ ] Add visual feedback: RGB LED flashes red 3 times, OLED shows "Factory Reset"
-- [ ] Add confirmation: require button hold during reset (not just on boot)
-- [ ] Add POST /api/settings/factory-reset HTTP endpoint (software trigger)
-- [ ] Verify compilation and test reset flow in native test environment
+### 10.4 — Factory Reset ✅ COMPLETE
+- [x] Implement factory reset: hold BOOT button (GPIO 0) for 10 seconds
+- [x] Add Buttons::isFactoryResetPressed() — check button held > 10s on boot
+- [x] On trigger: wipe SPIFFS (SPIFFS.format()), reset WiFi credentials, restart
+- [x] Add visual feedback: RGB LED flashes red 3 times, OLED shows "Factory Reset"
+- [x] Add confirmation: require button hold during reset (not just on boot)
+- [x] Add POST /api/settings/factory-reset HTTP endpoint (software trigger)
+- [x] Verify compilation and test reset flow in native test environment
 
-### 10.5 — SPIFFS Atomic Writes
-- [ ] Create Storage::atomicWrite(filename, content) — write to .tmp, then rename
-- [ ] Update all save functions to use atomicWrite:
-  - [ ] savePetState() / loadPetState()
-  - [ ] saveMultiPetState() / loadMultiPetState()
-  - [ ] saveSettings() / loadSettings()
-  - [ ] saveStats() / loadStats()
-  - [ ] saveAchievements() / loadAchievements()
-- [ ] Add write verification: read back after write, retry on mismatch
-- [ ] Add unit tests for atomic write (mock SPIFFS rename failure)
+### 10.5 — SPIFFS Atomic Writes ✅ COMPLETE
+- [x] Create Storage::atomicWrite(filename, content) — write to .tmp, then rename
+- [x] Update all save functions to use atomicWrite:
+  - [x] savePetState() / loadPetState()
+  - [x] saveMultiPetState() / loadMultiPetState()
+  - [x] saveSettings() / loadSettings()
+  - [x] saveStats() / loadStats()
+  - [x] saveAchievements() / loadAchievements()
+- [x] Add write verification: read back after write, retry on mismatch
+- [x] Add unit tests for atomic write (mock SPIFFS rename failure)
 
-### 10.6 — Error Code System
-- [ ] Create ErrorCode.h enum with all error codes
-- [ ] Update all API responses to include structured error objects
-- [ ] Add error code documentation in README
-- [ ] Add unit tests for error code propagation
+### 10.6 — Error Code System ✅ COMPLETE
+- [x] Create ErrorCode.h enum with all error codes
+- [x] Update all API responses to include structured error objects
+- [x] Add error code documentation in README
+- [x] Add unit tests for error code propagation
 
-### 10.7 — Documentation & Polish
-- [ ] Update README with Phase 10 features (WebSocket, i18n, factory reset, atomic writes)
-- [ ] Update CHANGELOG.md with Phase 10 changes
-- [ ] Update TASKS.md with progress after each sub-task
+### 10.7 — Documentation & Polish ✅ COMPLETE
+- [x] Update README with Phase 10 features (WebSocket, i18n, factory reset, atomic writes)
+- [x] Update CHANGELOG.md with Phase 10 changes
+- [x] Update TASKS.md with progress after each sub-task
 - [ ] Create PR when all 10.x sub-tasks complete
 
 ---
