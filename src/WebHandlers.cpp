@@ -11,6 +11,10 @@
 #include "PowerManager.h"
 #include "WebSocket.h"
 #include "i18n.h"
+#include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
+#ifdef ENABLE_OLED
+#include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
+#endif
 #ifndef DISABLE_IR_REMOTE
 #include "IRRemote.h"
 #endif
