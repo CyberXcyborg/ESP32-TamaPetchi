@@ -10,7 +10,7 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 9 ✅ Complete — v1.0.0 released, v1.1 features in development
-- Phase 10 🔄 In Progress — 10.1 merged, 10.2 PR open (needs fixes), 10.3-10.7 pending
+- Phase 10 🔄 In Progress — 10.1 ✅, 10.2 ✅, 10.3 ✅, PR #11 approved (awaiting merge), 10.4-10.7 pending
 
 ## Phase 10: v1.1 Core Features Sprint
 
@@ -26,29 +26,29 @@
 - [x] Verify compilation: pio run -e esp32dev — zero errors
 - [x] Run unit tests: pio test -e native — all 61 tests pass
 
-### 10.2 — WebSocket Real-Time Updates 🔄 PR #11 OPEN
+### 10.2 — WebSocket Real-Time Updates ✅ COMPLETE (PR #11 approved, awaiting merge)
 - [x] Add WebSockets library to platformio.ini (links2004/WebSockets@2.4.1)
 - [x] Create WebSocket.h / WebSocket.cpp module
 - [x] Implement WebSocket server on port 81
 - [x] Add real-time pet stat push (JSON broadcast on stat change)
-- [x] Add real-time notification push (feed, play, reset)
+- [x] Add real-time notification push (feed, play, clean, sleep, heal, reset)
+- [x] Update web UI (data/index.html) to use WebSocket instead of SSE
+- [x] Remove duplicate function declarations from WebHandlers.h
+- [x] Replace g_server with APP_STATE.server in WebHandlers.cpp
 - [x] Update WebHandlers to call WebSocket broadcasts
-- [x] Verify compilation and memory usage
-- [ ] **FIX: Update web UI (data/index.html) to use WebSocket instead of SSE**
-- [ ] **FIX: Remove duplicate function declarations from WebHandlers.h**
-- [ ] **FIX: Add WebSocket notifications for clean, sleep, heal actions**
-- [ ] **FIX: Replace g_server with APP_STATE.server in WebHandlers.cpp**
+- [x] Verify compilation and memory usage (RAM 17.0%, Flash 76.2%)
+- [x] Create PR #11 and get approval
 - [ ] Add unit tests for WebSocket message serialization
-- [ ] Create PR and get approval
 
-### 10.3 — i18n Multi-Language Support
-- [ ] Create i18n.h / i18n.cpp module
-- [ ] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
-- [ ] Translate all web UI strings: nav labels, button text, status messages, error messages
-- [ ] Add language selector in web UI (stored in localStorage)
-- [ ] Add Accept-Language header detection for auto-select
-- [ ] Add GET /api/settings/lang and POST /api/settings/lang endpoints
-- [ ] Verify SPIFFS data directory updated and buildfs succeeds
+### 10.3 — i18n Multi-Language Support ✅ COMPLETE (in PR #11)
+- [x] Create i18n.h / i18n.cpp module
+- [x] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
+- [x] Translate all web UI strings: nav labels, button text, status messages, error messages
+- [x] Add language selector in web UI (stored in localStorage)
+- [x] Add Accept-Language header detection for auto-select (with quality value parsing)
+- [x] Add GET /api/settings/lang and POST /api/settings/lang endpoints
+- [x] Add GET /api/locales/current endpoint
+- [x] Verify SPIFFS data directory updated and buildfs succeeds
 - [ ] Add unit tests for i18n string lookup and fallback
 
 ### 10.4 — Factory Reset
