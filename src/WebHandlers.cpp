@@ -300,11 +300,25 @@ static void sendErrorResponse(const char* errorCode, const String &message, int 
 void handleRoot() {
   if (!g_server) { Serial.println("ERROR: g_server null in handleRoot"); return; }
 
+  // Phase 11.5: ETag support for caching
+  String etag = "";
+  File etagFile = SPIFFS.open("/index.html.gz", "r");
+  if (!etagFile) etagFile = SPIFFS.open("/index.html", "r");
+  if (etagFile) {
+    etag = String("\"") + String(etagFile.size()) + "\"";
+    etagFile.close();
+    if (g_server->header("If-None-Match") == etag) {
+      g_server->send(304, "text/plain", "");
+      return;
+    }
+  }
+
   // Phase 7.3: Try gzip-compressed version first
   File file = SPIFFS.open("/index.html.gz", "r");
   if (file) {
     g_server->sendHeader("Content-Encoding", "gzip");
     g_server->sendHeader("Cache-Control", "max-age=86400");
+    if (etag.length() > 0) g_server->sendHeader("ETag", etag);
     g_server->streamFile(file, "text/html");
     file.close();
     return;
@@ -317,6 +331,7 @@ void handleRoot() {
     return;
   }
   g_server->sendHeader("Cache-Control", "max-age=3600");
+  if (etag.length() > 0) g_server->sendHeader("ETag", etag);
   g_server->streamFile(file, "text/html");
   file.close();
 }

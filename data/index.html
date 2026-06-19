@@ -1064,22 +1064,43 @@
             ws.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.type === 'notification') {
+                    if (data.type === 'notification' || data.t === 'n') {
                         // Phase 11.2: Show toast notification
-                        const toastType = data.notificationType === 'reset' ? 'info' : 'success';
-                        showToast(data.message, toastType);
+                        const toastType = (data.notificationType === 'reset' || data.nt === 'reset') ? 'info' : 'success';
+                        showToast(data.message || data.m, toastType);
                         return;
                     }
                     if (data.type === 'pong') {
                         // Heartbeat response — ignore
                         return;
                     }
-                    if (data.type === 'init' || data.type === 'update') {
-                        if (previousState !== data.state) {
-                            handleStateChange(previousState, data.state);
+                    // Phase 11.5: Handle both compact (short keys) and full (long keys) formats
+                    if (data.type === 'init' || data.type === 'update' || data.t === 'u' || data.t === 'i') {
+                        if (previousState !== (data.state || data.st)) {
+                            handleStateChange(previousState, (data.state || data.st));
                         }
-                        previousState = data.state;
-                        pet = data;
+                        previousState = data.state || data.st;
+                        // Merge data into pet object (handle both key formats)
+                        if (data.hunger !== undefined) pet.hunger = data.hunger;
+                        if (data.h !== undefined) pet.hunger = data.h;
+                        if (data.happiness !== undefined) pet.happiness = data.happiness;
+                        if (data.ha !== undefined) pet.happiness = data.ha;
+                        if (data.health !== undefined) pet.health = data.health;
+                        if (data.he !== undefined) pet.health = data.he;
+                        if (data.energy !== undefined) pet.energy = data.energy;
+                        if (data.e !== undefined) pet.energy = data.e;
+                        if (data.cleanliness !== undefined) pet.cleanliness = data.cleanliness;
+                        if (data.c !== undefined) pet.cleanliness = data.c;
+                        if (data.age !== undefined) pet.age = data.age;
+                        if (data.a !== undefined) pet.age = data.a;
+                        if (data.stage !== undefined) pet.stage = data.stage;
+                        if (data.s !== undefined) pet.stage = data.s;
+                        if (data.isNight !== undefined) pet.isNight = data.isNight;
+                        if (data.n !== undefined) pet.isNight = data.n;
+                        if (data.state !== undefined) pet.state = data.state;
+                        if (data.st !== undefined) pet.state = data.st;
+                        if (data.mood !== undefined) pet.mood = data.mood;
+                        if (data.mo !== undefined) pet.mood = data.mo;
                         updateDisplay();
                         updateMoodDisplay();
                         updateScheduledFeedUI();
