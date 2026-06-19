@@ -25,6 +25,73 @@
             overflow: hidden;
         }
         
+        /* Phase 11.2: WebSocket Connection Status */
+        .ws-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .ws-status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+        .ws-status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+        .ws-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .ws-dot.connected { background: #4caf50; box-shadow: 0 0 4px #4caf50; }
+        .ws-dot.disconnected { background: #f44336; }
+
+        /* Phase 11.2: Toast Notification System */
+        #toast-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast {
+            min-width: 200px;
+            max-width: 320px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 14px;
+            font-weight: 500;
+            pointer-events: auto;
+            animation: toast-in 0.3s ease-out, toast-out 0.3s ease-in 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-success { background: linear-gradient(135deg, #c8e6c9, #a5d6a7); color: #2e7d32; border-left: 4px solid #4caf50; }
+        .toast-info { background: linear-gradient(135deg, #bbdefb, #90caf9); color: #1565c0; border-left: 4px solid #2196f3; }
+        .toast-warning { background: linear-gradient(135deg, #fff9c4, #fff176); color: #f57f17; border-left: 4px solid #ffeb3b; }
+        .toast-error { background: linear-gradient(135deg, #ffcdd2, #ef9a9a); color: #c62828; border-left: 4px solid #f44336; }
+        @keyframes toast-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toast-out {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Phase 11.2: Pet sprite animation enhancement */
         .pet-sprite {
             transition: all 0.5s ease;
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
@@ -373,6 +440,8 @@
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4">
+    <!-- Phase 11.2: Toast Notification Container -->
+    <div id="toast-container"></div>
     <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
@@ -380,6 +449,10 @@
                 <i class="fas fa-heart text-pink-300"></i>
                 <span id="header-name">ESP32 TamaPetchi</span>
                 <i class="fas fa-star text-yellow-300"></i>
+                <span id="ws-status" class="ws-status disconnected">
+                    <span class="ws-dot disconnected" id="ws-dot"></span>
+                    <span id="ws-text">Connecting...</span>
+                </span>
             </h1>
             <div id="pet-name-display" class="text-sm mt-1 opacity-80" style="display:none;">
                 Meet <span id="pet-name-text" class="font-bold"></span>!
@@ -826,6 +899,7 @@
         let wsConnected = false;
         let wsReconnectAttempts = 0;
         let wsReconnectTimer = null;
+        let wsHeartbeatTimer = null;
 
         function startWebSocket() {
             if (typeof WebSocket === 'undefined') {
@@ -843,14 +917,25 @@
                 wsReconnectAttempts = 0;
                 console.log('WebSocket connected — real-time updates active');
                 updateConnectionStatus(true);
+                // Start heartbeat — ping every 30s
+                wsHeartbeatTimer = setInterval(function() {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({type: 'ping'}));
+                    }
+                }, 30000);
             };
 
             ws.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
                     if (data.type === 'notification') {
-                        // Show notification toast
-                        showMessage(data.message, data.notificationType === 'reset' ? 'info' : 'success');
+                        // Phase 11.2: Show toast notification
+                        const toastType = data.notificationType === 'reset' ? 'info' : 'success';
+                        showToast(data.message, toastType);
+                        return;
+                    }
+                    if (data.type === 'pong') {
+                        // Heartbeat response — ignore
                         return;
                     }
                     if (data.type === 'init' || data.type === 'update') {
@@ -878,6 +963,11 @@
                 console.log('WebSocket connection closed');
                 wsConnected = false;
                 updateConnectionStatus(false);
+                // Clear heartbeat
+                if (wsHeartbeatTimer) {
+                    clearInterval(wsHeartbeatTimer);
+                    wsHeartbeatTimer = null;
+                }
                 // Auto-reconnect with exponential backoff (max 30s)
                 if (wsReconnectAttempts < 10) {
                     const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
@@ -889,12 +979,42 @@
         }
 
         function updateConnectionStatus(connected) {
-            // Update a connection indicator if one exists in the UI
-            const indicator = document.getElementById('connection-status');
-            if (indicator) {
-                indicator.className = connected ? 'text-green-500' : 'text-red-500';
-                indicator.title = connected ? 'WebSocket connected' : 'WebSocket disconnected — using polling';
+            const statusEl = document.getElementById('ws-status');
+            const dotEl = document.getElementById('ws-dot');
+            const textEl = document.getElementById('ws-text');
+            if (statusEl && dotEl && textEl) {
+                if (connected) {
+                    statusEl.className = 'ws-status connected';
+                    dotEl.className = 'ws-dot connected';
+                    textEl.textContent = 'Live';
+                } else {
+                    statusEl.className = 'ws-status disconnected';
+                    dotEl.className = 'ws-dot disconnected';
+                    textEl.textContent = 'Reconnecting...';
+                }
             }
+        }
+
+        // ============================================================
+        // Phase 11.2: Toast Notification System
+        // ============================================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icons = {
+                success: '<i class="fas fa-check-circle"></i>',
+                info: '<i class="fas fa-info-circle"></i>',
+                warning: '<i class="fas fa-exclamation-triangle"></i>',
+                error: '<i class="fas fa-times-circle"></i>'
+            };
+            toast.innerHTML = (icons[type] || icons.info) + ' ' + message;
+            container.appendChild(toast);
+            // Remove after animation completes
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 3200);
         }
 
         // ============================================================
