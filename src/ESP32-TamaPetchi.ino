@@ -23,6 +23,7 @@
 #include "PowerManagement.h"
 #include "AppState.h"
 #include "WebSocket.h"
+#include "i18n.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED

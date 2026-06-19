@@ -10,6 +10,7 @@
 #include "Notifications.h"
 #include "PowerManager.h"
 #include "WebSocket.h"
+#include "i18n.h"
 #ifndef DISABLE_IR_REMOTE
 #include "IRRemote.h"
 #endif
@@ -50,6 +51,11 @@ void handleSwitchPet();
 void handleDeletePet();
 void handleGetStats();
 void handleGetNotifications();
+
+// Phase 10.3: i18n
+void handleGetLanguage();
+void handleSetLanguage();
+void handleGetLocale();
 
 // ============================================================
 // Module-level state (minimal)
@@ -219,6 +225,11 @@ void registerHandlers(WebServer &server, Pet &pet) {
 #ifndef DISABLE_OTA_DELTA
   registerDeltaRoutes(server);
 #endif
+
+  // Phase 10.3: i18n routes
+  server.on("/api/settings/lang", HTTP_GET, handleGetLanguage);
+  server.on("/api/settings/lang", HTTP_POST, handleSetLanguage);
+  server.on("/api/locales/current", HTTP_GET, handleGetLocale);
 }
 
 // ============================================================
@@ -911,3 +922,48 @@ void handleSetIRRemote() {
   sendJsonResponse(true);
 }
 #endif // !DISABLE_IR_REMOTE
+
+// ============================================================
+// Phase 10.3: i18n Language Endpoints
+// ============================================================
+
+void handleGetLanguage() {
+  if (!g_server) return;
+  AppState &state = APP_STATE;
+  Language lang = getCurrentLanguage();
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["success"] = true;
+  jsonDoc["language"] = getLanguageCode(lang);
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+void handleSetLanguage() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
+  AppState &state = APP_STATE;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  String langCode = jsonDoc["language"] | "en";
+  Language lang = parseLanguage(langCode);
+  setCurrentLanguage(lang);
+  sendJsonResponse(true);
+}
+
+void handleGetLocale() {
+  if (!g_server) return;
+  AppState &state = APP_STATE;
+  Language lang = getCurrentLanguage();
+  String locale = loadLocale(lang);
+  if (locale.length() == 0) {
+    locale = "{}";
+  }
+  g_server->send(200, "application/json", locale);
+}
