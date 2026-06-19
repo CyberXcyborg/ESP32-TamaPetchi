@@ -210,4 +210,4 @@
  src/MultiPet.h src/Stats.h src/Achievements.h src/Buttons.h \
  src/RGB_LED.h src/OTA.h src/WiFiManager.h src/Notifications.h \
  src/PowerManager.h src/PowerManagement.h src/WebSocket.h src/i18n.h \
- src/IRRemote.h src/MQTT.h src/OTA_Delta.h
+ src/OTARollback.h src/IRRemote.h src/MQTT.h src/OTA_Delta.h

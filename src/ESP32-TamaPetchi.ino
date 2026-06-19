@@ -24,6 +24,7 @@
 #include "AppState.h"
 #include "WebSocket.h"
 #include "i18n.h"
+#include "OTARollback.h"
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -75,6 +76,9 @@ void setup() {
 
   // Phase 5: Initialize OTA
   setupOTA();
+
+  // Phase 11.1: Initialize OTA rollback system
+  initRollbackSystem();
 
   // Phase 7.5: Initialize MQTT
 #ifndef DISABLE_MQTT
@@ -204,6 +208,11 @@ void loop() {
 
     // Phase 6: Update RGB LED status
     updateRGBLED(APP_STATE.pet);
+  }
+
+  // Phase 11.1: Auto-confirm firmware after 5 minutes stable uptime
+  if (!isFirmwareConfirmed() && (millis() - getStableStartTime() >= 300000UL)) {
+    confirmFirmwareStable();
   }
 }
 
