@@ -114,4 +114,19 @@ void updateOLED(const Pet &pet) {
   display.display();
 }
 
+// ============================================================
+// Phase 10.4: Factory Reset Display
+// Show "Factory Reset" message on OLED during reset
+// ============================================================
+void showFactoryResetOLED() {
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 20);
+  display.println("FACTORY");
+  display.setCursor(10, 40);
+  display.println("RESET");
+  display.display();
+}
+
 #endif // ENABLE_OLED

@@ -57,6 +57,9 @@ void handleGetLanguage();
 void handleSetLanguage();
 void handleGetLocale();
 
+// Phase 10.4: Factory Reset
+void handleFactoryReset();
+
 // ============================================================
 // Module-level state (minimal)
 // g_server is a convenience macro for APP_STATE.server to avoid
@@ -230,6 +233,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/settings/lang", HTTP_GET, handleGetLanguage);
   server.on("/api/settings/lang", HTTP_POST, handleSetLanguage);
   server.on("/api/locales/current", HTTP_GET, handleGetLocale);
+
+  // Phase 10.4: Factory reset route
+  server.on("/api/settings/factory-reset", HTTP_POST, handleFactoryReset);
 }
 
 // ============================================================
@@ -966,4 +972,46 @@ void handleGetLocale() {
     locale = "{}";
   }
   g_server->send(200, "application/json", locale);
+}
+
+// ============================================================
+// Phase 10.4: Factory Reset Handler
+// Software trigger: POST /api/settings/factory-reset
+// Wipes SPIFFS, resets WiFi credentials, restarts device
+// ============================================================
+void handleFactoryReset() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
+
+  // Send response before reset (device will restart)
+  g_server->send(200, "application/json", "{\"success\":true,\"message\":\"Factory reset initiated — device restarting\"}");
+
+  // Give time for HTTP response to be sent
+  delay(500);
+
+  // Visual feedback: flash red 3 times
+#ifndef DISABLE_RGB_LED
+  flashRGBRed(3, 300, 200);
+#endif
+
+  // Show factory reset on OLED
+#ifdef ENABLE_OLED
+  showFactoryResetOLED();
+#endif
+
+  delay(500);
+
+  // Wipe SPIFFS
+  SPIFFS.format();
+
+  // Reset WiFi credentials
+  WiFi.disconnect(true, true);  // eraseAP = true, true
+
+  delay(1000);
+
+  // Restart device
+  ESP.restart();
 }
