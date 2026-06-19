@@ -10,7 +10,7 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 9 🔄 In Progress — Release ✅, v1.1 features in development
-- Phase 10 🔄 In Progress — 10.1 AppState ✅, 10.2-10.7 pending
+- Phase 10 🔄 In Progress — 10.1 AppState ✅, 10.2 WebSocket ✅, 10.3 i18n ✅, 10.4-10.7 pending
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -317,26 +317,29 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [x] Verify compilation: pio run -e esp32dev — zero errors
 - [x] Run unit tests: pio test -e native — all 61+ tests pass
 
-### 10.2 — WebSocket Real-Time Updates
-- [ ] Add WebSockets library to platformio.ini (e.g., Links2004/WebSockets)
-- [ ] Create WebSocket.h / WebSocket.cpp module
-- [ ] Implement WebSocket server on port 81 (separate from HTTP on 80)
-- [ ] Add real-time pet stat push (JSON broadcast on stat change)
-- [ ] Add real-time notification push (achievement unlock, pet death, evolution)
-- [ ] Update web UI (data/index.html) to use WebSocket instead of SSE polling
-- [ ] Add WebSocket connection status indicator in UI
-- [ ] Implement auto-reconnect with exponential backoff
-- [ ] Verify compilation and memory usage (ensure < 80% flash)
+### 10.2 — WebSocket Real-Time Updates ✅ COMPLETE
+- [x] Add WebSockets library to platformio.ini (Links2004/WebSockets@2.4.1)
+- [x] Create WebSocket.h / WebSocket.cpp module
+- [x] Implement WebSocket server on port 81 (separate from HTTP on 80)
+- [x] Add real-time pet stat push (JSON broadcast on stat change)
+- [x] Add real-time notification push (feed, play, clean, sleep, heal, reset)
+- [x] Update web UI (data/index.html) to use WebSocket instead of SSE polling
+- [x] Add WebSocket connection status indicator in UI
+- [x] Implement auto-reconnect with exponential backoff (max 30s, 10 attempts)
+- [x] Verify compilation and memory usage (RAM 17.0%, Flash 76.2%)
+- [x] Replace g_server global with APP_STATE.server via macro
+- [x] Remove duplicate function declarations from WebHandlers.h
 - [ ] Add unit tests for WebSocket message serialization
 
-### 10.3 — i18n Multi-Language Support
-- [ ] Create i18n.h / i18n.cpp module
-- [ ] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
-- [ ] Translate all web UI strings: nav labels, button text, status messages, error messages
-- [ ] Add language selector in web UI (stored in localStorage)
-- [ ] Add Accept-Language header detection for auto-select
-- [ ] Add GET /api/settings/lang and POST /api/settings/lang endpoints
-- [ ] Verify SPIFFS data directory updated and buildfs succeeds
+### 10.3 — i18n Multi-Language Support ✅ COMPLETE
+- [x] Create i18n.h / i18n.cpp module
+- [x] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
+- [x] Translate all web UI strings: nav labels, button text, status messages, error messages
+- [x] Add language selector in web UI (stored in localStorage)
+- [x] Add Accept-Language header detection for auto-select (with quality value parsing)
+- [x] Add GET /api/settings/lang and POST /api/settings/lang endpoints
+- [x] Add GET /api/locales/current endpoint
+- [x] Verify SPIFFS data directory updated and buildfs succeeds
 - [ ] Add unit tests for i18n string lookup and fallback
 
 ### 10.4 — Factory Reset
