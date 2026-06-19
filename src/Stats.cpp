@@ -1,4 +1,5 @@
 #include "Stats.h"
+#include "Storage.h"  // Phase 10.5: for atomicWrite()
 #include "config.h"
 #include <SPIFFS.h>
 #include <ArduinoJson.h>
@@ -39,9 +40,6 @@ void loadStats(GameStats &stats) {
 }
 
 void saveStats(const GameStats &stats) {
-  File file = SPIFFS.open(STATS_FILE, "w");
-  if (!file) return;
-
   StaticJsonDocument<512> jsonDoc;
   jsonDoc["totalPlayTimeSec"] = stats.totalPlayTimeSec;
   jsonDoc["totalFeeds"]       = stats.totalFeeds;
@@ -53,8 +51,9 @@ void saveStats(const GameStats &stats) {
   jsonDoc["deaths"]           = stats.deaths;
   jsonDoc["evolutions"]       = stats.evolutions;
 
-  serializeJson(jsonDoc, file);
-  file.close();
+  String content;
+  serializeJson(jsonDoc, content);
+  atomicWrite(STATS_FILE, content);
 }
 
 void statsOnFeed(GameStats &stats) {
