@@ -68,3 +68,18 @@ void updateRGBLED(const Pet &pet) {
   // Healthy: green
   setColor(false, true, false);
 }
+
+// ============================================================
+// Phase 10.4: Factory Reset Visual Feedback
+// Flash red LED to indicate factory reset in progress
+// ============================================================
+void flashRGBRed(int flashes, int onMs, int offMs) {
+  for (int i = 0; i < flashes; i++) {
+    setColor(true, false, false);  // Red ON
+    delay(onMs);
+    setColor(false, false, false); // OFF
+    if (i < flashes - 1) {
+      delay(offMs);
+    }
+  }
+}

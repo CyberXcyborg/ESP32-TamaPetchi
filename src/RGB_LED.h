@@ -20,11 +20,15 @@
 void setupRGBLED();
 void updateRGBLED(const Pet &pet);
 
+// Phase 10.4: Factory reset visual feedback — flash red 3 times
+void flashRGBRed(int flashes = 3, int onMs = 300, int offMs = 200);
+
 #else
 
 // Stubs when disabled
 inline void setupRGBLED() {}
 inline void updateRGBLED(const Pet &) {}
+inline void flashRGBRed(int = 3, int = 300, int = 200) {}
 
 #endif // DISABLE_RGB_LED
 

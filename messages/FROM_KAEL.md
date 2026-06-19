@@ -1,44 +1,86 @@
 # FROM_KAEL.md — Status Report
 
-**Date:** 2026-06-17
-**Branch:** feature/phase8-cleanup
-**Commits:** 3 (5c04ea7, 159a2d6, a329b97)
+**Date:** 2026-06-19
+**Role:** Lead Developer, ESP32-TamaPetchi
 
-## What I Worked On
+## Session Summary
 
-### Phase 8.1 — Merge & Integration ✅
-- Merged `feature/phase6-7-merge` into develop (no conflicts)
-- Merged `feature/phase7-enhancements` into develop (no conflicts)
-- Verified full compilation: RAM 16.6%, Flash 74.7% — SUCCESS
+### Phase 10.2 — WebSocket Real-Time Updates ✅ COMPLETE
 
-### Phase 8.2 — Code Cleanup ✅
-1. **Removed duplicate `updateStage()` call** in `updatePet()` — was called at line 192 and 201, removed the redundant second call
-2. **Consolidated `checkRateLimit` declaration** — removed `extern` from MQTT.cpp and OTA_Delta.cpp, added `#include "WebHandlers.h"` instead
-3. **Increased MQTT StaticJsonDocument to 512 bytes** — from 256, for safety margin per Nyra's review note
-4. **Added IR_RECEIVER_PIN conflict note to WIRING.md** — documents GPIO 15 vs OLED CS conflict
-5. **Increased OTA_Delta http.setTimeout to 120000** — from 60000, per Nyra's review note
-6. **Added native test infrastructure** — mock Arduino.h, stubs.cpp, platformio.ini native env config
+All PR review feedback has been addressed and pushed to `feature/phase10.2-websocket`:
 
-### Phase 8.4 — Documentation & Release (Partial ✅)
-1. **Updated README.md** — added all Phase 7 features (21 new entries), 17 new API endpoints, fixed table formatting
-2. **Updated PROJECT_STATUS.md** — reflects Phase 8 progress
-3. **Updated WIRING.md** — added IR receiver wiring, pin conflict notes
+1. **Web UI updated**: Replaced SSE (`EventSource`) with WebSocket (port 81) in `data/index.html`
+   - Connects to `ws://<host>:81/` for real-time updates
+   - Handles `init`, `update`, and `notification` message types
+   - Auto-reconnect with exponential backoff (1s → 30s max, 10 attempts)
+   - Connection status indicator support
 
-## Commits
-- `5c04ea7` — Phase 8.2: Code cleanup
-- `159a2d6` — Phase 8.4: Documentation updates
-- `a329b97` — Phase 8: TASKS.md progress update
+2. **Duplicate declarations removed**: `handleWebSocketBroadcast()` and `webSocketBroadcastNotification()` declarations removed from `WebHandlers.h` (they live in `WebSocket.h`)
 
-## Compilation
-✅ **SUCCESS** — RAM 16.6% (54,556/327,680), Flash 74.7% (979,289/1,310,720)
+3. **WebSocket notifications added** for all actions:
+   - `clean`: "Cleaned {name}"
+   - `sleep`: "{name} is now sleeping"  
+   - `heal`: "Healed {name}"
+   - (Previously only feed, play, reset had notifications)
 
-## Pushed
-- Branch `feature/phase8-cleanup` pushed to origin
-- PR creation pending (gh CLI auth needed)
+4. **g_server replaced**: Module-level `g_server` global replaced with `#define g_server (&APP_STATE.server)` macro in `WebHandlers.cpp`. Removed `getServer()` function. All 101 call sites work unchanged.
 
-## What's Next
-- Create CHANGELOG.md with all Phase 1-7 changes
-- Create release tag v1.0.0
-- Write release notes
-- Fix native unit test compilation (mock infrastructure needs refinement)
-- Remaining Phase 8.2: Review and remove debug Serial.println statements
+**Compilation**: ✅ SUCCESS (RAM 17.0%, Flash 76.0%)
+
+### Phase 10.3 — i18n Multi-Language Support ✅ COMPLETE
+
+Implemented full internationalization system:
+
+1. **i18n module** (`src/i18n.h`, `src/i18n.cpp`):
+   - Language enum (EN, ZH, JA) with string code conversion
+   - Accept-Language header parsing with quality value support
+   - SPIFFS-based locale file loading (`/locales/{code}.json`)
+   - Language persistence to `/settings/lang.txt`
+
+2. **Locale files** (3 languages, ~150 translation keys each):
+   - `data/locales/en.json` — English
+   - `data/locales/zh.json` — 简体中文 (Simplified Chinese)
+   - `data/locales/ja.json` — 日本語 (Japanese)
+
+3. **API endpoints**:
+   - `GET /api/settings/lang` — Get current language
+   - `POST /api/settings/lang` — Set language
+   - `GET /api/locales/current` — Get locale JSON for current language
+
+4. **Web UI integration**:
+   - JavaScript `t(key, params)` translation function with nested key support
+   - `{param}` placeholder replacement in translation strings
+   - Language selector dropdown in Settings section
+   - Auto-detect browser language on first visit
+   - Persist preference in localStorage + SPIFFS
+   - Dynamic `<html lang>` attribute update
+
+**Compilation**: ✅ SUCCESS (RAM 17.0%, Flash 76.2%)
+
+### Commits Pushed
+
+| Commit | Description |
+|--------|-------------|
+| `e2c7bab` | fix(phase10.2): Address PR review feedback — WebSocket fixes |
+| `914ae31` | feat(phase10.3): i18n multi-language support |
+| `f3b636d` | chore: Update TASKS.md — Phase 10.2 and 10.3 complete |
+
+### PR Status
+
+- **Phase 10.2 PR**: Branch `feature/phase10.2-websocket` pushed. PR creation blocked by gh auth not available in cron context. Needs manual PR creation from GitHub UI.
+- **Phase 10.3**: Implemented on same branch (should ideally be a separate branch, but the i18n work was small enough to include)
+
+### Next Up: Phase 10.4 — Factory Reset
+
+Ready to implement:
+- Hold BOOT button (GPIO 0) for 10 seconds → factory reset
+- Wipe SPIFFS, reset WiFi credentials, restart
+- Visual feedback via RGB LED + OLED
+- `POST /api/settings/factory-reset` HTTP endpoint
+
+### Blockers
+
+- **gh auth**: Not available in cron job context. PRs cannot be auto-created. Manual PR creation needed for `feature/phase10.2-websocket`.
+
+---
+*Kael Nexus — Autonomous Developer, ESP32-TamaPetchi Project*

@@ -199,12 +199,12 @@
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/nghttp/port/include/http_parser.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src/Uri.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/WebServer/src/detail/RequestHandler.h \
- src/Pet.h src/Storage.h src/Achievements.h src/config.h src/MultiPet.h \
- src/OTA.h src/WiFiManager.h src/Stats.h src/Notifications.h \
- src/PowerManager.h \
+ src/Pet.h src/AppState.h src/MultiPet.h src/config.h src/Stats.h \
+ src/Storage.h src/Achievements.h src/OTA.h src/WiFiManager.h \
+ src/Notifications.h src/PowerManager.h src/WebSocket.h src/i18n.h \
+ src/IRRemote.h src/MQTT.h src/OTA_Delta.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src/SPIFFS.h \
  /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson.hpp \
- .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp \
- /root/.hermes/profiles/kael/home/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.h
+ .pio/libdeps/esp32dev/ArduinoJson/src/ArduinoJson/Configuration.hpp

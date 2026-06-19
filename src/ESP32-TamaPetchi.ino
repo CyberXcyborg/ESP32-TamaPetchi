@@ -110,8 +110,36 @@ void setup() {
   setupOLED();
 #endif
 
-  // Initialize buttons
-  setupButtons();
+  // Phase 10.4: Check for factory reset (hold BOOT button 10s on boot)
+  setupButtons(); // Initialize button GPIO first
+  if (isFactoryResetPressed()) {
+    Serial.println("FACTORY RESET triggered via BOOT button!");
+
+    // Visual feedback
+#ifndef DISABLE_RGB_LED
+    flashRGBRed(3, 300, 200);
+#endif
+
+#ifdef ENABLE_OLED
+    setupOLED();
+    showFactoryResetOLED();
+#endif
+
+    delay(500);
+
+    // Wipe SPIFFS
+    SPIFFS.format();
+    Serial.println("SPIFFS formatted.");
+
+    // Reset WiFi
+    WiFi.disconnect(true, true);
+    Serial.println("WiFi credentials cleared.");
+
+    delay(1000);
+    Serial.println("Restarting...");
+    ESP.restart();
+    // Does not return
+  }
 
   // Initialize RGB LED
   setupRGBLED();

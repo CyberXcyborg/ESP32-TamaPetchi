@@ -162,3 +162,28 @@ void restoreFromRTC(Pet &pet) {
   // Clear magic to prevent re-restore on next boot
   rtcMagic = 0;
 }
+
+// ============================================================
+// Phase 10.4: Factory Reset Detection
+// Hold BOOT button (GPIO 0) for 10 seconds on boot to trigger
+// ============================================================
+
+bool isFactoryResetPressed() {
+  // Check if button is being held on boot
+  if (digitalRead(BUTTON_PIN) != LOW) {
+    return false; // Button not pressed
+  }
+
+  // Button is pressed — wait up to FACTORY_RESET_HOLD_MS to see if it stays pressed
+  unsigned long startTime = millis();
+  while ((millis() - startTime) < FACTORY_RESET_HOLD_MS) {
+    // If button is released before timeout, not a factory reset
+    if (digitalRead(BUTTON_PIN) != LOW) {
+      return false;
+    }
+    delay(10); // Small delay to avoid tight loop
+  }
+
+  // Button held for full duration — confirm factory reset
+  return true;
+}
