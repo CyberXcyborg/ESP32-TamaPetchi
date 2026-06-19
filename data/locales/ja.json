@@ -1,0 +1,134 @@
+{
+  "_lang": "日本語",
+  "_code": "ja",
+  "app": {
+    "title": "ESP32 たまペッチ",
+    "subtitle": "エンハンスド ブロブ ペット"
+  },
+  "nav": {
+    "pet": "ペット",
+    "achievements": "実績",
+    "games": "ゲーム",
+    "settings": "設定",
+    "mood": "気分",
+    "scheduledFeeding": "自動給餌"
+  },
+  "stats": {
+    "hunger": "満腹度",
+    "happiness": "幸福度",
+    "health": "体力",
+    "energy": "元気",
+    "cleanliness": "清潔度",
+    "age": "年齢",
+    "stage": "成長段階",
+    "day": "昼",
+    "night": "夜"
+  },
+  "stages": {
+    "baby": "赤ちゃん",
+    "child": "子供",
+    "adult": "大人",
+    "elder": "シニア"
+  },
+  "weather": {
+    "sunny": "晴れ",
+    "cloudy": "曇り",
+    "rainy": "雨",
+    "snowy": "雪"
+  },
+  "actions": {
+    "feed": "エサ",
+    "play": "遊ぶ",
+    "clean": "掃除",
+    "sleep": "寝る",
+    "heal": "回復",
+    "reset": "リセット",
+    "revive": "復活",
+    "mute": "ミュート"
+  },
+  "petTypes": {
+    "blob": "ブロブ",
+    "cat": "ネコ",
+    "dog": "イヌ"
+  },
+  "games": {
+    "memory": "メモリー",
+    "catch": "キャッチ",
+    "quiz": "クイズ",
+    "score": "スコア",
+    "round": "ラウンド",
+    "memorize": "シーケンスを覚えて！",
+    "yourTurn": "あなたの番！シーケンスを繰り返して：",
+    "tapTarget": "タップして！",
+    "youWon": "勝ち！",
+    "gameOver": "ゲームオーバー！"
+  },
+  "settings": {
+    "difficulty": "難易度",
+    "easy": "イージー (80%)",
+    "normal": "ノーマル (100%)",
+    "hard": "ハード (120%)",
+    "music": "音楽",
+    "darkMode": "ダークモード",
+    "sound": "サウンド",
+    "volume": "音量",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "mood": {
+    "title": "気分",
+    "ecstatic": "絶好調",
+    "happy": "ハッピー",
+    "content": "満足",
+    "neutral": "普通",
+    "sad": "悲しい",
+    "miserable": "最悪",
+    "dying": "瀕死"
+  },
+  "scheduledFeed": {
+    "title": "自動給餌",
+    "enable": "自動給餌を有効化",
+    "every": "間隔",
+    "hours": "時間",
+    "amount": "量"
+  },
+  "connection": {
+    "connected": "WebSocket 接続済み",
+    "disconnected": "WebSocket 切断 — ポール使用中",
+    "error": "接続エラー。デバイスを確認してください。"
+  },
+  "notifications": {
+    "petFed": "{name}にエサをあげた",
+    "petPlayed": "{name}と遊んだ",
+    "petCleaned": "{name}をきれいにした",
+    "petSleeping": "{name}は寝ています",
+    "petHealed": "{name}を回復させた",
+    "petReset": "ペットがリセットされました",
+    "petRevived": "ペットが復活した！",
+    "petDied": "ペットが亡くなりました。リセットをクリックしてやり直してください。",
+    "petWokeUp": "ペットが目を覚まして元気いっぱい！",
+    "typeChanged": "ペットの種類が{type}に変更されました！",
+    "nameChanged": "名前が「{name}」に変更されました！",
+    "difficultySet": "難易度が{difficulty}に設定されました"
+  },
+  "confirm": {
+    "changeType": "ペットの種類を変更するとリセットされます。続けますか？",
+    "enterName": "名前を入力してください"
+  },
+  "errors": {
+    "petNotAlive": "ペットは生きていません",
+    "petTooTired": "ペットは疲れて遊べません",
+    "gameOnCooldown": "ゲームクールダウン：{seconds}秒",
+    "noActiveGame": "アクティブなゲームがありません",
+    "invalidJson": "無効なJSON",
+    "cannotRevive": "復活できません",
+    "reviveCooldown": "復活クールダウン：残り{seconds}秒",
+    "nameEmpty": "名前は空にできません",
+    "invalidType": "無効な種類 — ブロブ、ネコ、イヌのいずれか",
+    "invalidDifficulty": "無効な難易度 — イージー、ノーマル、ハードのいずれか",
+    "invalidGameType": "無効なゲームタイプ — 1、2、3のいずれか",
+    "noFreeSlots": "空きスロットがありません",
+    "invalidSlot": "無効なスロット",
+    "cannotDelete": "削除できません"
+  }
+}

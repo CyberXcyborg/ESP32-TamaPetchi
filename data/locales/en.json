@@ -1,0 +1,134 @@
+{
+  "_lang": "English",
+  "_code": "en",
+  "app": {
+    "title": "ESP32 TamaPetchi",
+    "subtitle": "Enhanced Blob Pet"
+  },
+  "nav": {
+    "pet": "Pet",
+    "achievements": "Achievements",
+    "games": "Games",
+    "settings": "Settings",
+    "mood": "Mood",
+    "scheduledFeeding": "Scheduled Feeding"
+  },
+  "stats": {
+    "hunger": "Hunger",
+    "happiness": "Happiness",
+    "health": "Health",
+    "energy": "Energy",
+    "cleanliness": "Cleanliness",
+    "age": "Age",
+    "stage": "Stage",
+    "day": "Day",
+    "night": "Night"
+  },
+  "stages": {
+    "baby": "Baby",
+    "child": "Child",
+    "adult": "Adult",
+    "elder": "Elder"
+  },
+  "weather": {
+    "sunny": "Sunny",
+    "cloudy": "Cloudy",
+    "rainy": "Rainy",
+    "snowy": "Snowy"
+  },
+  "actions": {
+    "feed": "Feed",
+    "play": "Play",
+    "clean": "Clean",
+    "sleep": "Sleep",
+    "heal": "Heal",
+    "reset": "Reset",
+    "revive": "Revive",
+    "mute": "Mute"
+  },
+  "petTypes": {
+    "blob": "Blob",
+    "cat": "Cat",
+    "dog": "Dog"
+  },
+  "games": {
+    "memory": "Memory",
+    "catch": "Catch",
+    "quiz": "Quiz",
+    "score": "Score",
+    "round": "Round",
+    "memorize": "Memorize the sequence!",
+    "yourTurn": "Your turn! Repeat the sequence:",
+    "tapTarget": "Tap the target!",
+    "youWon": "You won!",
+    "gameOver": "Game over!"
+  },
+  "settings": {
+    "difficulty": "Difficulty",
+    "easy": "Easy (80%)",
+    "normal": "Normal (100%)",
+    "hard": "Hard (120%)",
+    "music": "Music",
+    "darkMode": "Dark Mode",
+    "sound": "Sound",
+    "volume": "Volume",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "mood": {
+    "title": "Mood",
+    "ecstatic": "Ecstatic",
+    "happy": "Happy",
+    "content": "Content",
+    "neutral": "Neutral",
+    "sad": "Sad",
+    "miserable": "Miserable",
+    "dying": "Dying"
+  },
+  "scheduledFeed": {
+    "title": "Scheduled Feeding",
+    "enable": "Enable auto-feed",
+    "every": "Every",
+    "hours": "hours",
+    "amount": "Amount"
+  },
+  "connection": {
+    "connected": "WebSocket connected",
+    "disconnected": "WebSocket disconnected — using polling",
+    "error": "Connection error. Check if device is online."
+  },
+  "notifications": {
+    "petFed": "Fed {name}",
+    "petPlayed": "Played with {name}",
+    "petCleaned": "Cleaned {name}",
+    "petSleeping": "{name} is now sleeping",
+    "petHealed": "Healed {name}",
+    "petReset": "Pet has been reset",
+    "petRevived": "Pet revived!",
+    "petDied": "Your pet has passed away. Click Reset to start over.",
+    "petWokeUp": "Your pet woke up feeling refreshed!",
+    "typeChanged": "Pet type changed to {type}!",
+    "nameChanged": "Name changed to \"{name}\"!",
+    "difficultySet": "Difficulty set to {difficulty}"
+  },
+  "confirm": {
+    "changeType": "Changing pet type will reset your pet. Continue?",
+    "enterName": "Please enter a name"
+  },
+  "errors": {
+    "petNotAlive": "Pet is not alive",
+    "petTooTired": "Pet is too tired to play",
+    "gameOnCooldown": "Game on cooldown: {seconds}s",
+    "noActiveGame": "No active game",
+    "invalidJson": "Invalid JSON body",
+    "cannotRevive": "Cannot revive",
+    "reviveCooldown": "Revive on cooldown: {seconds}s remaining",
+    "nameEmpty": "Name cannot be empty",
+    "invalidType": "Invalid type — must be blob, cat, or dog",
+    "invalidDifficulty": "Invalid difficulty: use easy, normal, or hard",
+    "invalidGameType": "Invalid game type — must be 1, 2, or 3",
+    "noFreeSlots": "No free slots",
+    "invalidSlot": "Invalid slot",
+    "cannotDelete": "Cannot delete"
+  }
+}

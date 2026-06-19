@@ -9,6 +9,8 @@
 #include "Stats.h"
 #include "Notifications.h"
 #include "PowerManager.h"
+#include "WebSocket.h"
+#include "i18n.h"
 #ifndef DISABLE_IR_REMOTE
 #include "IRRemote.h"
 #endif
@@ -41,7 +43,6 @@ void handleGameAction();
 void handleGameState();
 void handleSetMusic();
 void handleSetDifficulty();
-void handleSSEClient();
 void handleGetMelodyConfig();
 void handleSetMelodyConfig();
 void handleGetPets();
@@ -51,12 +52,18 @@ void handleDeletePet();
 void handleGetStats();
 void handleGetNotifications();
 
-// ============================================================
-// Module-level state (minimal — just the server pointer for callbacks)
-// ============================================================
-static WebServer* g_server = nullptr;
+// Phase 10.3: i18n
+void handleGetLanguage();
+void handleSetLanguage();
+void handleGetLocale();
 
-WebServer* getServer() { return g_server; }
+// ============================================================
+// Module-level state (minimal)
+// g_server is a convenience macro for APP_STATE.server to avoid
+// 100+ line changes. In a future cleanup, call sites can be
+// migrated to use APP_STATE.server directly.
+// ============================================================
+#define g_server (&APP_STATE.server)
 
 // ============================================================
 // Rate Limiting (Phase 7.2) — Token bucket per IP
@@ -147,122 +154,14 @@ void cleanupRateBuckets() {
 }
 
 // ============================================================
-// SSE Support (Phase 6.2) — Server-Sent Events for real-time updates
+// WebSocket Integration (Phase 10.2) — replaces SSE
 // ============================================================
-#include <WiFiClient.h>
-
-#define SSE_MAX_CLIENTS 3
-static WiFiClient sseClients[SSE_MAX_CLIENTS];
-static unsigned long lastSSEBroadcast = 0;
-#define SSE_BROADCAST_INTERVAL 2000  // Send updates every 2 seconds
-
-void beginSSE() {
-  // Called after server.begin() — no-op for now, clients connect via /events
-}
-
-void broadcastSSE(const String &data) {
-  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
-    if (sseClients[i] && sseClients[i].connected()) {
-      sseClients[i].print("data: ");
-      sseClients[i].print(data);
-      sseClients[i].print("\n\n");
-    }
-  }
-}
-
-void handleSSEClient() {
-  if (!g_server) return;
-
-  // Find a free slot
-  int slot = -1;
-  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
-    if (!sseClients[i] || !sseClients[i].connected()) {
-      slot = i;
-      break;
-    }
-  }
-
-  if (slot == -1) {
-    // All slots full — reject with 503
-    g_server->send(503, "text/plain", "Too many SSE clients");
-    return;
-  }
-
-  WiFiClient client = g_server->client();
-  sseClients[slot] = client;
-
-  // Send SSE headers
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/event-stream");
-  client.println("Cache-Control: no-cache");
-  client.println("Connection: keep-alive");
-  client.println("Access-Control-Allow-Origin: *");
-  client.println();
-
-  // Keep connection alive — client will disconnect when done
-  // We don't block here; the ESP32 WebServer is single-threaded
-  // The client stays in the array and we broadcast to it periodically
-}
-
-void handleSSEClients() {
-  // Clean up disconnected clients
-  for (int i = 0; i < SSE_MAX_CLIENTS; i++) {
-    if (sseClients[i] && !sseClients[i].connected()) {
-      sseClients[i].stop();
-    }
-  }
-
-  // Broadcast pet state periodically
-  AppState& state = APP_STATE;
-  if (state.pet.isAlive && g_server && millis() - lastSSEBroadcast > SSE_BROADCAST_INTERVAL) {
-    lastSSEBroadcast = millis();
-
-    // Phase 7.2: Periodic rate limit bucket cleanup
-    cleanupRateBuckets();
-
-    DynamicJsonDocument jsonDoc(512);
-    jsonDoc["hunger"]      = state.pet.hunger;
-    jsonDoc["happiness"]   = state.pet.happiness;
-    jsonDoc["health"]      = state.pet.health;
-    jsonDoc["energy"]      = state.pet.energy;
-    jsonDoc["cleanliness"] = state.pet.cleanliness;
-    jsonDoc["isAlive"]     = state.pet.isAlive;
-    jsonDoc["state"]       = state.pet.state;
-    jsonDoc["age"]         = state.pet.age;
-
-    const char* stageStr = "baby";
-    switch (state.pet.stage) {
-      case BABY:  stageStr = "baby";  break;
-      case CHILD: stageStr = "child"; break;
-      case ADULT: stageStr = "adult"; break;
-      case ELDER: stageStr = "elder"; break;
-    }
-    jsonDoc["stage"] = stageStr;
-    jsonDoc["isNight"] = state.pet.isNight;
-    jsonDoc["weather"] = getWeatherName(state.pet.weather);
-    jsonDoc["isDying"] = state.pet.isDying;
-    jsonDoc["isEvolving"] = state.pet.isEvolving;
-    jsonDoc["activeGame"] = state.pet.activeGame;
-    jsonDoc["gameCooldown"] = state.pet.gameCooldown;
-
-    String payload;
-    serializeJson(jsonDoc, payload);
-    broadcastSSE(payload);
-  }
-}
 
 // ============================================================
 // Route Registration
 // ============================================================
 void registerHandlers(WebServer &server, Pet &pet) {
-  g_server = &server;
-
-  // Phase 7.2: Register rate-limited 404 fallback
-  server.onNotFound([]() {
-    if (g_server) {
-      g_server->send(404, "application/json", "{\"success\":false,\"error\":\"not_found\"}");
-    }
-  });
+  // g_server macro points to APP_STATE.server (set in setup())
 
   server.on("/",       HTTP_GET,  handleRoot);
   server.on("/pet",    HTTP_GET,  handleGetPet);
@@ -283,9 +182,6 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/game/state",  HTTP_GET,  handleGameState);
   server.on("/music",       HTTP_POST, handleSetMusic);
   server.on("/difficulty",  HTTP_POST, handleSetDifficulty);
-
-  // Phase 6: SSE endpoint for real-time updates
-  server.on("/events",      HTTP_GET,  handleSSEClient);
 
   // Phase 6: Buzzer melody configuration
   server.on("/melodies",        HTTP_GET,  handleGetMelodyConfig);
@@ -329,6 +225,11 @@ void registerHandlers(WebServer &server, Pet &pet) {
 #ifndef DISABLE_OTA_DELTA
   registerDeltaRoutes(server);
 #endif
+
+  // Phase 10.3: i18n routes
+  server.on("/api/settings/lang", HTTP_GET, handleGetLanguage);
+  server.on("/api/settings/lang", HTTP_POST, handleSetLanguage);
+  server.on("/api/locales/current", HTTP_GET, handleGetLocale);
 }
 
 // ============================================================
@@ -459,6 +360,8 @@ void handleFeed() {
   checkAchievements(state.pet);
   saveAchievements(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("feed", "Fed " + state.pet.name);
 }
 
 void handlePlay() {
@@ -475,6 +378,8 @@ void handlePlay() {
   checkAchievements(state.pet);
   saveAchievements(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("play", "Played with " + state.pet.name);
 }
 
 void handleClean() {
@@ -488,6 +393,8 @@ void handleClean() {
   cleanPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("clean", "Cleaned " + state.pet.name);
 }
 
 void handleSleep() {
@@ -501,6 +408,8 @@ void handleSleep() {
   sleepPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("sleep", state.pet.name + " is now sleeping");
 }
 
 void handleHeal() {
@@ -514,6 +423,8 @@ void handleHeal() {
   healPet(state.pet);
   savePetData(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("heal", "Healed " + state.pet.name);
 }
 
 void handleReset() {
@@ -532,6 +443,8 @@ void handleReset() {
   savePetData(state.pet);
   saveAchievements(state.pet);
   sendJsonResponse(true);
+  // Phase 10.2: Broadcast state change via WebSocket
+  webSocketBroadcastNotification("reset", "Pet has been reset");
 }
 
 void handleUpdate() {
@@ -1009,3 +922,48 @@ void handleSetIRRemote() {
   sendJsonResponse(true);
 }
 #endif // !DISABLE_IR_REMOTE
+
+// ============================================================
+// Phase 10.3: i18n Language Endpoints
+// ============================================================
+
+void handleGetLanguage() {
+  if (!g_server) return;
+  AppState &state = APP_STATE;
+  Language lang = getCurrentLanguage();
+  StaticJsonDocument<256> jsonDoc;
+  jsonDoc["success"] = true;
+  jsonDoc["language"] = getLanguageCode(lang);
+  String response;
+  serializeJson(jsonDoc, response);
+  g_server->send(200, "application/json", response);
+}
+
+void handleSetLanguage() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\",\"message\":\"Too many requests — slow down\"}");
+    return;
+  }
+  AppState &state = APP_STATE;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> jsonDoc;
+  DeserializationError err = deserializeJson(jsonDoc, body);
+  if (err) { sendJsonResponse(false, "Invalid JSON"); return; }
+
+  String langCode = jsonDoc["language"] | "en";
+  Language lang = parseLanguage(langCode);
+  setCurrentLanguage(lang);
+  sendJsonResponse(true);
+}
+
+void handleGetLocale() {
+  if (!g_server) return;
+  AppState &state = APP_STATE;
+  Language lang = getCurrentLanguage();
+  String locale = loadLocale(lang);
+  if (locale.length() == 0) {
+    locale = "{}";
+  }
+  g_server->send(200, "application/json", locale);
+}

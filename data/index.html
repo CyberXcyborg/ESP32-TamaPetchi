@@ -575,6 +575,15 @@
                             class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
                         <span id="volume-value" class="text-xs text-gray-500 w-8">70%</span>
                     </div>
+                    <!-- Language Selector (Phase 10.3) -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600 w-16">Language:</span>
+                        <select id="language-select" class="flex-1 border rounded px-2 py-1 text-xs" onchange="setLanguage(this.value)">
+                            <option value="en">English</option>
+                            <option value="zh">中文</option>
+                            <option value="ja">日本語</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -663,7 +672,8 @@
         window.onload = function() {
             setupEventListeners();
             updatePetData();
-            startSSE();  // Phase 6: Try SSE first for real-time updates
+            startWebSocket();  // Phase 10.2: WebSocket for real-time updates
+            initLanguage();    // Phase 10.3: i18n language detection
             updateInterval = setInterval(updatePetData, 5000);  // Polling fallback
         };
         
@@ -809,53 +819,178 @@
         }
 
         // ============================================================
-        // Phase 6: SSE (Server-Sent Events) for real-time updates
-        // Falls back to polling if SSE is not supported
+        // Phase 10.2: WebSocket for real-time updates
+        // Falls back to polling if WebSocket is not supported
         // ============================================================
-        let evtSource = null;
-        let sseConnected = false;
+        let ws = null;
+        let wsConnected = false;
+        let wsReconnectAttempts = 0;
+        let wsReconnectTimer = null;
 
-        function startSSE() {
-            if (typeof EventSource === 'undefined') {
-                console.log('SSE not supported, using polling fallback');
+        function startWebSocket() {
+            if (typeof WebSocket === 'undefined') {
+                console.log('WebSocket not supported, using polling fallback');
                 return;
             }
 
-            evtSource = new EventSource('/events');
+            const wsProto = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+            const wsUrl = wsProto + '//' + window.location.hostname + ':81/';
 
-            evtSource.onopen = function() {
-                sseConnected = true;
-                console.log('SSE connected — real-time updates active');
-                // We still poll occasionally as a fallback in case SSE drops
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                wsConnected = true;
+                wsReconnectAttempts = 0;
+                console.log('WebSocket connected — real-time updates active');
+                updateConnectionStatus(true);
             };
 
-            evtSource.onmessage = function(e) {
+            ws.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
-                    if (previousState !== data.state) {
-                        handleStateChange(previousState, data.state);
+                    if (data.type === 'notification') {
+                        // Show notification toast
+                        showMessage(data.message, data.notificationType === 'reset' ? 'info' : 'success');
+                        return;
                     }
-                    previousState = data.state;
-                    pet = data;
-                    updateDisplay();
-                    updateMoodDisplay();
-                    updateScheduledFeedUI();
+                    if (data.type === 'init' || data.type === 'update') {
+                        if (previousState !== data.state) {
+                            handleStateChange(previousState, data.state);
+                        }
+                        previousState = data.state;
+                        pet = data;
+                        updateDisplay();
+                        updateMoodDisplay();
+                        updateScheduledFeedUI();
+                    }
                 } catch (err) {
-                    console.error('SSE parse error:', err);
+                    console.error('WebSocket parse error:', err);
                 }
             };
 
-            evtSource.onerror = function() {
-                console.log('SSE connection lost, falling back to polling');
-                sseConnected = false;
-                if (evtSource) {
-                    evtSource.close();
-                    evtSource = null;
+            ws.onerror = function(err) {
+                console.error('WebSocket error:', err);
+                wsConnected = false;
+                updateConnectionStatus(false);
+            };
+
+            ws.onclose = function() {
+                console.log('WebSocket connection closed');
+                wsConnected = false;
+                updateConnectionStatus(false);
+                // Auto-reconnect with exponential backoff (max 30s)
+                if (wsReconnectAttempts < 10) {
+                    const delay = Math.min(1000 * Math.pow(2, wsReconnectAttempts), 30000);
+                    wsReconnectAttempts++;
+                    console.log(`WebSocket reconnecting in ${delay}ms (attempt ${wsReconnectAttempts})`);
+                    wsReconnectTimer = setTimeout(startWebSocket, delay);
                 }
-                // Polling fallback continues via updateInterval
             };
         }
-        
+
+        function updateConnectionStatus(connected) {
+            // Update a connection indicator if one exists in the UI
+            const indicator = document.getElementById('connection-status');
+            if (indicator) {
+                indicator.className = connected ? 'text-green-500' : 'text-red-500';
+                indicator.title = connected ? 'WebSocket connected' : 'WebSocket disconnected — using polling';
+            }
+        }
+
+        // ============================================================
+        // Phase 10.3: i18n Multi-Language Support
+        // ============================================================
+        let localeData = null;
+        let currentLang = 'en';
+
+        async function loadLocale(lang) {
+            try {
+                const resp = await fetch('/api/locales/current');
+                if (resp.ok) {
+                    localeData = await resp.json();
+                    currentLang = localeData._code || 'en';
+                }
+            } catch (e) {
+                console.error('Failed to load locale:', e);
+                localeData = {};
+            }
+        }
+
+        function t(key, params) {
+            if (!localeData) return key;
+            // Navigate nested keys like "actions.feed"
+            const parts = key.split('.');
+            let val = localeData;
+            for (const p of parts) {
+                if (val && typeof val === 'object' && p in val) {
+                    val = val[p];
+                } else {
+                    return key; // Fallback to key name
+                }
+            }
+            if (typeof val !== 'string') return key;
+            // Replace {param} placeholders
+            if (params) {
+                for (const [k, v] of Object.entries(params)) {
+                    val = val.replace(new RegExp('\\{' + k + '\\}', 'g'), v);
+                }
+            }
+            return val;
+        }
+
+        function applyTranslations() {
+            // Update all elements with data-i18n attribute
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const translated = t(key);
+                if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                    el.placeholder = translated;
+                } else {
+                    el.textContent = translated;
+                }
+            });
+            // Update elements with data-i18n-title attribute
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                el.title = t(key);
+            });
+        }
+
+        async function setLanguage(lang) {
+            try {
+                await fetch('/api/settings/lang', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({language: lang})
+                });
+                await loadLocale(lang);
+                document.documentElement.lang = lang;
+                applyTranslations();
+                localStorage.setItem('tamapetchi-lang', lang);
+                // Update language selector
+                const sel = document.getElementById('language-select');
+                if (sel) sel.value = lang;
+            } catch (e) {
+                console.error('Failed to set language:', e);
+            }
+        }
+
+        function initLanguage() {
+            // Load saved language or detect from browser
+            const saved = localStorage.getItem('tamapetchi-lang');
+            if (saved) {
+                setLanguage(saved);
+            } else {
+                const browserLang = navigator.language || navigator.userLanguage || 'en';
+                const lang = browserLang.substring(0, 2);
+                if (lang === 'zh' || lang === 'ja') {
+                    setLanguage(lang);
+                } else {
+                    loadLocale('en');
+                }
+            }
+        }
+
         // Handle state changes and trigger animations
         function handleStateChange(oldState, newState) {
             const container = document.getElementById('pet-container');

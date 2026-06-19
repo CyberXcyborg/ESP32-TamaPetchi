@@ -10,7 +10,7 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 9 ✅ Complete — v1.0.0 released, v1.1 features in development
-- Phase 10 🔄 In Progress — 10.1 ✅, 10.2 ✅, 10.3 ✅, PR #11 approved (awaiting merge), 10.4-10.7 pending
+- Phase 10 🔄 In Progress — 10.1 ✅, 10.2 ✅, 10.3 ✅, PR #11 merged, 10.4-10.7 pending
 
 ## Phase 10: v1.1 Core Features Sprint
 
@@ -26,7 +26,7 @@
 - [x] Verify compilation: pio run -e esp32dev — zero errors
 - [x] Run unit tests: pio test -e native — all 61 tests pass
 
-### 10.2 — WebSocket Real-Time Updates ✅ COMPLETE (PR #11 approved, awaiting merge)
+### 10.2 — WebSocket Real-Time Updates ✅ MERGED (PR #11)
 - [x] Add WebSockets library to platformio.ini (links2004/WebSockets@2.4.1)
 - [x] Create WebSocket.h / WebSocket.cpp module
 - [x] Implement WebSocket server on port 81
@@ -38,9 +38,10 @@
 - [x] Update WebHandlers to call WebSocket broadcasts
 - [x] Verify compilation and memory usage (RAM 17.0%, Flash 76.2%)
 - [x] Create PR #11 and get approval
+- [x] Merge PR #11 into develop
 - [ ] Add unit tests for WebSocket message serialization
 
-### 10.3 — i18n Multi-Language Support ✅ COMPLETE (in PR #11)
+### 10.3 — i18n Multi-Language Support ✅ MERGED (PR #11)
 - [x] Create i18n.h / i18n.cpp module
 - [x] Create data/locales/en.json, data/locales/zh.json, data/locales/ja.json
 - [x] Translate all web UI strings: nav labels, button text, status messages, error messages
