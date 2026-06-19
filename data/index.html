@@ -661,6 +661,49 @@
             </div>
         </div>
 
+        <!-- Sound Pack Selector (Phase 11.3) -->
+        <div class="px-6 pb-2">
+            <div class="bg-green-50 rounded-xl p-3 border border-green-200">
+                <h3 class="text-sm font-bold text-green-700 mb-2"><i class="fas fa-music"></i> Sound Pack</h3>
+                <div class="flex gap-2 items-center">
+                    <select id="soundpack-select" class="flex-1 border rounded px-2 py-1 text-xs">
+                        <option value="default">Default</option>
+                        <option value="cute">Cute</option>
+                    </select>
+                    <button id="soundpack-apply" class="game-button px-3 py-1 text-xs text-green-600">
+                        <i class="fas fa-check"></i> Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pet Trading (Phase 11.4) -->
+        <div class="px-6 pb-2">
+            <div class="bg-purple-50 rounded-xl p-3 border border-purple-200">
+                <h3 class="text-sm font-bold text-purple-700 mb-2"><i class="fas fa-exchange-alt"></i> Pet Trading</h3>
+                <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <input type="text" id="trade-peer-input" placeholder="Peer Client ID" maxlength="32"
+                            class="flex-1 border border-purple-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-purple-400">
+                        <input type="text" id="trade-pin-input" placeholder="4-digit PIN" maxlength="4"
+                            class="w-20 border border-purple-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-purple-400">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="trade-request-btn" class="game-button flex-1 px-2 py-1 text-xs text-purple-600">
+                            <i class="fas fa-paper-plane"></i> Send Request
+                        </button>
+                        <button id="trade-accept-btn" class="game-button flex-1 px-2 py-1 text-xs text-green-600">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button id="trade-cancel-btn" class="game-button flex-1 px-2 py-1 text-xs text-red-600">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                    <div id="trade-status" class="text-xs text-center text-gray-500"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="p-6 grid grid-cols-2 gap-3">
             <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700">
@@ -765,6 +808,14 @@
             document.getElementById('name-input').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') setPetName();
             });
+
+            // Phase 11.3: Sound pack
+            document.getElementById('soundpack-apply').addEventListener('click', applySoundPack);
+
+            // Phase 11.4: Pet trading
+            document.getElementById('trade-request-btn').addEventListener('click', sendTradeRequest);
+            document.getElementById('trade-accept-btn').addEventListener('click', acceptTradeRequest);
+            document.getElementById('trade-cancel-btn').addEventListener('click', cancelTrade);
         }
 
         function setPetType(type) {
@@ -838,6 +889,91 @@
             .catch(() => showMessage('Error setting name', 'error'));
         }
 
+        // ============================================================
+        // Phase 11.3: Sound Pack Selection
+        // ============================================================
+        function applySoundPack() {
+            const select = document.getElementById('soundpack-select');
+            const packName = select.value;
+            fetch('/api/sounds/select', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: packName})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast(`Sound pack "${packName}" applied!`, 'success');
+                } else {
+                    showToast(d.message || 'Failed to apply sound pack', 'error');
+                }
+            })
+            .catch(() => showToast('Error applying sound pack', 'error'));
+        }
+
+        // ============================================================
+        // Phase 11.4: Pet Trading
+        // ============================================================
+        function sendTradeRequest() {
+            const peerId = document.getElementById('trade-peer-input').value.trim();
+            const pin = document.getElementById('trade-pin-input').value.trim();
+            if (!peerId) { showToast('Enter peer Client ID', 'error'); return; }
+            if (pin.length !== 4) { showToast('PIN must be 4 digits', 'error'); return; }
+            fetch('/api/trade/request', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({peerClientId: peerId, pin: pin})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast('Trade request sent!', 'success');
+                    updateTradeStatus();
+                } else {
+                    showToast(d.message || 'Failed to send request', 'error');
+                }
+            })
+            .catch(() => showToast('Error sending trade request', 'error'));
+        }
+
+        function acceptTradeRequest() {
+            fetch('/api/trade/accept', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    showToast('Trade accepted! Waiting for pet data...', 'success');
+                    updateTradeStatus();
+                } else {
+                    showToast(d.message || 'No pending request', 'error');
+                }
+            })
+            .catch(() => showToast('Error accepting trade', 'error'));
+        }
+
+        function cancelTrade() {
+            fetch('/api/trade/cancel', { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                showToast('Trade cancelled', 'info');
+                updateTradeStatus();
+            })
+            .catch(() => showToast('Error cancelling trade', 'error'));
+        }
+
+        function updateTradeStatus() {
+            fetch('/api/trade/status')
+            .then(r => r.json())
+            .then(d => {
+                const statusEl = document.getElementById('trade-status');
+                const states = ['Idle', 'Request Sent', 'Request Received', 'Accepted', 'Data Sent', 'Data Received', 'Confirmed', 'Cancelled'];
+                statusEl.textContent = 'Status: ' + (states[d.state] || 'Unknown');
+                if (d.peerClientId) {
+                    statusEl.textContent += ' | Peer: ' + d.peerClientId;
+                }
+            })
+            .catch(() => {});
+        }
+        // Fetch pet data from server
         function renderAchievements() {
             const section = document.getElementById('achievements-section');
             const grid = document.getElementById('achievements-grid');
