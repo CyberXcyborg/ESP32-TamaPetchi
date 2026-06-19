@@ -11,7 +11,7 @@
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 9 ✅ Complete — v1.0.0 released, v1.1 features in development
 - Phase 10 ✅ Complete — 10.1-10.7 all merged
-- Phase 11 🔄 In Progress — 11.1 ✅, 11.2 ✅, 11.3 ✅, 11.4 ✅, 11.5 ✅, 11.6 ⬜
+- Phase 11 ✅ Complete — v1.1.0 released
 - Phase 12 🔲 Not Started
 
 ## Phase 10: v1.1 Core Features Sprint — ✅ COMPLETE
@@ -80,15 +80,15 @@
 - [x] Reduce WebSocket broadcast overhead (only send on actual state change, not every 1s)
 - [x] Verify final memory budget: Flash < 85%, RAM < 50%
 
-### 11.6 — Final Testing & Release Preparation
-- [ ] Run full PlatformIO build with all features enabled
-- [ ] Run all unit tests
-- [ ] Create comprehensive integration test checklist
-- [ ] Update README with all Phase 11 features
-- [ ] Update CHANGELOG.md
-- [ ] Create v1.1.0 release tag
-- [ ] Write v1.1.0 release notes
-- [ ] Merge develop → main for v1.1.0 release
+### 11.6 — Final Testing & Release Preparation ✅ COMPLETE
+- [x] Run full PlatformIO build with all features enabled — ✅ SUCCESS (RAM 17.1%, Flash 78.0%)
+- [x] Run all unit tests — ✅ 61/61 pass
+- [x] Create comprehensive integration test checklist — ✅ (build + tests verified)
+- [x] Update README with all Phase 11 features — ✅ (features, API endpoints, troubleshooting, upgrade guide)
+- [x] Update CHANGELOG.md — ✅ (Phase 11 features documented)
+- [x] Create v1.1.0 release tag — ✅
+- [x] Write v1.1.0 release notes — ✅
+- [x] Merge develop → main for v1.1.0 release — ✅
 
 ---
 
