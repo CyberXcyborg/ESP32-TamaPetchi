@@ -27,6 +27,7 @@
 #include "OTARollback.h"
 #include "SoundPack.h"
 #include "PetTrade.h"
+#include "Community.h"   // Phase 13.3: Community features
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -87,6 +88,9 @@ void setup() {
 
   // Phase 11.4: Initialize pet trade system
   initPetTrade();
+
+  // Phase 13.3: Initialize community features
+  initCommunity();
 
   // Phase 7.5: Initialize MQTT
 #ifndef DISABLE_MQTT

@@ -14,6 +14,7 @@
 #include "OTARollback.h"
 #include "SoundPack.h"
 #include "PetTrade.h"
+#include "Community.h"   // Phase 13.3: Community features
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
@@ -293,6 +294,12 @@ void registerHandlers(WebServer &server, Pet &pet) {
   // Phase 12.5: Backup & restore
   server.on("/api/backup", HTTP_GET, handleGetBackup);
   server.on("/api/restore", HTTP_POST, handlePostRestore);
+
+  // Phase 13.3: Community features
+  server.on("/api/community/gallery", HTTP_GET, handleGetGallery);
+  server.on("/api/community/leaderboard", HTTP_GET, handleGetLeaderboard);
+  server.on("/api/community/share", HTTP_POST, handleShareProfile);
+  server.on("/api/community/import", HTTP_POST, handleImportProfile);
 }
 
 // ============================================================
@@ -1284,4 +1291,88 @@ void handleFactoryReset() {
 
   // Restart device
   ESP.restart();
+}
+
+// ============================================================
+// Phase 13.3: Community Features & Pet Sharing
+// ============================================================
+
+void handleGetGallery() {
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"error\":\"rate_limit\"}");
+    return;
+  }
+  g_server->send(200, "application/json", getGalleryJson());
+}
+
+void handleGetLeaderboard() {
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"error\":\"rate_limit\"}");
+    return;
+  }
+  LeaderboardSort sort = SORT_ACHIEVEMENTS;
+  String sortParam = g_server->arg("sort");
+  if (sortParam == "age") sort = SORT_AGE;
+  else if (sortParam == "generation") sort = SORT_GENERATION;
+  int limit = 10;
+  String limitParam = g_server->arg("limit");
+  if (limitParam.length() > 0) limit = limitParam.toInt();
+  if (limit < 1) limit = 1;
+  if (limit > 50) limit = 50;
+  g_server->send(200, "application/json", getLeaderboardJson(sort, limit));
+}
+
+void handleShareProfile() {
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"error\":\"rate_limit\"}");
+    return;
+  }
+  sharePetProfile(APP_STATE.pet);
+  StaticJsonDocument<256> resp;
+  resp["success"] = true;
+  resp["message"] = "Pet profile shared to community gallery";
+  resp["profile"] = getShareableProfileJson(APP_STATE.pet);
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+void handleImportProfile() {
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"error\":\"rate_limit\"}");
+    return;
+  }
+  String body = g_server->arg("plain");
+  if (body.length() == 0) {
+    body = g_server->arg("body");
+  }
+  if (body.length() == 0) {
+    g_server->send(400, "application/json", "{\"success\":false,\"error\":\"missing_body\"}");
+    return;
+  }
+  // Import creates a view-only card for the gallery
+  PetCard card;
+  DynamicJsonDocument doc(1024);
+  if (deserializeJson(doc, body)) {
+    g_server->send(400, "application/json", "{\"success\":false,\"error\":\"invalid_json\"}");
+    return;
+  }
+  card.deviceId = doc["deviceId"] | "unknown";
+  card.petName = doc["petName"] | "Unknown";
+  card.petType = doc["petType"] | "blob";
+  card.generation = doc["generation"] | 0;
+  card.age = doc["age"] | 0;
+  card.feedCount = doc["feedCount"] | 0;
+  card.playCount = doc["playCount"] | 0;
+  card.highScore = doc["highScore"] | 0;
+  card.achievementCount = doc["achievementCount"] | 0;
+  card.maxTier = doc["maxTier"] | 0;
+  card.createdAt = doc["createdAt"] | 0;
+  addToGallery(card);
+  StaticJsonDocument<256> resp;
+  resp["success"] = true;
+  resp["message"] = "Pet profile imported to gallery";
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
 }

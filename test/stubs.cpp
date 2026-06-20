@@ -65,3 +65,7 @@ void checkAchievements() {}
 
 // --- Storage savePetDataForce stub ---
 void savePetDataForce(const Pet &pet) {}
+
+// --- SPIFFS stub for Community tests ---
+#include "SPIFFS.h"
+SPIFFSClass SPIFFS;

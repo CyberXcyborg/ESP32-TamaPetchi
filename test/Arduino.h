@@ -23,6 +23,10 @@ typedef bool boolean;
 #define INPUT 0
 #define OUTPUT 1
 #define INPUT_PULLUP 2
+#define HEX 16
+#define DEC 10
+#define OCT 8
+#define BIN 2
 
 // Mock Serial
 class MockSerial {
@@ -86,10 +90,12 @@ long random(long min, long max);
 void tone(uint8_t pin, unsigned int frequency, unsigned long duration = 0);
 void noTone(uint8_t pin);
 
-// ESP32 stubs
+// ESP32 stubs (inline for header visibility)
 namespace ESP {
-  unsigned long getFreeHeap();
-  unsigned long getMinFreeHeap();
+  inline unsigned long getFreeHeap() { return 327680; }
+  inline unsigned long getMinFreeHeap() { return 300000; }
+  inline uint64_t getEfuseMac() { return 0x123456789ABCDEF0ULL; }
+  inline void restart() {}
 }
 
 // String class (simplified wrapper around std::string)
@@ -105,7 +111,9 @@ public:
   String(unsigned long n) : str(std::to_string(n)) {}
   String(float n) : str(std::to_string(n)) {}
   String(double n) : str(std::to_string(n)) {}
+  String(uint32_t n, int base) : str(std::to_string(n)) {} // HEX format stub
   operator const char*() const { return str.c_str(); }
+  operator const char*() { return str.c_str(); }
   const char* c_str() const { return str.c_str(); }
   int length() const { return (int)str.length(); }
   bool operator==(const String& other) const { return str == other.str; }
@@ -142,6 +150,18 @@ public:
   void setCharAt(unsigned int index, char c) { str[index] = c; }
   long toInt() const { return strtol(str.c_str(), nullptr, 10); }
   float toFloat() const { return strtof(str.c_str(), nullptr); }
+
+  // ESP32 compatibility
+  void toUpperCase() {
+    for (auto &c : str) {
+      if (c >= 'a' && c <= 'z') c = c - 'a' + 'A';
+    }
+  }
+  void toLowerCase() {
+    for (auto &c : str) {
+      if (c >= 'A' && c <= 'Z') c = c - 'A' + 'a';
+    }
+  }
 
   // ArduinoJson compatibility
   size_t write(uint8_t c) { str += (char)c; return 1; }

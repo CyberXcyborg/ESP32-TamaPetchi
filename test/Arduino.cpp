@@ -39,8 +39,4 @@ long random(long min, long max) { _ensure_seed(); return min + rand() % (max - m
 void tone(uint8_t pin, unsigned int frequency, unsigned long duration) {}
 void noTone(uint8_t pin) {}
 
-// ESP32 stubs
-namespace ESP {
-  unsigned long getFreeHeap() { return 327680; }
-  unsigned long getMinFreeHeap() { return 300000; }
-}
+// ESP32 stubs (moved to Arduino.h as inline for header visibility)

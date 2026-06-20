@@ -75,4 +75,10 @@ void handleSetAccessibility();
 void handleGetBackup();
 void handlePostRestore();
 
+// Phase 13.3: Community Features
+void handleGetGallery();
+void handleGetLeaderboard();
+void handleShareProfile();
+void handleImportProfile();
+
 #endif // WEBHANDLERS_H
