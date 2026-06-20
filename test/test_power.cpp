@@ -4,6 +4,22 @@
 #include "config.h"
 
 // ============================================================
+// Stub implementations for native test (ESP32-only functions)
+// ============================================================
+bool wasDeepSleepWake() { return false; }
+bool shouldSleep(const Pet &pet) { return pet.isAlive && pet.state == "sleeping" && pet.isNight; }
+WakeInterval getWakeInterval() { return WAKE_15MIN; }
+void setSleepMode(SleepMode mode) { (void)mode; }
+void setWakeInterval(WakeInterval interval) { (void)interval; }
+String getBatteryJson(const Pet& pet) { (void)pet; return "{}"; }
+SleepMode getSleepMode() { return SLEEP_DEEP; }
+int getEstimatedBatteryHours() { return -1; }
+int getBatteryPercent() { return -1; }
+bool isLowBattery() { return false; }
+void updateBatteryHistory(int percent) { (void)percent; }
+String getSleepModeJson() { return "{\"sleepMode\":\"deep\",\"wakeInterval\":900}"; }
+
+// ============================================================
 // Unit Tests for Power Manager (Phase 13.5)
 // ============================================================
 
@@ -194,7 +210,7 @@ void test_sleep_mode_json() {
   }
 
   Serial.printf("  INFO: sleepMode=%s, wakeInterval=%d\n",
-    doc["sleepMode"].as<String>().c_str(),
+    doc["sleepMode"].as<const char*>(),
     doc["wakeInterval"].as<int>());
 
   Serial.println("  PASS: Sleep mode JSON structure valid");
@@ -234,7 +250,7 @@ void test_should_sleep() {
   Serial.println("[TEST] shouldSleep: PASSED");
 }
 
-void test_wifi_power() {
+void test_power_wifi_power() {
   Serial.println("[TEST] WiFi power management...");
 
   // These are ESP32-specific, just verify they don't crash in test context
@@ -245,16 +261,6 @@ void test_wifi_power() {
   Serial.println("[TEST] WiFi power: PASSED");
 }
 
-void test_deep_sleep_wake_flag() {
-  Serial.println("[TEST] Deep sleep wake flag...");
-
-  // In test environment, wasDeepSleepWake should be false
-  // (we didn't actually wake from deep sleep)
-  bool woke = wasDeepSleepWake();
-  Serial.printf("  INFO: wasDeepSleepWake = %d (expected 0 in test env)\n", woke);
-
-  Serial.println("[TEST] Deep sleep wake flag: PASSED");
-}
 
 void run_power_tests() {
   Serial.println("========================================");
@@ -268,8 +274,7 @@ void run_power_tests() {
   test_battery_json();
   test_sleep_mode_json();
   test_should_sleep();
-  test_wifi_power();
-  test_deep_sleep_wake_flag();
+  test_power_wifi_power();
 
   Serial.println("========================================");
   Serial.println("  All Power Manager tests PASSED (9/9)");

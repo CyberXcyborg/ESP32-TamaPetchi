@@ -165,7 +165,7 @@ void test_provisioning_status_json() {
   StaticJsonDocument<512> doc;
   doc["provisioned"] = false;  // Test env has no SPIFFS data
   doc["provisioningMode"] = false;
-  doc["deviceID"] = getDeviceID();
+  doc["deviceID"] = getDeviceID().c_str();
   doc["hasDeviceID"] = hasDeviceID();
   doc["apSSID"] = "TamaPetchi-Setup";
   doc["ipAddress"] = "192.168.4.1";
@@ -209,8 +209,8 @@ void test_provisioning_status_json() {
 
   Serial.printf("  INFO: JSON length=%d bytes\n", json.length());
   Serial.printf("  INFO: deviceID=%s, version=%s\n",
-    parsed["deviceID"].as<String>().c_str(),
-    parsed["firmwareVersion"].as<String>().c_str());
+    parsed["deviceID"].as<const char*>(),
+    parsed["firmwareVersion"].as<const char*>());
 
   Serial.println("[TEST] Status JSON: PASSED");
 }
@@ -327,7 +327,7 @@ void test_json_response_structure() {
     Serial.println("  FAIL: device ID response JSON invalid");
     return;
   }
-  if (parsed["deviceID"].as<String>() != "TAMA-CUSTOM01") {
+  if (String(parsed["deviceID"].as<const char*>()) != "TAMA-CUSTOM01") {
     Serial.println("  FAIL: deviceID mismatch");
     return;
   }
