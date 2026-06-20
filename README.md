@@ -49,6 +49,11 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🎵 **Sound Packs**: JSON-based buzzer melody packs with upload/select API
 - 🔄 **Pet Trading**: Trade pets between devices via MQTT with security PIN
 - ⚡ **Performance Optimized**: Compact JSON, ETag caching, DNS caching, state-change broadcasts
+- 🏆 **Achievements 2.0**: Tiered achievements (bronze/silver/gold/platinum) with progress tracking and rewards
+- 🌳 **Pet Lineage & Genealogy**: Track ancestry, genetic trait inheritance, family tree visualization
+- 📊 **Data Dashboard & Analytics**: Charts for stat trends, daily/weekly summaries, CSV/JSON export
+- ♿ **Accessibility**: Keyboard nav, ARIA labels, high-contrast mode, font sizing, reduced motion
+- 💾 **Backup & Restore**: Full SPIFFS backup with SHA-256 integrity verification
 
 
 ## Why This Hits Different
@@ -207,7 +212,16 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 | GET | `/api/trade/history` | Get pet trade history |
 | POST | `/api/trade/request` | Send pet trade request |
 | POST | `/api/trade/accept` | Accept incoming trade |
-| POST | `/api/trade/reject` | Reject incoming trade |
+|| POST | `/api/trade/reject` | Reject incoming trade |
+|| GET | `/api/achievements/progress` | Get achievement progress with tiers |
+|| GET | `/api/pets/lineage` | Get pet lineage/family tree |
+|| GET | `/api/stats/trends` | Get stat trends (7d/30d/90d) |
+|| GET | `/api/export/csv` | Export data as CSV |
+|| GET | `/api/export/json` | Export data as JSON |
+|| GET | `/api/settings/accessibility` | Get accessibility settings |
+|| POST | `/api/settings/accessibility` | Set accessibility settings |
+|| GET | `/api/backup` | Download full SPIFFS backup (tar) |
+|| POST | `/api/restore` | Restore from backup tar |
 
 ### WebSocket
 Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:

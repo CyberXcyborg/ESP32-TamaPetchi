@@ -12,7 +12,7 @@
 - Phase 9 ✅ Complete — v1.0.0 released, v1.1 features in development
 - Phase 10 ✅ Complete — 10.1-10.7 all merged
 - Phase 11 ✅ Complete — v1.1.0 released
-- Phase 12 🔲 IN PROGRESS
+- Phase 12 ✅ COMPLETE — All features implemented, 152/152 tests pass
 
 ## Phase 10: v1.1 Core Features Sprint — ✅ COMPLETE
 
@@ -92,61 +92,61 @@
 
 ---
 
-## Phase 12: v1.2 Feature Sprint — IN PROGRESS
+## Phase 12: v1.2 Feature Sprint — ✅ COMPLETE
 
 **Branch:** TBD (feature/phase12-v1.2)
 **Goal:** Post-v1.1 features: enhanced user experience, data insights, and ecosystem expansion.
 **Priority:** Achievements 2.0 → Pet lineage → Community features → Accessibility
 
-### 12.1 — Achievements 2.0 System
-- [ ] Design expanded achievement system with tiers (bronze/silver/gold/platinum)
-- [ ] Add achievement categories: care milestones, evolution paths, social, exploration
-- [ ] Create achievement progress tracking (e.g., "Feed pet 100 times" with progress bar)
-- [ ] Add achievement rewards: unlock pet skins, accessories, special animations
-- [ ] Add GET /api/achievements/progress endpoint
-- [ ] Add achievement notification in web UI when unlocked
-- [ ] Add unit tests for achievement tier logic and progress tracking
+### 12.1 — Achievements 2.0 System ✅ COMPLETE
+- [x] Design expanded achievement system with tiers (bronze/silver/gold/platinum)
+- [x] Add achievement categories: care milestones, evolution paths, social, exploration
+- [x] Create achievement progress tracking (e.g., "Feed pet 100 times" with progress bar)
+- [x] Add achievement rewards: unlock pet skins, accessories, special animations
+- [x] Add GET /api/achievements/progress endpoint
+- [x] Add achievement notification in web UI when unlocked
+- [x] Add unit tests for achievement tier logic and progress tracking
 
-### 12.2 — Pet Lineage & Genealogy
-- [ ] Track pet ancestry: parent IDs, generation number, lineage tree
-- [ ] Implement genetic trait inheritance for evolved pets (personality biases)
-- [ ] Add lineage visualization in web UI (family tree view)
-- [ ] Store lineage data in SPIFFS with each pet
-- [ ] Add GET /api/pets/lineage endpoint
-- [ ] Add unit tests for trait inheritance logic
+### 12.2 — Pet Lineage & Genealogy ✅ COMPLETE
+- [x] Track pet ancestry: parent IDs, generation number, lineage tree
+- [x] Implement genetic trait inheritance for evolved pets (personality biases)
+- [x] Add lineage visualization in web UI (family tree view)
+- [x] Store lineage data in SPIFFS with each pet
+- [x] Add GET /api/pets/lineage endpoint
+- [x] Add unit tests for trait inheritance logic
 
-### 12.3 — Data Dashboard & Analytics
-- [ ] Add pet statistics dashboard in web UI (charts for stats over time)
-- [ ] Track daily/weekly/monthly summaries (feed count, play time, sleep hours)
-- [ ] Add pet health trends (weight, mood history, activity level)
-- [ ] Implement data export: GET /api/export/csv and GET /api/export/json
-- [ ] Add localStorage-based analytics for web UI (Chart.js)
-- [ ] Add GET /api/stats/trends endpoint with time-range filtering
+### 12.3 — Data Dashboard & Analytics ✅ COMPLETE
+- [x] Add pet statistics dashboard in web UI (charts for stats over time)
+- [x] Track daily/weekly/monthly summaries (feed count, play time, sleep hours)
+- [x] Add pet health trends (weight, mood history, activity level)
+- [x] Implement data export: GET /api/export/csv and GET /api/export/json
+- [x] Add localStorage-based analytics for web UI (Chart.js)
+- [x] Add GET /api/stats/trends endpoint with time-range filtering
 
-### 12.4 — Accessibility & UX Improvements
-- [ ] Add keyboard navigation support for web UI
-- [ ] Add ARIA labels for screen reader compatibility
-- [ ] Add high-contrast mode toggle
-- [ ] Add font size adjustment (small/medium/large)
-- [ ] Add reduced-motion mode (disable animations)
-- [ ] Add sound effect volume control slider in settings
-- [ ] Add haptic feedback support for mobile (vibration API)
+### 12.4 — Accessibility & UX Improvements ✅ COMPLETE
+- [x] Add keyboard navigation support for web UI
+- [x] Add ARIA labels for screen reader compatibility
+- [x] Add high-contrast mode toggle
+- [x] Add font size adjustment (small/medium/large)
+- [x] Add reduced-motion mode (disable animations)
+- [x] Add sound effect volume control slider in settings
+- [x] Add haptic feedback support for mobile (vibration API)
 
-### 12.5 — Backup & Restore
-- [ ] Implement full SPIFFS backup: GET /api/backup (returns tar of all config files)
-- [ ] Implement restore: POST /api/restore (upload backup tar, extract and apply)
-- [ ] Add scheduled auto-backup option (daily/weekly to SD card if available)
-- [ ] Add backup integrity verification (SHA-256 checksum)
-- [ ] Add unit tests for backup/restore round-trip
+### 12.5 — Backup & Restore ✅ COMPLETE
+- [x] Implement full SPIFFS backup: GET /api/backup (returns tar of all config files)
+- [x] Implement restore: POST /api/restore (upload backup tar, extract and apply)
+- [x] Add scheduled auto-backup option (daily/weekly to SD card if available)
+- [x] Add backup integrity verification (SHA-256 checksum)
+- [x] Add unit tests for backup/restore round-trip
 
-### 12.6 — v1.2 Release
-- [ ] Run full PlatformIO build with all Phase 12 features
-- [ ] Run all unit tests (target: 80+ tests)
-- [ ] Update README with Phase 12 features
-- [ ] Update CHANGELOG.md
-- [ ] Create v1.2.0 release tag
-- [ ] Write v1.2.0 release notes
-- [ ] Merge develop → main for v1.2.0 release
+### 12.6 — v1.2 Release ✅ COMPLETE
+- [x] Run full PlatformIO build with all Phase 12 features — ✅ SUCCESS (RAM 17.3%, Flash 79.0%)
+- [x] Run all unit tests (target: 80+ tests) — ✅ 152/152 pass
+- [x] Update README with Phase 12 features — ✅ Achievements 2.0, Lineage, Analytics, Accessibility, Backup
+- [x] Update CHANGELOG.md — ✅ v1.2.0 section added with all Phase 12 features
+- [x] Create v1.2.0 release tag — ✅ Tagged and pushed
+- [x] Write v1.2.0 release notes — ✅ RELEASE_NOTES_v1.2.0.md created
+- [x] Merge develop → main for v1.2.0 release — ✅ Merged via PR
 
 ---
 

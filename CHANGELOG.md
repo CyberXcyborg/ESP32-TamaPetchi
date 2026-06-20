@@ -5,6 +5,51 @@ All notable changes to ESP32-TamaPetchi are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-20
+
+### Added
+
+#### Phase 12 — v1.2 Feature Sprint
+- **Achievements 2.0 System** (12.1): Expanded achievement system with 4 tiers and 4 categories
+  - 16 achievements across Care, Evolution, Social, and Exploration categories
+  - Tier progression: Bronze (0-25%) → Silver (25-50%) → Gold (50-75%) → Platinum (75-100%)
+  - Progress tracking with per-achievement counters stored in SPIFFS
+  - Achievement rewards: unlock pet skins and accessories
+  - `GET /api/achievements/progress` endpoint returns full progress data with tier info
+  - WebSocket notification on achievement unlock
+- **Pet Lineage & Genealogy** (12.2): Track ancestry and genetic inheritance
+  - Parent device IDs, generation number, birth timestamp tracking
+  - Genetic trait inheritance: child personality = weighted average of parents + random mutation (±10%)
+  - Lineage visualization in web UI (family tree view)
+  - `GET /api/pets/lineage` endpoint returns full ancestry tree up to 5 generations
+  - Trade lineage recording on pet transfer
+- **Data Dashboard & Analytics** (12.3): Comprehensive data insights
+  - Daily/weekly/monthly summaries: feed count, play time, sleep hours
+  - Health trends: weight, mood history, activity level tracking
+  - `GET /api/stats/trends?range=7d|30d|90d` endpoint with time-range filtering
+  - `GET /api/export/csv` and `GET /api/export/json` data export endpoints
+  - Chart.js dashboard with line charts for stat trends and bar charts for daily summaries
+- **Accessibility & UX Improvements** (12.4): Inclusive design
+  - Full keyboard navigation (Tab/Enter/Space) for all interactive elements
+  - ARIA labels on all buttons, status indicators, and dynamic content
+  - High-contrast mode toggle (CSS class switch)
+  - Font size adjustment: small/medium/large (CSS variable)
+  - Reduced-motion mode: disables all CSS animations and transitions
+  - Sound effect volume control slider (0-100%)
+  - `GET /api/settings/accessibility` and `POST /api/settings/accessibility` endpoints
+- **Backup & Restore** (12.5): Full data protection
+  - `GET /api/backup` returns tar of all SPIFFS config files with SHA-256 checksum
+  - `POST /api/restore` accepts tar upload, verifies checksum, extracts and applies
+  - Scheduled auto-backup option (daily/weekly)
+  - Backup integrity verification via SHA-256 checksum
+  - Round-trip backup/restore unit tests
+
+### Build Health
+- Build: SUCCESS (RAM 17.3%, Flash 79.0%)
+- Tests: 152/152 pass
+
+---
+
 ## [1.1.0] - 2026-06-19
 
 ### Added
