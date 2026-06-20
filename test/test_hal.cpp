@@ -193,9 +193,9 @@ void test_wifi_power() {
 }
 
 // ============================================================
-// Main test runner
+// Main test runner — renamed to avoid collision with other test mains
 // ============================================================
-int main() {
+int run_hal_tests() {
   printf("=== HAL Unit Tests ===\n");
 
   test_display_basic();

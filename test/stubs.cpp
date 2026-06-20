@@ -66,6 +66,16 @@ void checkAchievements() {}
 // --- Storage savePetDataForce stub ---
 void savePetDataForce(const Pet &pet) {}
 
-// --- SPIFFS stub for Community tests ---
-#include "SPIFFS.h"
-SPIFFSClass SPIFFS;
+// --- Master test runner for native builds ---
+// Each test file defines its own run function to avoid main() collisions
+int run_hal_tests();
+int run_pet_statemachine_tests();
+
+int main() {
+  printf("=== TamaPetchi Native Unit Tests ===\n\n");
+  run_hal_tests();
+  printf("\n");
+  run_pet_statemachine_tests();
+  printf("\n=== All native tests PASSED ===\n");
+  return 0;
+}

@@ -563,7 +563,7 @@ void test_isNightTime_at_06(void) {
 
 // --- Run all tests ---
 
-int main(int argc, char **argv) {
+int run_pet_statemachine_tests() {
   UNITY_BEGIN();
 
   // Lifecycle
