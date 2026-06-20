@@ -1,11 +1,15 @@
-feat(phase13.3): Community features — pet sharing, gallery, leaderboard
+feat(phase13.1): OTA Delta Updates — bsdiff-style binary delta patching
 
-- Community.h/cpp: Pet card creation, gallery management, leaderboard sorting
-- Pet profile sharing via JSON (shareable profile with stats, achievements, lineage)
-- Gallery: add/remove/update entries, max 20 entries, persistent in SPIFFS
-- Leaderboard: sort by achievements, age, or generation with configurable limit
-- Import: parse shared pet cards into gallery
-- Web API: GET /api/community/gallery, /leaderboard, POST /share, /import
-- Rate limiting on all community endpoints
-- 11 unit tests covering card creation, JSON serialization, gallery, leaderboard, scoring, import
-- Test infrastructure: SPIFFS.h mock, Arduino.h improvements (HEX/DEC/OCT/BIN, toUpperCase, getEfuseMac)
+- OTA_Delta.h: DeltaPatchState enum, DeltaStatus struct, public API
+- OTA_Delta.cpp: Full bsdiff-style patch algorithm with SHA-256 verification
+- ESP32 OTA partition handling: read current firmware, apply patch, write to next partition
+- SHA-256 integrity verification via mbedtls before accepting patch
+- Fallback to full OTA if delta patch fails (rollbackOnFail flag)
+- Manifest check: GET /api/ota/delta/status, POST /api/ota/delta/check
+- POST /api/ota/delta accepts delta binary upload, applies to firmware partition
+- Delta stored in SPIFFS temp file, verified, then written via ESP32 OTA API
+- Partition swap: writes to next OTA partition, verifies, sets boot partition
+- Native build support: conditional compilation (#if !defined(UNIT_TEST))
+- 19 unit tests: state machine, header validation, JSON API, progress tracking
+- Native stub (OTA_Delta_Native.cpp) for test builds without ESP32 toolchain
+- Build: SUCCESS (RAM 17.8%, Flash 79.8%), Tests: 19/19 pass

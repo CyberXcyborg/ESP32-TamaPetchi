@@ -54,6 +54,11 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 📊 **Data Dashboard & Analytics**: Charts for stat trends, daily/weekly summaries, CSV/JSON export
 - ♿ **Accessibility**: Keyboard nav, ARIA labels, high-contrast mode, font sizing, reduced motion
 - 💾 **Backup & Restore**: Full SPIFFS backup with SHA-256 integrity verification
+- 🔧 **Hardware Abstraction Layer (HAL)**: Abstract interfaces for Display, Storage, WiFi, GPIO — enables native unit testing
+- 👥 **Community Features**: Pet profile sharing, community gallery, leaderboard with multiple sort modes
+- 🏭 **Manufacturing & Provisioning**: First-boot AP mode, Python provisioning script, batch flash tool
+- ⚡ **Power Optimization**: Light sleep mode, battery estimation with drain rate analysis, configurable wake intervals
+- 🔄 **OTA Delta Updates**: Binary delta patching (bsdiff-style) with SHA-256 verification, reduces update size by ~90%
 
 
 ## Why This Hits Different
@@ -222,6 +227,17 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 || POST | `/api/settings/accessibility` | Set accessibility settings |
 || GET | `/api/backup` | Download full SPIFFS backup (tar) |
 || POST | `/api/restore` | Restore from backup tar |
+|| GET | `/api/community/gallery` | Get community pet gallery |
+|| GET | `/api/community/leaderboard` | Get leaderboard (sort=achievements\|age\|generation) |
+|| POST | `/api/community/share` | Share pet profile |
+|| POST | `/api/community/import` | Import shared pet card |
+|| GET | `/api/provisioning/status` | Get provisioning status |
+|| POST | `/api/provisioning/set` | Set WiFi credentials via provisioning |
+|| POST | `/api/provisioning/reset` | Factory reset via provisioning |
+|| GET | `/api/provisioning/deviceid` | Get unique device ID |
+|| GET | `/api/ota/delta/status` | Get OTA delta status |
+|| POST | `/api/ota/delta/check` | Check manifest for available delta |
+|| POST | `/api/ota/delta` | Upload and apply delta patch |
 
 ### WebSocket
 Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:

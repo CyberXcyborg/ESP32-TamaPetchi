@@ -1,13 +1,17 @@
 ## Phase 13.1 — OTA Delta Updates — ✅ COMPLETE
 
-**Status:** COMPLETE (commit pending)
+**Status:** COMPLETE (commit 398ef3f)
 
 **Files created/modified:**
-- src/OTA_Delta.h — Rewritten with bsdiff-style binary delta API, DeltaStatus struct, DeltaPatchState enum
-- src/OTA_Delta.cpp — Full bsdiff-style patch algorithm, SHA-256 verification via mbedtls, ESP32 OTA partition handling
-- src/OTA.cpp — Clean OTA module (unchanged logic, delta is separate module)
+- src/OTA_Delta.h — DeltaPatchState enum, DeltaStatus struct, public API (WebServer conditional)
+- src/OTA_Delta.cpp — Full bsdiff-style patch algorithm, SHA-256 via mbedtls, ESP32 OTA partition handling
+- src/OTA.cpp — Cleaned up (delta is separate module)
 - src/ESP32-TamaPetchi.ino — Added initOTADelta() call in setup()
 - test/test_ota_delta.cpp — 19 unit tests for delta patch format, state machine, SHA-256
+- test/OTA_Delta_Native.cpp — Native stub for test builds without ESP32 toolchain
+- test/SPIFFS.h — Updated mock for native builds
+- test/stubs.cpp — Removed duplicate initOTADelta stub
+- platformio.ini — Added OTA_Delta_Native.cpp to native build
 
 **Requirements met:**
 - [x] Binary delta patching (bsdiff-style) with control triples (copy_offset, copy_length, add_length)
@@ -22,7 +26,16 @@
 
 **Build:**
 - ESP32: SUCCESS (RAM 17.8%, Flash 79.8%)
-- Tests: 19/19 pass (standalone SHA-256 + state machine validation)
+- Tests: 19/19 OTA Delta tests pass (145/152 total native tests, 7 pre-existing failures)
 
-**Note:** Unit tests use a standalone test executable with built-in SHA-256 implementation. The native PlatformIO test environment was pre-existing broken (not related to this work). The standalone tests validate all data structures, the patch format, state machine transitions, and SHA-256 integrity — which is what matters for delta update safety.
+---
 
+## Phase 13.6 — v1.3 Release — 🔴 NEXT
+
+- Run full PlatformIO build with all Phase 13 features
+- Run all unit tests (target: 200+ tests — currently at 152)
+- Update README with Phase 13 features (HAL, Community, Provisioning, Power, OTA Delta)
+- Update CHANGELOG.md with v1.3.0 section
+- Create v1.3.0 release tag
+- Write v1.3.0 release notes
+- Merge develop → main for v1.3.0 release

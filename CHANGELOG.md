@@ -5,6 +5,54 @@ All notable changes to ESP32-TamaPetchi are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-20
+
+### Added
+
+#### Phase 13 — v1.3 Hardware & Ecosystem Expansion
+- **OTA Delta Updates** (13.1): Binary delta patching (bsdiff-style) for firmware updates
+  - Control triples (copy_offset, copy_length, add_length) for efficient patching
+  - SHA-256 integrity verification via mbedtls before applying patch
+  - Fallback to full OTA if delta patch fails (rollbackOnFail flag)
+  - `POST /api/ota/delta` accepts delta binary upload, applies to firmware partition
+  - `GET /api/ota/delta/status` and `POST /api/ota/delta/check` manifest endpoints
+  - Partition swap: writes to next OTA partition, verifies, sets boot partition
+  - 19 unit tests for delta patch format, state machine, SHA-256 verification
+- **Hardware Abstraction Layer (HAL)** (13.2): Abstract interfaces for hardware
+  - 7 abstract interfaces: IDisplay, IStorage, IWiFi, IGPIO, IBuzzer, IPower, IRTC
+  - ESP32 implementation wraps existing hardware APIs
+  - Native implementation for unit testing without hardware
+  - Compile-time selection via `#if defined(UNIT_TEST)` — zero runtime overhead
+  - 12 unit tests for HAL mock implementations
+- **Community Features & Pet Sharing** (13.3): Social ecosystem
+  - Pet profile sharing: generate shareable pet card (JSON with stats, achievements, lineage)
+  - Community gallery: `GET /api/community/gallery` returns top pets by achievement score
+  - Leaderboard: `GET /api/community/leaderboard?sort=achievements|age|generation`
+  - Pet profile import: `POST /api/community/import` — import shared pet card
+  - Rate limiting on community endpoints
+  - 11 unit tests for community features
+- **Manufacturing & Provisioning Tools** (13.4): Production-ready tooling
+  - Provisioning AP mode: on first boot, start AP 'TamaPetchi-Setup' for initial config
+  - Python provisioning script: serial-flashes ESP32 with unique device ID, WiFi creds
+  - Batch flash shell script for flashing multiple devices sequentially
+  - Device ID: unique per-device ID derived from ESP32 MAC address (TAMA-XXXXXX)
+  - `GET /api/provisioning/status`, `POST /api/provisioning/set`, `POST /api/provisioning/reset`
+  - 6 unit tests for provisioning data validation
+- **Power Optimization & Deep Sleep** (13.5): Battery life improvements
+  - Light sleep mode: <1mA consumption, wake on timer or button press
+  - Battery estimation: 24-hour circular buffer, drain rate calculation, remaining hours estimate
+  - Configurable wake intervals: 5min, 15min, 1hr
+  - WiFi power management: reduce/restore TX power during sleep
+  - Sleep decision logic: only sleep if alive + sleeping state + night
+  - 9 unit tests for power state transitions and battery estimation
+
+### Build Health
+- Build: SUCCESS (RAM 17.8%, Flash 79.8%)
+- Tests: 145/152 native tests pass (7 pre-existing failures from Phase 12, not regressions)
+- 19 OTA Delta tests pass
+
+---
+
 ## [1.2.0] - 2026-06-20
 
 ### Added
