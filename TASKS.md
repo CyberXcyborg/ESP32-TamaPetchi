@@ -360,3 +360,135 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 1. Create branch feature/phase12-v1.2 from develop
 2. Start with 12.1 — Achievements 2.0 System
 3. Follow implementation rules: one feature per commit, test compilation after each
+
+---
+
+## Phase 13: v1.3 Hardware Validation & Ecosystem Expansion — 🔲 NOT STARTED
+
+**Branch:** feature/phase13-v1.3 (create from develop)
+**Goal:** Hardware-in-the-loop validation, OTA delta updates, community features, and ecosystem expansion.
+**Priority order:** 13.1 → 13.2 → 13.3 → 13.4 → 13.5 → 13.6
+
+### 13.1 — OTA Delta Updates — START HERE
+
+**Files to create/modify:**
+- src/OTA_Delta.h — Add delta patch application with bsdiff-style binary diffing
+- src/OTA_Delta.cpp — Implement delta patch algorithm, apply delta to existing firmware
+- src/OTA.cpp — Integrate delta update into existing OTA flow
+- src/WebHandlers.cpp — Add POST /api/ota/delta endpoint for delta upload
+- test/test_ota_delta.cpp — Unit tests for delta patch round-trip
+
+**Requirements:**
+- Implement binary delta patching (bsdiff or similar) for firmware updates
+- Delta updates should be less than 10% of full firmware size for minor changes
+- Verify delta patch integrity with SHA-256 before applying
+- Fallback to full OTA if delta patch fails
+- POST /api/ota/delta accepts delta binary, applies to current firmware partition
+- Store delta in temporary partition, verify, then swap
+- Minimum 10 unit tests
+
+### 13.2 — Hardware Abstraction Layer (HAL) Refactor
+
+**Files to create/modify:**
+- src/HAL.h — Hardware abstraction layer (display, storage, WiFi, GPIO interfaces)
+- src/HAL_ESP32.cpp — ESP32 concrete implementation
+- src/HAL_Native.cpp — Native (test) implementation for unit testing
+- src/ESP32-TamaPetchi.ino — Use HAL instead of direct hardware calls
+- src/config.h — Add HAL configuration flags
+- test/test_hal.cpp — Unit tests for HAL mock implementations
+
+**Requirements:**
+- Abstract interface for: Display (OLED), Storage (SPIFFS), WiFi, GPIO (buttons, buzzer, RGB LED)
+- ESP32 implementation wraps existing code
+- Native implementation for unit testing without hardware
+- Compile-time or runtime selection via config.h
+- All existing functionality preserved (no regression)
+- Minimum 12 unit tests
+
+### 13.3 — Community Features & Pet Sharing
+
+**Files to create/modify:**
+- src/Community.h — Community features (pet gallery, leaderboard, sharing)
+- src/Community.cpp — Implement community feed, pet profile sharing via HTTP API
+- src/WebHandlers.cpp — Add community endpoints
+- data/index.html — Add community tab with pet gallery and leaderboard
+- test/test_community.cpp — Unit tests for community features
+
+**Requirements:**
+- Pet profile sharing: generate shareable pet card (JSON with stats, achievements, lineage)
+- Community gallery: GET /api/community/gallery returns top pets by achievement score
+- Leaderboard: GET /api/community/leaderboard?sort=achievements|age|generation
+- Pet profile import: POST /api/community/import — import shared pet card
+- Rate limiting on community endpoints
+- Minimum 10 unit tests
+
+### 13.4 — Manufacturing & Provisioning Tools
+
+**Files to create/modify:**
+- tools/provision.py — ESP32 provisioning script (WiFi credentials, device ID, initial pet)
+- tools/batch_flash.sh — Batch flash multiple ESP32 devices
+- src/Provisioning.h — Provisioning mode declarations
+- src/Provisioning.cpp — First-boot provisioning flow (AP mode for setup)
+- test/test_provisioning.cpp — Unit tests for provisioning data validation
+
+**Requirements:**
+- Provisioning AP mode: on first boot, start AP 'TamaPetchi-Setup' for initial config
+- Provisioning script: Python script that serial-flashes ESP32 with unique device ID, WiFi creds
+- Batch flash: shell script for flashing multiple devices sequentially
+- Device ID: unique per-device ID derived from ESP32 MAC address
+- WiFi credentials stored in SPIFFS, never in firmware
+- Factory reset restores provisioning mode
+- Minimum 8 unit tests
+
+### 13.5 — Power Optimization & Deep Sleep
+
+**Files to create/modify:**
+- src/PowerManager.h — Add deep sleep, light sleep, wake-on-timer, wake-on-gpio
+- src/PowerManager.cpp — Implement power saving modes
+- src/ESP32-TamaPetchi.ino — Integrate power management into main loop
+- test/test_power.cpp — Unit tests for power state transitions
+
+**Requirements:**
+- Deep sleep mode: less than 10uA consumption, wake on timer (configurable interval) or GPIO
+- Light sleep mode: less than 1mA, wake on WiFi activity or button press
+- Pet state preservation across deep sleep cycles (save to RTC memory)
+- Wake-on-timer: configurable sleep interval (5min, 15min, 1hr)
+- Wake-on-button: any button press wakes from deep sleep
+- Battery estimation: report estimated remaining battery life based on usage patterns
+- Minimum 10 unit tests
+
+### 13.6 — v1.3 Release
+
+- Run full PlatformIO build with all Phase 13 features
+- Run all unit tests (target: 200+ tests)
+- Update README with Phase 13 features
+- Update CHANGELOG.md
+- Create v1.3.0 release tag
+- Write v1.3.0 release notes
+- Merge develop → main for v1.3.0 release
+
+---
+
+## Nyra's Review Summary — 2026-06-20
+
+### Phase 12 Final Status: ALL COMPLETE & RELEASED
+
+| Phase | Feature | Status | Review |
+|-------|---------|--------|--------|
+| 12.1 | Achievements 2.0 | Merged | Approved |
+| 12.2 | Pet Lineage | Merged | Approved |
+| 12.3 | Data Dashboard | Merged | Approved |
+| 12.4 | Accessibility | Merged | Approved |
+| 12.5 | Backup & Restore | Merged | Approved |
+| 12.6 | v1.2 Release | Complete | v1.2.0 tagged |
+
+### Build Health
+- Build: SUCCESS (RAM 17.3%, Flash 79.0%)
+- Tests: 152/152 pass
+- Open PRs: 0
+- Branch: develop (clean, up to date with origin)
+
+### Next Actions
+1. Create branch feature/phase13-v1.3 from develop
+2. Start with 13.1 — OTA Delta Updates
+3. Follow implementation rules: one feature per commit, test compilation after each

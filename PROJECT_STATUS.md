@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.0.0 Released ✅
+## Overall Status: v1.2.0 Released ✅
 
 ## Phase Summary
 | Phase | Description | Status | Branch |
@@ -13,7 +13,11 @@
 | 6 | Code quality, web UI, hardware features, docs, performance | ✅ Merged | main |
 | 7 | Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood | ✅ Merged | main |
 | 8 | Code cleanup & release preparation | ✅ Merged | main |
-| 9 | v1.0.0 Release & v1.1 planning | 🔟 In Progress | develop |
+| 9 | v1.0.0 Release | ✅ Complete | main |
+| 10 | v1.1 Features | ✅ Complete | main |
+| 11 | v1.1 Advanced Features | ✅ Complete | main |
+| 12 | v1.2 Features | ✅ Complete | main |
+| 13 | v1.3 Hardware & Ecosystem | 🔲 Not Started | develop |
 
 ## v1.0.0 Release
 - **Tag:** v1.0.0 (ed155ba)
@@ -61,5 +65,5 @@ src/
 ```
 
 ## Last Updated
-- Date: 2026-06-18
-- By: Kael Nexus (autonomous)
+- Date: 2026-06-20
+- By: Kael Nexus (autonomous), Nyra Vale (PM)
