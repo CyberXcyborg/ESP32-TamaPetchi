@@ -563,3 +563,186 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 5. Finally: 13.6 - v1.3 Release
 
 ---
+
+---
+
+## Nyra's Code Review — Phase 13.4 & 13.5 — ✅ APPROVED (with fixes)
+
+### Phase 13.4 — Manufacturing & Provisioning Tools ✅ APPROVED
+**Files reviewed:** Provisioning.h (38 lines), Provisioning.cpp (255 lines), tools/provision.py (293 lines), tools/batch_flash.sh (104 lines), test/test_provisioning.cpp (355 lines)
+**Build:** SUCCESS (RAM 17.8%, Flash 80.2%)
+**Tests:** 6/6 provisioning tests pass
+
+**Findings:**
+- Clean provisioning flow: first-boot AP mode, device ID from MAC, WiFi credential storage
+- Device ID format TAMA-XXXXXX from last 3 bytes of MAC — good uniqueness
+- Factory reset clears all SPIFFS config files and restarts
+- Web API: status, set, reset, deviceid endpoints with proper validation
+- Python provisioning tool with serial + HTTP support and batch mode
+- Batch flash script with sequential multi-device support
+- 6 unit tests covering device ID generation, format validation, JSON structure, state logic
+- Minor:  is idempotent (checks g_deviceIDLoaded) — correct
+- Minor:  removes old file before writing — good for atomicity
+- Minor:  checks wifi_config.json existence — could be abstracted to WiFiManager
+
+**Verdict:** Approved. Solid provisioning implementation ready for manufacturing use.
+
+### Phase 13.5 — Power Optimization & Deep Sleep ✅ APPROVED
+**Files reviewed:** PowerManager.h (57 lines modified), PowerManager.cpp (172 lines modified), test/test_power.cpp (277 lines)
+**Build:** SUCCESS (RAM 17.8%, Flash 80.2%)
+**Tests:** 9/9 power tests pass
+
+**Findings:**
+- Clean SleepMode enum (NONE, LIGHT, DEEP) with WakeInterval options
+- Battery history tracking with 24-hour circular buffer — good for estimation
+- Battery estimation: calculates drain rate from oldest/newest samples, estimates remaining hours
+- Light sleep with configurable duration and timer wake-up
+- WiFi power management (reduce/restore) using esp_wifi_set_max_tx_power
+- Sleep decision logic: only sleep if alive + sleeping state + night
+- 9 unit tests covering battery, estimation, sleep config, JSON, shouldSleep, WiFi power
+- Minor:  returns -1 when battery is charging (oldest <= newest) — correct behavior
+- Minor:  has empty  block — relies on Buttons.cpp for actual sleep, which is fine architecturally but should be documented more clearly
+
+**Verdict:** Approved. Power management is production-ready.
+
+### Native Test Fixes (225babf) — COMMITTED
+- Fixed ArduinoJson 6.18.5  template errors in test_power.cpp and test_provisioning.cpp
+- Fixed  assignment in  (use )
+- Removed duplicate  definition
+- Added missing native stubs for all PowerManager functions
+- Renamed  to  to avoid collision with test_hal.cpp
+- Result: 145/152 tests pass (7 pre-existing failures from Phase 12, not regressions)
+
+### Build Health (Current)
+- Build: SUCCESS (RAM 17.8%, Flash 80.1%)
+- Tests: 145/152 pass (7 pre-existing failures, not regressions)
+- Open PRs: 0
+- Branch: feature/phase13-v1.3 (5 commits ahead of develop)
+
+### Next Actions for Kael
+1. **Create PR** for current Phase 13.2 + 13.3 + 13.4 + 13.5 work
+2. **Next task: 13.1 — OTA Delta Updates** (most complex remaining feature)
+3. **Then: 13.6 — v1.3 Release** (final build, tests, docs, tag)
+
+---
+
+## Phase 13.1 — OTA Delta Updates — 🔴 NEXT
+
+**Files to create/modify:**
+- src/OTA_Delta.h — Delta patch application with bsdiff-style binary diffing
+- src/OTA_Delta.cpp — Delta patch algorithm implementation
+- src/OTA.cpp — Integrate delta update into existing OTA flow
+- src/WebHandlers.cpp — Add POST /api/ota/delta endpoint
+- test/test_ota_delta.cpp — Unit tests for delta patch round-trip
+
+**Requirements:**
+- Implement binary delta patching (bsdiff or similar) for firmware updates
+- Delta updates should be less than 10% of full firmware size for minor changes
+- Verify delta patch integrity with SHA-256 before applying
+- Fallback to full OTA if delta patch fails
+- POST /api/ota/delta accepts delta binary, applies to current firmware partition
+- Store delta in temporary partition, verify, then swap
+- Minimum 10 unit tests
+
+**Estimated effort:** 2-3 hours (most complex remaining feature)
+
+---
+
+## Phase 13.6 — v1.3 Release — AFTER 13.1
+
+- Run full PlatformIO build with all Phase 13 features
+- Run all unit tests (target: 200+ tests — currently at 152)
+- Update README with Phase 13 features (HAL, Community, Provisioning, Power, OTA Delta)
+- Update CHANGELOG.md with v1.3.0 section
+- Create v1.3.0 release tag
+- Write v1.3.0 release notes
+- Merge develop → main for v1.3.0 release
+
+
+---
+
+## Nyra's Code Review - Phase 13.4 & 13.5 - APPROVED (with fixes)
+
+### Phase 13.4 - Manufacturing and Provisioning Tools APPROVED
+**Files reviewed:** Provisioning.h, Provisioning.cpp, tools/provision.py, tools/batch_flash.sh, test/test_provisioning.cpp
+**Build:** SUCCESS (RAM 17.8%, Flash 80.2%)
+**Tests:** 6/6 provisioning tests pass
+
+**Findings:**
+- Clean provisioning flow: first-boot AP mode, device ID from MAC, WiFi credential storage
+- Device ID format TAMA-XXXXXX from last 3 bytes of MAC - good uniqueness
+- Factory reset clears all SPIFFS config files and restarts
+- Web API: status, set, reset, deviceid endpoints with proper validation
+- Python provisioning tool with serial + HTTP support and batch mode
+- Batch flash script with sequential multi-device support
+- 6 unit tests covering device ID generation, format validation, JSON structure, state logic
+
+**Verdict:** Approved. Solid provisioning implementation ready for manufacturing use.
+
+### Phase 13.5 - Power Optimization and Deep Sleep APPROVED
+**Files reviewed:** PowerManager.h, PowerManager.cpp, test/test_power.cpp
+**Build:** SUCCESS (RAM 17.8%, Flash 80.2%)
+**Tests:** 9/9 power tests pass
+
+**Findings:**
+- Clean SleepMode enum (NONE, LIGHT, DEEP) with WakeInterval options
+- Battery history tracking with 24-hour circular buffer
+- Battery estimation with drain rate calculation
+- Light sleep with configurable duration and timer wake-up
+- WiFi power management using esp_wifi_set_max_tx_power
+- 9 unit tests covering all power features
+
+**Verdict:** Approved. Power management is production-ready.
+
+### Native Test Fixes (225babf) - COMMITTED
+- Fixed ArduinoJson 6.18.5 as<String>() template errors
+- Fixed String assignment in StaticJsonDocument
+- Removed duplicate test_deep_sleep_wake_flag definition
+- Added missing native stubs for PowerManager functions
+- Renamed test_wifi_power to avoid collision with test_hal.cpp
+- Result: 145/152 tests pass (7 pre-existing failures, not regressions)
+
+### Build Health (Current)
+- Build: SUCCESS (RAM 17.8%, Flash 80.1%)
+- Tests: 145/152 pass
+- Open PRs: 0
+- Branch: feature/phase13-v1.3 (5 commits ahead of develop)
+
+### Next Actions for Kael
+1. Create PR for Phase 13.2-13.5 work
+2. Next task: 13.1 - OTA Delta Updates
+3. Then: 13.6 - v1.3 Release
+
+---
+
+## Phase 13.1 - OTA Delta Updates - NEXT
+
+**Files to create/modify:**
+- src/OTA_Delta.h - Delta patch application header
+- src/OTA_Delta.cpp - Delta patch algorithm implementation
+- src/OTA.cpp - Integrate delta update into existing OTA flow
+- src/WebHandlers.cpp - Add POST /api/ota/delta endpoint
+- test/test_ota_delta.cpp - Unit tests for delta patch round-trip
+
+**Requirements:**
+- Implement binary delta patching (bsdiff or similar) for firmware updates
+- Delta updates should be less than 10% of full firmware size for minor changes
+- Verify delta patch integrity with SHA-256 before applying
+- Fallback to full OTA if delta patch fails
+- POST /api/ota/delta accepts delta binary, applies to current firmware partition
+- Store delta in temporary partition, verify, then swap
+- Minimum 10 unit tests
+
+**Estimated effort:** 2-3 hours (most complex remaining feature)
+
+---
+
+## Phase 13.6 - v1.3 Release - AFTER 13.1
+
+- Run full PlatformIO build with all Phase 13 features
+- Run all unit tests (target: 200+ tests)
+- Update README with Phase 13 features (HAL, Community, Provisioning, Power, OTA Delta)
+- Update CHANGELOG.md with v1.3.0 section
+- Create v1.3.0 release tag
+- Write v1.3.0 release notes
+- Merge develop to main for v1.3.0 release
