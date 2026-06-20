@@ -58,7 +58,7 @@ void handleOTA() {
 }
 
 void registerOTARoutes(WebServer &server) {
-  // POST /update — firmware upload via multipart form
+  // POST /update — firmware upload via multipart form (full OTA)
   server.on("/update", HTTP_POST, [&server]() {
     if (Update.hasError()) {
       server.send(500, "application/json", "{\"success\":false,\"message\":\"" + otaError + "\"}");

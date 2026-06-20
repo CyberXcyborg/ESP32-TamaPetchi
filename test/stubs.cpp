@@ -34,7 +34,7 @@ void initOTA() {}
 void handleOTA() {}
 
 // --- OTA Delta stub ---
-void initOTADelta() {}
+// initOTADelta is defined in OTA_Delta_Native.cpp for native builds
 void handleOTADelta() {}
 
 // --- WiFi Manager stub ---
@@ -109,6 +109,7 @@ int run_hal_tests();
 int run_pet_statemachine_tests();
 int run_provisioning_tests();
 int run_power_tests();
+int run_ota_delta_tests();
 
 int main() {
   printf("=== TamaPetchi Native Unit Tests ===\n\n");
@@ -119,6 +120,8 @@ int main() {
   run_provisioning_tests();
   printf("\n");
   run_power_tests();
+  printf("\n");
+  run_ota_delta_tests();
   printf("\n=== All native tests PASSED ===\n");
   return 0;
 }

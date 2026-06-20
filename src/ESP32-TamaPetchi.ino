@@ -45,7 +45,7 @@
 #include "MQTT.h"
 #endif
 
-// OTA Delta (optional - disable with -DENABLE_OTA_DELTA)
+// OTA Delta (optional - disable with -DDISABLE_OTA_DELTA)
 #ifndef DISABLE_OTA_DELTA
 #include "OTA_Delta.h"
 #endif
@@ -80,6 +80,11 @@ void setup() {
 
   // Phase 5: Initialize OTA
   setupOTA();
+
+  // Phase 13.1: Initialize OTA delta patch system
+#ifndef DISABLE_OTA_DELTA
+  initOTADelta();
+#endif
 
   // Phase 11.1: Initialize OTA rollback system
   initRollbackSystem();
