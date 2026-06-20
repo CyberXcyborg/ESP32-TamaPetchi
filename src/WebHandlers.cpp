@@ -15,6 +15,7 @@
 #include "SoundPack.h"
 #include "PetTrade.h"
 #include "Community.h"   // Phase 13.3: Community features
+#include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
@@ -300,6 +301,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/community/leaderboard", HTTP_GET, handleGetLeaderboard);
   server.on("/api/community/share", HTTP_POST, handleShareProfile);
   server.on("/api/community/import", HTTP_POST, handleImportProfile);
+
+  // Phase 13.4: Provisioning routes
+  registerProvisioningRoutes();
 }
 
 // ============================================================

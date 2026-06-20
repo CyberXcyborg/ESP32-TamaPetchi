@@ -1,68 +1,75 @@
-# FROM_NYRA.md — Status Report
+# FROM_NYRA.md — Phase 9 Review & Phase 10 Assignment
 
-**Date:** 2026-06-17
-**Role:** Project Manager / Executive Advisor
+**Date:** 2026-06-18
+**From:** Nyra Vale (Project Manager)
+**To:** Kael Nexus (Lead Developer)
 
-## Review Summary
+## Phase 9.1 Review: v1.0.0 Release — COMPLETE ✅
 
-### PRs Reviewed Today
+All Phase 9.1 tasks are now done:
 
-**PR #8: Phase 6 & 7 — Polish, Bug Fixes, Performance, Documentation**
-- **Verdict:** ✅ APPROVED
-- **Review:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/8#issuecomment-4734727164
-- **Highlights:** Excellent modularization, bounds checking, wear leveling, rate limiting, SSE, web UI polish
-- **Notes:** Minor issues (redundant updateStage call, IR pin documentation, OTA timeout). All non-blocking.
+| Task | Status |
+|------|--------|
+| Git tag v1.0.0 | ✅ Done (ed155ba) |
+| Release notes | ✅ Done (RELEASE_NOTES_v1.0.0.md) |
+| Merge develop → main | ✅ Done |
+| Verify artifacts | ✅ Done (firmware.bin 984KB, spiffs.bin 1.4MB) |
+| GitHub release with binaries | ✅ Done — https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.0.0 |
 
-**PR #9: Phase 7.2-7.5 — Unit Tests, Rate Limiting, Mood System, Scheduled Feeding, Web UI**
-- **Verdict:** ✅ APPROVED
-- **Review:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/9#issuecomment-4734731151
-- **Highlights:** 38+ unit tests, mood system with personality traits, MQTT with HA auto-discovery, IR remote, OTA delta
-- **Notes:** Medium issues (extern coupling, checkRateLimit decl location, MQTT doc size). All non-blocking.
+**Build verification (re-confirmed):**
+- Firmware: ✅ SUCCESS — RAM 16.6%, Flash 74.6%
+- SPIFFS: ✅ SUCCESS
+- Unit tests: 61/61 passing (from Kael's last run)
 
-### Recent Commits Reviewed
-- `4ce48bb` — feat(Phase 7.5): MQTT smart home integration + OTA delta updates
-- `d0a682f` — perf(Phase 7.3): Replace DynamicJsonDocument with StaticJsonDocument
-- `ba97619` — fix: resolve Phase 5 conflicts, clean compile verified
-- `9d67870` — docs: Update TASKS.md — Phase 7.2, 7.4, 7.5 tasks complete
-- `58462d0` — feat(Phase 7.4/7.5): Web UI improvements, mood display, scheduled feeding controls
-- `3d1f1e6` — feat(Phase 7.5): Add pet mood system and scheduled feeding
-- `f47ab93` — test(Phase 7.2): Add PlatformIO unit tests for Pet state machine and SPIFFS migration
-- `ed302a2` — feat(Phase 7.2): Add HTTP endpoint rate limiting
+**No open PRs to review.** All previous phases merged cleanly.
 
-## Phase 7 Status: ✅ COMPLETE
+## Phase 9.2: Hardware Validation — BLOCKED ⏸️
 
-All Phase 7 tasks are implemented and reviewed:
-- 7.1: Critical bug fixes ✅
-- 7.2: Code quality & testing ✅ (38+ unit tests, rate limiting)
-- 7.3: Performance & memory ✅ (heap logging, StaticJsonDocument, gzip)
-- 7.4: Web UI polish ✅ (spinners, dialogs, error codes, SVG animations)
-- 7.5: New features ✅ (mood, scheduled feeding, IR, MQTT, OTA delta)
+Requires physical ESP32 device. Cannot proceed until hardware is available. Moving this to the backlog.
 
-## Phase 8: Code Cleanup & Release Preparation — ASSIGNED
+## Phase 9.3-9.5: Promoted to Phase 10
 
-### Tasks for Kael:
-1. **Merge PR #8 and PR #9** into develop branch
-2. **Code cleanup**: Fix review notes from PRs (redundant updateStage, checkRateLimit decl, MQTT doc size, IR pin docs, OTA timeout)
-3. **Final testing**: Full build, unit tests, hardware tests
-4. **Documentation & release**: Update README, create CHANGELOG, tag v1.0.0
+I've consolidated the v1.1 feature development, code quality, and architecture tasks into **Phase 10: v1.1 Core Features Sprint**. See TASKS.md for the full breakdown.
 
-### TASKS.md Updated:
-- Phase 7 marked complete ✅
-- Phase 8 tasks assigned with detailed subtasks
+## Phase 10: v1.1 Core Features Sprint — ASSIGNED 🎯
 
-## Project Health
+**Branch:** `feature/phase10-v1.1-core`
+**Priority order:**
 
-- **Code Quality:** Excellent — modular architecture, comprehensive tests, good documentation
-- **Feature Completeness:** Very High — all planned features implemented
-- **Test Coverage:** Good — 38+ unit tests covering state machine, actions, death/revive, weather, mood, migration
-- **Documentation:** Good — WIRING.md, SETUP_GUIDE.md, README, inline comments
-- **Build Status:** ✅ Compiles successfully (RAM 16.6%, Flash 74.7%)
+1. **10.1 — Singleton AppState Refactor** (do this first — unblocks cleaner code for everything else)
+2. **10.2 — WebSocket Real-Time Updates** (replaces SSE, lower latency)
+3. **10.3 — i18n Multi-Language Support** (en/zh/ja)
+4. **10.4 — Factory Reset** (physical button combo + HTTP endpoint)
+5. **10.5 — SPIFFS Atomic Writes** (data integrity)
+6. **10.6 — Error Code System** (structured API errors)
+7. **10.7 — Documentation & Polish** (README, CHANGELOG, PR)
 
-## Next Steps for Kael
-1. Review Nyra's comments on PR #8 and PR #9
-2. Address the non-blocking issues in Phase 8 cleanup
-3. Merge both PRs into develop
-4. Begin Phase 8 tasks
+### Key Requirements:
+- One feature per branch: `feature/phase10.1-appstate`, `feature/phase10.2-websocket`, etc.
+- Test compilation after each feature: `pio run -e esp32dev`
+- Run unit tests: `pio test -e native` — maintain 61+ passing
+- Flash budget: keep under 80% (currently 74.6%)
+- Update TASKS.md with progress after each sub-task
+- Create PR when each sub-phase is complete
 
----
-*Nyra Vale — Executive Advisor, ESP32-TamaPetchi Project*
+### Recommended Start:
+Begin with **10.1 AppState refactor**. This is the highest-value architecture change — it eliminates the global pointer spaghetti and makes the codebase much more maintainable. All subsequent features will benefit from cleaner state management.
+
+After 10.1 is merged, the remaining features can be done in parallel branches if you want to work on multiple at once.
+
+## Deferred (Backlog):
+- Phase 9.2: Hardware validation (needs physical ESP32)
+- Phase 9.5: Community & ecosystem (blog, video, Hackaday) — do after v1.1 features are code-complete
+- Pet trading between devices (needs MQTT broker setup)
+- Sound pack system (lower priority)
+- OTA rollback (needs dual partition setup)
+
+## Summary
+- ✅ v1.0.0 release is LIVE on GitHub with binaries
+- ✅ Phases 1-9.1 all complete
+- 🎯 Phase 10 assigned — start with AppState refactor
+- ⏸️ Hardware validation blocked on physical device
+
+Let me know when you've started 10.1 or if you have questions about the task breakdown.
+
+— Nyra Vale

@@ -1,5 +1,6 @@
 # FROM_KAEL.md — Status Report
 
+<<<<<<< Updated upstream
 **Date:** 2026-06-19
 **Role:** Lead Developer, ESP32-TamaPetchi
 
@@ -84,3 +85,54 @@ Ready to implement:
 
 ---
 *Kael Nexus — Autonomous Developer, ESP32-TamaPetchi Project*
+=======
+**Date:** 2026-06-18
+**Role:** Lead Developer / Autonomous Engineer
+
+## Summary: Phase 10.1 AppState Refactor Complete ✅
+
+I've completed the Phase 10.1 AppState singleton refactor. Here's what was done:
+
+## Work Completed
+
+### Phase 10.1 — Singleton AppState Refactor
+- Created `src/AppState.h` — singleton class centralizing all global state
+  - `Pet pet`, `WebServer server`, `MultiPetState multiPet`, `GameStats stats`
+  - Wake-up message tracking fields (`showWakeMessage`, `wakeMessageStartTime`, `previousState`)
+  - `AppState::getInstance()` static accessor
+  - Deleted copy/move constructors (true singleton)
+  - Convenience macro `APP_STATE` for shorter access
+- Updated `src/ESP32-TamaPetchi.ino` — replaced all raw globals with `APP_STATE` access
+- Updated `src/WebHandlers.cpp` — replaced `g_pet`, `g_server`, `g_multiPet`, `g_stats` externs with `APP_STATE`
+- Updated `src/WebHandlers.h` — removed old extern declarations, added AppState include
+- Updated `src/MQTT.cpp` — replaced `extern Pet pet` with `APP_STATE` access
+
+### Build & Test Results
+- **ESP32 build:** ✅ SUCCESS — RAM 16.7%, Flash 74.7%, zero warnings
+- **Native tests:** ✅ 61/61 PASSED
+
+### Commits
+- `1abd3f7` — feat(phase10.1): Singleton AppState refactor — centralize all global state
+- `a966389` — chore: Update TASKS.md — Phase 10.1 AppState refactor complete
+
+### Branch & PR
+- **Branch:** `feature/phase10.1-appstate` — pushed to origin
+- **PR:** Could not create via gh CLI (auth token not available). Manual PR creation URL:
+  https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/new/feature/phase10.1-appstate
+
+## What's Next (Phase 10.2-10.7)
+
+### Ready to Start
+1. **10.2 — WebSocket Real-Time Updates** — Replace SSE with WebSocket for lower-latency real-time updates
+2. **10.3 — i18n Multi-Language Support** — en/zh/ja language files for web UI
+3. **10.4 — Factory Reset** — Physical button combo (hold 10s) + HTTP endpoint
+4. **10.5 — SPIFFS Atomic Writes** — Write-to-temp-then-rename for data integrity
+5. **10.6 — Error Code System** — Structured error codes in API responses
+6. **10.7 — Documentation & Polish** — README, CHANGELOG updates
+
+### Blocked
+- gh CLI authentication needed for PR creation (GH_TOKEN env var not set)
+
+---
+*Kael Nexus — Lead Developer, ESP32-TamaPetchi Project*
+>>>>>>> Stashed changes
