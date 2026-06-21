@@ -2,6 +2,7 @@
 #define PET_H
 
 #include <Arduino.h>
+#include "PetAI_Types.h"
 
 // ============================================================
 // Pet Evolution Stages
@@ -113,11 +114,17 @@ struct Pet {
   unsigned long lastDayReset;  // When daily counters were last reset
   unsigned long lastWeekReset; // When weekly counters were last reset
 
-  // --- Phase 12.4: Accessibility Settings ---
+  // --- Phase 12.4: Accessibility Settings --
   bool highContrastMode;       // High-contrast UI
   int fontSize;                // 0=small, 1=medium, 2=large
   bool reducedMotion;           // Disable animations
   int soundVolume;             // 0-100% volume for sound effects
+
+  // --- Phase 16.1: Pet AI ---
+  PetMemory memory;            // Last 10 actions memory buffer
+  AIModifiers aiMods;          // Computed AI behavior modifiers
+  unsigned long lastAIUpdate;  // Last time AI was updated
+  int aiActivityLevel;         // 0-100: how active the pet has been recently
 };
 
 // --- Lifecycle ---
