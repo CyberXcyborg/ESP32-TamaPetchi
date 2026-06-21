@@ -71,9 +71,10 @@ void handleExportJson();
 void handleGetAccessibility();
 void handleSetAccessibility();
 
-// Phase 12.5: Backup & Restore
+// Phase 12.5 / 15.3: Backup & Restore
 void handleGetBackup();
 void handlePostRestore();
+void handleVerifyBackup();
 
 // Phase 13.3: Community Features
 void handleGetGallery();

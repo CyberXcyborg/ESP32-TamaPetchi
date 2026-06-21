@@ -33,6 +33,11 @@
 #define ERR_JSON_SERIALIZE_FAIL "json_serialize_fail"
 #define ERR_JSON_TOO_LARGE      "json_too_large"
 
+// JSON error integer codes
+#define ERR_INT_JSON_PARSE_FAIL     100
+#define ERR_INT_JSON_SERIALIZE_FAIL 101
+#define ERR_INT_JSON_TOO_LARGE      102
+
 // Pet state errors
 #define ERR_PET_NOT_FOUND       "pet_not_found"
 #define ERR_PET_DEAD            "pet_dead"
@@ -79,5 +84,22 @@
 #define ERR_SYSTEM_BUSY         "system_busy"
 #define ERR_SYSTEM_RESTARTING   "system_restarting"
 #define ERR_SYSTEM_UNKNOWN      "system_unknown"
+
+// Backup errors (integer codes for function return values)
+#define ERR_BACKUP_VERSION_MISSING    700
+#define ERR_BACKUP_NO_PET             701
+#define ERR_BACKUP_NO_CHECKSUM        702
+#define ERR_BACKUP_CHECKSUM_MISMATCH  703
+#define ERR_BACKUP_MIGRATE_FAIL       704
+
+// Backup error strings (for API responses)
+#define ERR_STR_BACKUP_VERSION_MISSING    "backup_version_missing"
+#define ERR_STR_BACKUP_NO_PET             "backup_no_pet"
+#define ERR_STR_BACKUP_NO_CHECKSUM        "backup_no_checksum"
+#define ERR_STR_BACKUP_CHECKSUM_MISMATCH  "backup_checksum_mismatch"
+#define ERR_STR_BACKUP_MIGRATE_FAIL       "backup_migrate_fail"
+
+// Success
+#define ERR_OK                        0
 
 #endif // ERRORCODE_H

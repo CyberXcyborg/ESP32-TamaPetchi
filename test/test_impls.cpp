@@ -2,7 +2,9 @@
 // Strips hardware dependencies (Serial, tone, analogRead, etc.) for native unit testing
 #include "Pet.h"
 #include "Achievements.h"
+#include "Stats.h"
 #include "config.h"
+#include "ErrorCode.h"
 #include <ArduinoJson.h>
 
 // --- Helpers ---
@@ -1026,4 +1028,236 @@ void checkAchievements(Pet &pet) {
   }
   if (pet.age >= 1440) recordAchievementProgress(ACH_SURVIVED_24H, 1);
   if (pet.age >= 10080) recordAchievementProgress(ACH_SURVIVED_7D, 1);
+}
+
+// ============================================================
+// Phase 15.3: Backup & Restore — Test-safe implementations
+// ============================================================
+// These mirror the production Backup.cpp logic without SPIFFS dependency
+
+static unsigned long crc32_table_bak[256];
+static bool crc32_table_bak_initialized = false;
+
+static void init_crc32_table_bak() {
+  if (crc32_table_bak_initialized) return;
+  for (unsigned long i = 0; i < 256; i++) {
+    unsigned long c = i;
+    for (int j = 0; j < 8; j++) {
+      if (c & 1)
+        c = 0xEDB88320UL ^ (c >> 1);
+      else
+        c >>= 1;
+    }
+    crc32_table_bak[i] = c;
+  }
+  crc32_table_bak_initialized = true;
+}
+
+static unsigned long crc32_bak(const char *data, size_t len) {
+  init_crc32_table_bak();
+  unsigned long crc = 0xFFFFFFFFUL;
+  for (size_t i = 0; i < len; i++) {
+    crc = crc32_table_bak[(crc ^ (unsigned char)data[i]) & 0xFF] ^ (crc >> 8);
+  }
+  return crc ^ 0xFFFFFFFFUL;
+}
+
+// Test-global stats (simulates APP_STATE.stats)
+static GameStats testStats = {0,0,0,0,0,0,0,0,0,0};
+
+unsigned long computeBackupChecksum(const Pet &pet) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+    pet.name.c_str(),
+    pet.hunger, pet.happiness, pet.health, pet.energy, pet.cleanliness,
+    pet.age, pet.feedCount, pet.playCount, pet.generation, pet.stage);
+  return crc32_bak(buf, strlen(buf));
+}
+
+String createBackupJson(const Pet &pet) {
+  DynamicJsonDocument jsonDoc(8192);
+  jsonDoc["version"] = BACKUP_VERSION;
+  jsonDoc["timestamp"] = millis();
+
+  JsonObject petObj = jsonDoc.createNestedObject("pet");
+  petObj["name"] = pet.name.c_str();
+  petObj["type"] = (int)pet.type;
+  petObj["stage"] = (int)pet.stage;
+  petObj["generation"] = pet.generation;
+  petObj["birthDeviceId"] = pet.birthDeviceId.c_str();
+  petObj["hunger"] = pet.hunger;
+  petObj["happiness"] = pet.happiness;
+  petObj["health"] = pet.health;
+  petObj["energy"] = pet.energy;
+  petObj["cleanliness"] = pet.cleanliness;
+  petObj["age"] = pet.age;
+  petObj["isAlive"] = pet.isAlive;
+  petObj["state"] = pet.state.c_str();
+  petObj["isNight"] = pet.isNight;
+  petObj["virtualMinutes"] = pet.virtualMinutes;
+  petObj["soundEnabled"] = pet.soundEnabled;
+  petObj["feedCount"] = pet.feedCount;
+  petObj["playCount"] = pet.playCount;
+  petObj["timesCleaned"] = pet.timesCleaned;
+  petObj["timesHealed"] = pet.timesHealed;
+  petObj["hasBeenNamed"] = pet.hasBeenNamed;
+  petObj["elderAchieved"] = pet.elderAchieved;
+  petObj["highContrastMode"] = pet.highContrastMode;
+  petObj["fontSize"] = pet.fontSize;
+  petObj["reducedMotion"] = pet.reducedMotion;
+  petObj["soundVolume"] = pet.soundVolume;
+  petObj["scheduledFeedEnabled"] = pet.scheduledFeedEnabled;
+  petObj["scheduledFeedInterval"] = pet.scheduledFeedInterval;
+  petObj["scheduledFeedAmount"] = pet.scheduledFeedAmount;
+  petObj["mood"] = pet.mood;
+  petObj["personalityCheerful"] = pet.personalityCheerful;
+  petObj["personalityEnergetic"] = pet.personalityEnergetic;
+  petObj["personalityHungry"] = pet.personalityHungry;
+
+  JsonArray achArr = jsonDoc.createNestedArray("achievements");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (achievementStates[i].progress > 0 || achievementStates[i].unlocked) {
+      JsonObject obj = achArr.createNestedObject();
+      obj["id"] = achievementDefs[i].id;
+      obj["progress"] = achievementStates[i].progress;
+      obj["unlocked"] = achievementStates[i].unlocked;
+    }
+  }
+
+  JsonObject statsObj = jsonDoc.createNestedObject("stats");
+  statsObj["playTime"] = testStats.totalPlayTimeSec;
+  statsObj["feedCount"] = testStats.totalFeeds;
+  statsObj["playCount"] = testStats.totalPlays;
+  statsObj["sleepCount"] = testStats.totalSleeps;
+  statsObj["cleanCount"] = testStats.totalCleans;
+  statsObj["healCount"] = testStats.totalHeals;
+  statsObj["deathCount"] = testStats.deaths;
+  statsObj["evolutionCount"] = testStats.evolutions;
+
+  JsonObject settingsObj = jsonDoc.createNestedObject("settings");
+  settingsObj["soundEnabled"] = pet.soundEnabled;
+  settingsObj["language"] = "en";
+
+  jsonDoc["checksum"] = computeBackupChecksum(pet);
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+int verifyBackupJson(const String &json) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return ERR_INT_JSON_PARSE_FAIL;
+
+  const char *ver = jsonDoc["version"];
+  if (!ver) return ERR_BACKUP_VERSION_MISSING;
+
+  if (!jsonDoc["pet"]) return ERR_BACKUP_NO_PET;
+
+  unsigned long storedChecksum = jsonDoc["checksum"] | 0UL;
+  if (storedChecksum == 0) return ERR_BACKUP_NO_CHECKSUM;
+
+  Pet tempPet;
+  initPet(tempPet);
+  JsonObject petObj = jsonDoc["pet"];
+  tempPet.name = (const char*)(petObj["name"] | "");
+  tempPet.hunger = (int)(petObj["hunger"] | 50);
+  tempPet.happiness = (int)(petObj["happiness"] | 50);
+  tempPet.health = (int)(petObj["health"] | 50);
+  tempPet.energy = (int)(petObj["energy"] | 50);
+  tempPet.cleanliness = (int)(petObj["cleanliness"] | 50);
+  tempPet.age = (int)(petObj["age"] | 0);
+  tempPet.feedCount = (int)(petObj["feedCount"] | 0);
+  tempPet.playCount = (int)(petObj["playCount"] | 0);
+  tempPet.generation = (int)(petObj["generation"] | 1);
+  tempPet.stage = (PetStage)(int)(petObj["stage"] | 0);
+
+  unsigned long computedChecksum = computeBackupChecksum(tempPet);
+  if (computedChecksum != storedChecksum) return ERR_BACKUP_CHECKSUM_MISMATCH;
+
+  return ERR_OK;
+}
+
+int restoreBackupJson(const String &json, Pet &pet) {
+  int verifyResult = verifyBackupJson(json);
+  if (verifyResult != ERR_OK) return verifyResult;
+
+  // Verify already parsed, skip re-parsing for restore
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return ERR_INT_JSON_PARSE_FAIL;
+
+  JsonObject petObj = jsonDoc["pet"];
+  if (petObj) {
+    String name = (const char*)(petObj["name"] | "");
+    if (name.length() > 0 && name.length() <= 16) {
+      pet.name = name;
+      pet.hasBeenNamed = true;
+    }
+    pet.type = (PetType)(int)(petObj["type"] | 0);
+    pet.stage = (PetStage)(int)(petObj["stage"] | 0);
+    pet.generation = (int)(petObj["generation"] | 1);
+    pet.birthDeviceId = (const char*)(petObj["birthDeviceId"] | "");
+    pet.hunger = constrain((int)(petObj["hunger"] | 50), STAT_MIN, STAT_MAX);
+    pet.happiness = constrain((int)(petObj["happiness"] | 50), STAT_MIN, STAT_MAX);
+    pet.health = constrain((int)(petObj["health"] | 50), STAT_MIN, STAT_MAX);
+    pet.energy = constrain((int)(petObj["energy"] | 50), STAT_MIN, STAT_MAX);
+    pet.cleanliness = constrain((int)(petObj["cleanliness"] | 50), STAT_MIN, STAT_MAX);
+    pet.age = (int)(petObj["age"] | 0);
+    pet.isAlive = (bool)(petObj["isAlive"] | true);
+    pet.isNight = (bool)(petObj["isNight"] | false);
+    pet.virtualMinutes = (int)(petObj["virtualMinutes"] | 0);
+    pet.soundEnabled = (bool)(petObj["soundEnabled"] | true);
+    pet.feedCount = constrain((int)(petObj["feedCount"] | 0), 0, 99999);
+    pet.playCount = constrain((int)(petObj["playCount"] | 0), 0, 99999);
+    pet.timesCleaned = (int)(petObj["timesCleaned"] | 0);
+    pet.timesHealed = (int)(petObj["timesHealed"] | 0);
+    pet.hasBeenNamed = (bool)(petObj["hasBeenNamed"] | false);
+    pet.elderAchieved = (bool)(petObj["elderAchieved"] | false);
+    pet.highContrastMode = (bool)(petObj["highContrastMode"] | false);
+    pet.fontSize = constrain((int)(petObj["fontSize"] | 1), 0, 2);
+    pet.reducedMotion = (bool)(petObj["reducedMotion"] | false);
+    pet.soundVolume = constrain((int)(petObj["soundVolume"] | 80), 0, 100);
+    pet.scheduledFeedEnabled = (bool)(petObj["scheduledFeedEnabled"] | false);
+    pet.scheduledFeedInterval = constrain((int)(petObj["scheduledFeedInterval"] | 4), 1, 24);
+    pet.scheduledFeedAmount = constrain((int)(petObj["scheduledFeedAmount"] | 10), 5, 50);
+    pet.mood = constrain((int)(petObj["mood"] | 3), 0, 6);
+    pet.personalityCheerful = constrain((int)(petObj["personalityCheerful"] | 50), 0, 100);
+    pet.personalityEnergetic = constrain((int)(petObj["personalityEnergetic"] | 50), 0, 100);
+    pet.personalityHungry = constrain((int)(petObj["personalityHungry"] | 50), 0, 100);
+  }
+
+  JsonArray achArr = jsonDoc["achievements"];
+  if (achArr) {
+    for (JsonObject obj : achArr) {
+      const char *id = obj["id"];
+      int idx = findAchievementIndex(id);
+      if (idx >= 0) {
+        achievementStates[idx].progress = constrain((int)(obj["progress"] | 0), 0, 99999);
+        achievementStates[idx].unlocked = (bool)(obj["unlocked"] | false);
+        achievementStates[idx].tier = calculateTier(achievementStates[idx].progress, achievementDefs[idx].target);
+      }
+    }
+  }
+
+  return ERR_OK;
+}
+
+String getBackupVersion(const String &json) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return "";
+  const char *ver = jsonDoc["version"];
+  return ver ? String(ver) : "";
+}
+
+String migrateBackupJson(const String &json, const String &fromVersion) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return "";
+  jsonDoc["version"] = BACKUP_VERSION;
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
 }
