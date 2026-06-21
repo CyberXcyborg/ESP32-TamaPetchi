@@ -10,7 +10,7 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 13 ✅ Complete — v1.3.0 released (OTA Delta, HAL, Community, Provisioning, Power Opt)
-- Phase 14 🔄 In Progress — v1.4.0 release (14.1-14.6 complete, 14.7 release in progress)
+- Phase 14 ✅ Complete — v1.4.0 released (test fixes, community docs, OTA rollback, pet trading, sound packs)
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -471,14 +471,14 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [x] Commit: docs(community): add CONTRIBUTING.md, issue templates, batch flash script
 
 ### 14.7 — Release v1.4.0
-- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
-- [ ] Final test run: `pio test -e native` — 152/152 pass
-- [ ] Create git tag: git tag v1.4.0
-- [ ] Merge: git checkout develop && git merge feature/phase14-v1.4 --no-ff
-- [ ] Merge: git checkout main && git merge develop --no-ff
-- [ ] Push all branches: git push origin main develop --tags
-- [ ] Create GitHub release with firmware.bin attached
-- [ ] Commit: chore(release): v1.4.0 
+- [x] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [x] Final test run: `pio test -e native` — 152/152 pass
+- [x] Create git tag: git tag v1.4.0
+- [x] Merge: git checkout develop && git merge feature/phase14-v1.4 --no-ff
+- [x] Merge: git checkout main && git merge develop --no-ff
+- [x] Push all branches: git push origin main develop --tags
+- [x] Create GitHub release with firmware.bin attached — https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.4.0
+- [x] Commit: chore(release): v1.4.0 
 
 ## Implementation Rules
 - Create branch: feature/phase14-xxx (branch from develop)
