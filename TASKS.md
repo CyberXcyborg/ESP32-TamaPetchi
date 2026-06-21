@@ -13,7 +13,7 @@ bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 13 ✅ Complete — v1.3.0 released (OTA Delta, HAL, Community, Provisioning, Power Opt)
 - Phase 14 ✅ Complete — v1.4.0 released (14.1-14.7 all done, v1.4.0 tagged 2026-06-21)
-- Phase 15 🔄 In Progress — v1.5.0 (15.1, 15.3-15.6 complete, 15.2 hardware-only, 15.7 release pending)
+- Phase 15 ✅ Complete — v1.5.0 released (15.1-15.7 all done, v1.5.0 tagged 2026-06-21)
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -584,17 +584,17 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [x] Add unit tests for gallery, leaderboard, sharing — existing from Phase 13.3, 162/162 pass
 
 ### 15.7 — Release v1.5.0
-- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
-- [ ] Final test run: `pio test -e native` — all tests pass
-- [ ] Update README with Phase 15 features
-- [ ] Update CHANGELOG.md with full v1.5.0 entry
-- [ ] Update PROJECT_STATUS.md
-- [ ] Create git tag: git tag v1.5.0
-- [ ] Merge: git checkout develop && git merge feature/phase15-v1.5 --no-ff
-- [ ] Merge: git checkout main && git merge develop --no-ff
-- [ ] Push all branches: git push origin main develop --tags
-- [ ] Create GitHub release with firmware.bin attached
-- [ ] Write release notes
+- [x] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85% — ✅ 80.7%
+- [x] Final test run: `pio test -e native` — all tests pass — ✅ 162/162
+- [x] Update README with Phase 15 features — ✅ 5 new feature entries added
+- [x] Update CHANGELOG.md with full v1.5.0 entry — ✅
+- [x] Update PROJECT_STATUS.md — ✅ Phase 15 → Complete
+- [x] Create git tag: git tag v1.5.0 — ✅ tagged on main
+- [x] Merge: git checkout develop && git merge feature/phase15-v1.5 --no-ff — ✅
+- [x] Merge: git checkout main && git merge develop --no-ff — ✅
+- [x] Push all branches: git push origin main develop --tags — ✅
+- [x] Create GitHub release with firmware.bin attached — ✅ https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.5.0
+- [x] Write release notes — ✅ in release + CHANGELOG
 
 ## Implementation Rules
 - Create branch: feature/phase15-v1.5 (branch from develop)
