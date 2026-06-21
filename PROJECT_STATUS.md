@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.5.0 Released — Phase 16 In Progress
+## Overall Status: v1.6.0 Released — Phase 17 Planned
 
 ## Phase Summary
 | Phase | Description | Status | Version |
@@ -20,28 +20,26 @@
 | 13 | v1.3 Hardware & Ecosystem | ✅ Complete | v1.3.0 |
 | 14 | v1.4 Stability, Testing & Ecosystem | ✅ Complete | v1.4.0 |
 | 15 | v1.5 Performance, Polish & Hardware Validation | ✅ Complete | v1.5.0 |
-| 16 | v1.6 Intelligence, Automation & Ecosystem Growth | 🔄 In Progress | — |
+| 16 | v1.6 Intelligence, Automation & Ecosystem Growth | ✅ Complete | v1.6.0 |
 
-## Current Release: v1.5.0
-- **Tag:** v1.5.0
+## Current Release: v1.6.0
+- **Tag:** v1.6.0
 - **Date:** 2026-06-21
 - **Branch:** main
-- **Build:** RAM 18.2%, Flash 80.7%, Zero warnings
+- **Build:** RAM 18.3%, Flash 81.9%, Zero warnings
 - **Tests:** 162/162 native tests pass ✅
-- **Release:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.5.0
+- **Release:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.6.0
 
-### v1.5.0 Features
-- **Flash Optimization** (15.1): StaticJsonDocument conversions, gzip pre-compressed web UI (124KB→21KB)
-- **Backup & Restore** (15.3): CRC32 checksummed backup with download/verify/restore API
-- **Advanced Achievements** (15.4): 27 achievements (16→27), hidden/secret achievements, score system, category progress
-- **Web UI Accessibility** (15.5): ARIA labels, screen reader roles, keyboard navigation, toast notifications
-- **Pet Snapshot & Comparison** (15.6): Pet snapshot API, gallery comparison UI, leaderboard enhancements
+### v1.6.0 Features
+- **Pet AI** (16.1): Adaptive behavior engine with personality evolution, pet memory, mood-reactive rates
+- **Home Assistant** (16.2): 13 auto-discovered entities (sensors, buttons, binary sensors, select, alarm panel)
+- **CLI Tool** (16.3): Python CLI for device management (discover, status, backup, restore, flash, simulate, export)
+- **Web UI Dashboard** (16.4): Care score gauge, AI activity level, mood/stage summary, export/import settings
+- **Data Export/Import** (16.5): Full device state export, settings import with validation
 
-## Active Development: Phase 16 (v1.6.0)
-- **Branch:** feature/phase16-v1.6
-- **Start date:** 2026-06-21
-- **Status:** Not started (TASKS.md cleaned up, ready for development)
-- **Key deliverables:** Pet AI, Home Assistant deep integration, CLI tool, Dashboard/Analytics, Data export
+## Next: Phase 17 (v1.7.0)
+- **Branch:** feature/phase17-v1.7 (not yet created)
+- **Key deliverables:** PWA, voice control, advanced analytics, plugin system, mobile companion app
 
 ## Key Technical Details
 - Framework: Arduino (PlatformIO)
@@ -57,6 +55,8 @@ src/
 ├── ESP32-TamaPetchi.ino    # Main entry point
 ├── config.h                 # All configuration constants
 ├── Pet.h / Pet.cpp          # Pet state, evolution, actions, games, music
+├── PetAI_Types.h            # PetAI type definitions (Phase 16.1)
+├── PetAI.h / PetAI.cpp      # Pet AI adaptive behavior engine (Phase 16.1)
 ├── Storage.h / Storage.cpp  # SPIFFS persistence
 ├── WebHandlers.h/.cpp       # HTTP API routes
 ├── Achievements.h/.cpp      # Achievement tracking
@@ -84,5 +84,9 @@ src/
 ├── WebSocket.h / WebSocket.cpp # WebSocket real-time updates
 ├── i18n.h / i18n.cpp        # Internationalization
 ├── ErrorCode.h              # Error code definitions
-└── FactoryReset.h/.cpp      # Factory reset functionality
+└── native_test_bridge.cpp   # Native test bridge
+
+tools/
+├── tamapetchi-cli.py        # Python CLI for device management (Phase 16.3)
+└── README.md                # Tools documentation
 ```

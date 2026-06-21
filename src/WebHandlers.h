@@ -94,4 +94,8 @@ void handleComparePets();
 void handleGetPetAIStatus();
 void handleGetPetAIMemory();
 
+// Phase 16.5: Data Export & Import
+void handleExportFull();
+void handleImportSettings();
+
 #endif // WEBHANDLERS_H

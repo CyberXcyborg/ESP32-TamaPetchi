@@ -320,6 +320,10 @@ void registerHandlers(WebServer &server, Pet &pet) {
   // Phase 16.2: HA config endpoint
   registerHARoutes(server);
 
+  // Phase 16.5: Data export & import
+  server.on("/api/export/full", HTTP_GET, handleExportFull);
+  server.on("/api/import/settings", HTTP_POST, handleImportSettings);
+
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
 }
@@ -1461,4 +1465,149 @@ void handleGetPetAIMemory() {
   AppState& state = APP_STATE;
   String json = getPetAIMemoryJson(state.pet);
   g_server->send(200, "application/json", json);
+}
+
+// ============================================================
+// Phase 16.5: Data Export & Import
+// ============================================================
+
+void handleExportFull() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+
+  // Build complete device state JSON (up to 8KB for full export)
+  DynamicJsonDocument doc(8192);
+
+  // Pet data (core stats)
+  JsonObject petObj = doc.createNestedObject("pet");
+  petObj["name"] = state.pet.name;
+  petObj["type"] = state.pet.type;
+  petObj["stage"] = state.pet.stage;
+  petObj["age"] = state.pet.age;
+  petObj["hunger"] = state.pet.hunger;
+  petObj["happiness"] = state.pet.happiness;
+  petObj["health"] = state.pet.health;
+  petObj["energy"] = state.pet.energy;
+  petObj["cleanliness"] = state.pet.cleanliness;
+  petObj["isAlive"] = state.pet.isAlive;
+  petObj["state"] = state.pet.state;
+  petObj["mood"] = state.pet.mood;
+  petObj["isDying"] = state.pet.isDying;
+  petObj["isEvolving"] = state.pet.isEvolving;
+  petObj["soundEnabled"] = state.pet.soundEnabled;
+  petObj["musicEnabled"] = state.pet.musicEnabled;
+  petObj["difficulty"] = state.pet.difficulty;
+  petObj["batteryLevel"] = state.pet.batteryLevel;
+
+  // Phase 16.1: AI data
+  JsonObject aiObj = doc.createNestedObject("ai");
+  aiObj["activityLevel"] = state.pet.aiActivityLevel;
+  JsonObject mods = aiObj.createNestedObject("modifiers");
+  mods["hungerRate"] = state.pet.aiMods.hungerRateMod;
+  mods["happinessRate"] = state.pet.aiMods.happinessRateMod;
+  mods["energyRate"] = state.pet.aiMods.energyRateMod;
+  mods["healthRate"] = state.pet.aiMods.healthRateMod;
+  JsonObject personality = aiObj.createNestedObject("personality");
+  personality["cheerful"] = state.pet.personalityCheerful;
+  personality["energetic"] = state.pet.personalityEnergetic;
+  personality["hungry"] = state.pet.personalityHungry;
+
+  // Lineage
+  JsonObject lineage = doc.createNestedObject("lineage");
+  lineage["generation"] = state.pet.generation;
+  lineage["birthTimestamp"] = state.pet.birthTimestamp;
+  JsonArray parents = lineage.createNestedArray("parents");
+  if (state.pet.parentIds[0].length() > 0) parents.add(state.pet.parentIds[0]);
+  if (state.pet.parentIds[1].length() > 0) parents.add(state.pet.parentIds[1]);
+
+  // Analytics
+  JsonObject analytics = doc.createNestedObject("analytics");
+  analytics["dailyFeedCount"] = state.pet.dailyFeedCount;
+  analytics["dailyPlayCount"] = state.pet.dailyPlayCount;
+  analytics["dailySleepCount"] = state.pet.dailySleepCount;
+  analytics["totalFeeds"] = state.pet.timesFed;
+  analytics["totalPlays"] = state.pet.timesPlayed;
+  analytics["totalSleeps"] = state.pet.timesSlept;
+  analytics["totalCleans"] = state.pet.timesCleaned;
+  analytics["totalHeals"] = state.pet.timesHealed;
+
+  // Meta
+  doc["version"] = "1.6.0";
+  doc["exportTime"] = millis();
+
+  String result;
+  serializeJson(doc, result);
+  g_server->send(200, "application/json", result);
+}
+
+void handleImportSettings() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    g_server->send(429, "application/json", "{\"success\":false,\"error\":\"rate_limit\"}");
+    return;
+  }
+
+  String body = g_server->arg("plain");
+  if (body.length() == 0) {
+    g_server->send(400, "application/json", "{\"success\":false,\"error\":\"empty_body\"}");
+    return;
+  }
+
+  DynamicJsonDocument doc(2048);
+  DeserializationError err = deserializeJson(doc, body);
+  if (err) {
+    g_server->send(400, "application/json", "{\"success\":false,\"error\":\"invalid_json\"}");
+    return;
+  }
+
+  // Apply settings from import
+  if (doc["difficulty"].is<int>()) {
+    state.pet.difficulty = constrain(doc["difficulty"].as<int>(), 0, 2);
+  }
+  if (doc["music"].is<bool>()) {
+    state.pet.musicEnabled = doc["music"].as<bool>();
+  }
+  if (doc["soundFx"].is<bool>()) {
+    state.pet.soundEnabled = doc["soundFx"].as<bool>();
+  }
+  if (doc["language"].is<const char*>()) {
+    Language lang = parseLanguage(String(doc["language"].as<const char*>()));
+    setCurrentLanguage(lang);
+  }
+  if (doc["petName"].is<const char*>()) {
+    String name = doc["petName"].as<String>();
+    if (name.length() > 0 && name.length() <= 16) {
+      state.pet.name = name;
+      state.pet.hasBeenNamed = true;
+    }
+  }
+  if (doc["petType"].is<const char*>()) {
+    String t = doc["petType"].as<String>();
+    if (t == "blob") state.pet.type = BLOB;
+    else if (t == "cat") state.pet.type = CAT;
+    else if (t == "dog") state.pet.type = DOG;
+  }
+  if (doc["soundPack"].is<const char*>()) {
+    setActiveSoundPack(doc["soundPack"].as<String>());
+  }
+  if (doc["volume"].is<int>()) {
+    state.pet.soundVolume = constrain(doc["volume"].as<int>(), 0, 100);
+  }
+  if (doc["highContrast"].is<bool>()) {
+    state.pet.highContrastMode = doc["highContrast"].as<bool>();
+  }
+  if (doc["reducedMotion"].is<bool>()) {
+    state.pet.reducedMotion = doc["reducedMotion"].as<bool>();
+  }
+
+  savePetData(state.pet);
+
+  StaticJsonDocument<256> resp;
+  resp["success"] = true;
+  resp["message"] = "Settings imported successfully";
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
 }

@@ -1,6 +1,57 @@
-# Changelog
+## [1.6.0] - 2026-06-21
 
-All notable changes to ESP32-TamaPetchi are documented in this file.
+### Added
+
+#### Phase 16 — Intelligence, Automation & Ecosystem Growth
+- **Pet AI: Adaptive Behavior Engine** (16.1):
+  - Adaptive hunger rate: pets get hungry faster when active, slower when sleeping
+  - Mood-reactive behavior: cheerful pets gain happiness faster; hungry pets lose health faster
+  - Personality evolution: traits shift based on care patterns (feed/play/clean frequency)
+  - Pet memory: circular buffer tracking last 10 actions with timestamps
+  - Activity level tracking (0-100%) based on recent interactions
+  - AI modifiers: hungerRate, happinessRate, energyRate, healthRate computed from personality + memory
+  - `GET /api/pets/ai/status` — AI status (personality, modifiers, activity)
+  - `GET /api/pets/ai/memory` — action log with hourly frequency analysis
+  - Dashboard section in web UI: care score gauge, activity level, mood/stage summary
+- **Home Assistant Deep Integration** (16.2):
+  - Extended MQTT auto-discovery from 6 to 13 entities
+  - New entities: Sleep button, Heal button, Alive binary sensor, Sleeping binary sensor,
+    Mood sensor, Energy sensor, Cleanliness sensor, Pet Type select, Health Alarm control panel
+  - Health alarm states: disarmed (>30% health), armed_home (11-30%), armed_away (≤10%), triggered (dead)
+  - MQTT command support for: sleep, heal, set_type
+  - `GET /api/ha/config` — HA configuration inventory endpoint
+- **Developer Experience: CLI Tool** (16.3):
+  - `tools/tamapetchi-cli.py` — Python CLI for device management
+  - Commands: discover, status, backup, restore, action, flash, simulate, export
+  - mDNS device discovery with fallback to subnet scan
+  - `tools/README.md` with usage examples
+- **Web UI Dashboard** (16.4):
+  - Dashboard tab: care score gauge, AI activity level, mood/stage/age/high-score summary
+  - Export/Import Settings buttons for transferring configuration between devices
+  - Dashboard auto-updates via WebSocket + async AI status fetch
+- **Data Export & Import** (16.5):
+  - `GET /api/export/full` — complete device state as JSON (pet, AI, lineage, analytics)
+  - `POST /api/import/settings` — import settings from JSON (rate-limited, validated)
+  - CSV export already available from Phase 12.3
+
+### Performance Metrics
+- Flash: 81.9% (1,073,357 / 1,310,720 bytes) — 3.1% headroom under 85% limit
+- RAM: 18.3% (60,080 / 327,680 bytes)
+- Tests: 162/162 passing
+
+### Known Issues
+- Pet AI evolves slowly — requires several hours of interaction for noticeable personality shifts
+- HA auto-discovery messages may be large; ensure MQTT broker supports 1KB+ messages
+- Web UI dashboard AI fetch adds one extra HTTP request per pet data cycle
+
+### Upgrade Guide
+- **From v1.5.0**: All data migrates automatically; new AI fields initialized on first boot
+- **From v1.4.0+**: Backup recommended before upgrade; use Export Settings to save configuration
+- **All versions**: Dashboard section visible by default; AI starts learning from first action
+
+---
+
+## [1.5.0] - 2026-06-21
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

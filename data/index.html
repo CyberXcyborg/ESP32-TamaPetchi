@@ -678,6 +678,24 @@
             </div>
         </div>
 
+        <!-- Phase 16.4: Export / Import Settings -->
+        <div class="px-6 pb-2">
+            <div class="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                <h3 class="text-sm font-bold text-blue-700 mb-2"><i class="fas fa-exchange-alt"></i> Settings Transfer</h3>
+                <div class="flex gap-2">
+                    <button id="export-settings-btn" class="game-button flex-1 px-3 py-2 text-xs text-blue-600 rounded-lg border border-blue-200"
+                            aria-label="Export settings as JSON file" tabindex="0">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button id="import-settings-btn" class="game-button flex-1 px-3 py-2 text-xs text-blue-600 rounded-lg border border-blue-200"
+                            aria-label="Import settings from JSON file" tabindex="0">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
+                </div>
+                <input type="file" id="import-settings-file" accept=".json" style="display:none;" aria-label="Select settings file to import">
+            </div>
+        </div>
+
         <!-- Phase 15.4: Achievements Progress -->
         <div id="achievements-progress-section" class="px-6 pb-2" style="display:none;">
             <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
@@ -802,6 +820,50 @@
                 <span id="mute-text">Sound: ON</span>
             </button>
         </div>
+
+        <!-- Phase 16.4: Dashboard -->
+        <div id="dashboard-section" class="px-6 pb-4">
+            <h3 class="text-sm font-bold text-blue-700 mb-2"><i class="fas fa-chart-line"></i> Dashboard</h3>
+            <!-- Care Score Gauge -->
+            <div class="bg-white bg-opacity-30 rounded-xl p-3 mb-2">
+                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Care Score</span>
+                    <span id="care-score-value">--</span>
+                </div>
+                <div class="stat-bar h-3">
+                    <div id="care-score-bar" class="stat-fill bg-green-400" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- AI Status Summary -->
+            <div class="bg-white bg-opacity-30 rounded-xl p-3 mb-2">
+                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Activity Level</span>
+                    <span id="activity-level-value">--</span>
+                </div>
+                <div class="stat-bar h-3">
+                    <div id="activity-level-bar" class="stat-fill bg-blue-400" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Stats Summary -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
+                    <div class="text-gray-500">Mood</div>
+                    <div id="dashboard-mood" class="font-bold">--</div>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
+                    <div class="text-gray-500">Stage</div>
+                    <div id="dashboard-stage" class="font-bold">--</div>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
+                    <div class="text-gray-500">Age</div>
+                    <div id="dashboard-age" class="font-bold">--</div>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-lg p-2 text-center">
+                    <div class="text-gray-500">High Score</div>
+                    <div id="dashboard-highscore" class="font-bold">--</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -877,6 +939,86 @@
             // Phase 15.6: Community gallery & leaderboard
             document.getElementById('gallery-btn').addEventListener('click', showGallery);
             document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
+
+            // Phase 16.4: Export / Import Settings
+            document.getElementById('export-settings-btn').addEventListener('click', exportSettings);
+            document.getElementById('import-settings-btn').addEventListener('click', function() {
+                document.getElementById('import-settings-file').click();
+            });
+            document.getElementById('import-settings-file').addEventListener('change', importSettings);
+        }
+
+        // ============================================================
+        // Phase 16.4: Export / Import Settings
+        // ============================================================
+        function exportSettings() {
+            // Collect all settings from the UI
+            const settings = {
+                version: '1.6.0',
+                timestamp: Date.now(),
+                difficulty: document.getElementById('difficulty-select') ? document.getElementById('difficulty-select').value : 'normal',
+                music: document.getElementById('music-toggle') ? document.getElementById('music-toggle').textContent.trim() === 'ON' : true,
+                darkMode: document.getElementById('darkmode-toggle') ? document.getElementById('darkmode-toggle').textContent.trim() === 'ON' : false,
+                soundFx: document.getElementById('sfx-toggle') ? document.getElementById('sfx-toggle').textContent.trim() === 'ON' : true,
+                volume: document.getElementById('volume-slider') ? parseInt(document.getElementById('volume-slider').value) : 80,
+                language: document.getElementById('language-select') ? document.getElementById('language-select').value : 'en',
+                soundPack: document.getElementById('soundpack-select') ? document.getElementById('soundpack-select').value : 'default',
+                petName: document.getElementById('name-input') ? document.getElementById('name-input').value : '',
+                petType: document.getElementById('type-blob') ? (document.getElementById('type-blob').classList.contains('ring-2') ? 'blob' : document.getElementById('type-cat').classList.contains('ring-2') ? 'cat' : 'dog') : 'blob'
+            };
+            const blob = new Blob([JSON.stringify(settings, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tamapetchi-settings-' + Math.floor(Date.now() / 1000) + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Settings exported successfully', 'success');
+        }
+
+        function importSettings(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const settings = JSON.parse(ev.target.result);
+                    // Apply settings to UI
+                    const diffSelect = document.getElementById('difficulty-select');
+                    if (diffSelect && settings.difficulty) diffSelect.value = settings.difficulty;
+                    if (settings.music !== undefined) toggleSetting('music-toggle', settings.music);
+                    if (settings.soundFx !== undefined) {
+                        const sfx = document.getElementById('sfx-toggle');
+                        if (sfx) { sfx.textContent = settings.soundFx ? 'ON' : 'OFF'; sfx.className = 'text-xs px-3 py-1 rounded ' + (settings.soundFx ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700'); }
+                    }
+                    if (settings.volume !== undefined) {
+                        const vol = document.getElementById('volume-slider');
+                        const volVal = document.getElementById('volume-value');
+                        if (vol) vol.value = settings.volume;
+                        if (volVal) volVal.textContent = settings.volume + '%';
+                    }
+                    const langSelect = document.getElementById('language-select');
+                    if (langSelect && settings.language) { langSelect.value = settings.language; setLanguage(settings.language); }
+                    const spSelect = document.getElementById('soundpack-select');
+                    if (spSelect && settings.soundPack) spSelect.value = settings.soundPack;
+                    if (settings.petName) {
+                        const nameInput = document.getElementById('name-input');
+                        if (nameInput) nameInput.value = settings.petName;
+                    }
+                    showToast('Settings imported. Save to apply.', 'success');
+                } catch (err) {
+                    showToast('Invalid settings file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        function toggleSetting(id, on) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.textContent = on ? 'ON' : 'OFF';
+            btn.className = 'text-xs px-3 py-1 rounded ' + (on ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-700');
         }
 
         // ============================================================
@@ -1195,11 +1337,54 @@
                     updateDisplay();
                     updateMoodDisplay();
                     updateScheduledFeedUI();
+                    // Phase 16.4: Update dashboard
+                    updateDashboard(data);
                 })
                 .catch(error => {
                     console.error('Error fetching pet data:', error);
                     showMessage('Connection error. Check if device is online.', 'error');
                 });
+        }
+
+        // Phase 16.4: Update dashboard with AI + analytics data
+        function updateDashboard(data) {
+            // Care Score: weighted average of all stats
+            const careScore = Math.round(
+                (data.hunger * 0.25 + data.happiness * 0.25 +
+                 data.health * 0.2 + data.energy * 0.15 +
+                 data.cleanliness * 0.15)
+            );
+            const csBar = document.getElementById('care-score-bar');
+            const csVal = document.getElementById('care-score-value');
+            if (csBar) {
+                csBar.style.width = careScore + '%';
+                csBar.className = 'stat-fill ' + (careScore >= 70 ? 'bg-green-400' : careScore >= 40 ? 'bg-yellow-400' : 'bg-red-400');
+            }
+            if (csVal) csVal.textContent = careScore + '%';
+
+            // AI Activity Level (fetch async)
+            fetch('/api/pets/ai/status')
+                .then(r => r.json())
+                .then(ai => {
+                    const alBar = document.getElementById('activity-level-bar');
+                    const alVal = document.getElementById('activity-level-value');
+                    const level = ai.activityLevel || 0;
+                    if (alBar) alBar.style.width = level + '%';
+                    if (alVal) alVal.textContent = level + '%';
+                })
+                .catch(() => {});
+
+            // Summary stats
+            const stageNames = {baby: 'Baby', child: 'Child', adult: 'Adult', elder: 'Elder'};
+            const moodNames = ['Ecstatic', 'Happy', 'Content', 'Neutral', 'Sad', 'Upset', 'Miserable'];
+            const elMood = document.getElementById('dashboard-mood');
+            const elStage = document.getElementById('dashboard-stage');
+            const elAge = document.getElementById('dashboard-age');
+            const elHS = document.getElementById('dashboard-highscore');
+            if (elMood) elMood.textContent = moodNames[data.mood] || '--';
+            if (elStage) elStage.textContent = stageNames[data.stage] || '--';
+            if (elAge) elAge.textContent = data.age + 'm';
+            if (elHS) elHS.textContent = data.highScore || 0;
         }
 
         // ============================================================
