@@ -317,6 +317,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/pets/ai/status", HTTP_GET, handleGetPetAIStatus);
   server.on("/api/pets/ai/memory", HTTP_GET, handleGetPetAIMemory);
 
+  // Phase 16.2: HA config endpoint
+  registerHARoutes(server);
+
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
 }

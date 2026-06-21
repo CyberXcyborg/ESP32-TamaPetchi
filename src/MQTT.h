@@ -34,4 +34,7 @@ bool isMQTTConnected();
 // Get MQTT status as JSON
 String getMQTTStatusJson();
 
+// Phase 16.2: Register HA web config endpoint
+void registerHARoutes(WebServer &server);
+
 #endif // MQTT_H
