@@ -323,4 +323,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Upgrade Guide
 - **From v1.3.0**: OTA update preserves all settings and pet data; all existing features remain compatible
 - **From v1.1.0+**: OTA rollback — if new firmware crashes 3 times, device auto-reverts to previous version
+
+---
+
+## [1.5.0] - 2026-06-21
+
+### Added
+
+#### Phase 15 — v1.5 Performance, Polish & Hardware Validation
+
+- **Flash Optimization Sprint** (15.1):
+  - Converted 9 DynamicJsonDocument → StaticJsonDocument in Achievements.cpp, Storage.cpp, SoundPack.cpp
+  - Pre-compressed data/index.html.gz (124KB → 21KB, 83% SPIFFS space savings)
+  - Flash usage: 79.8% → 80.7% (minimal change, within 85% budget)
+
+- **Backup & Restore System** (15.3):
+  - Full backup/restore of all pet data, stats, achievements, settings
+  - CRC32 checksum validation for backup integrity
+  - API endpoints: `GET /api/backup/download`, `POST /api/backup/restore`, `GET /api/backup/verify`
+  - 11 new unit tests for roundtrip backup/restore (all pet states, edge cases)
+  - Backup UI section in web interface
+
+- **Advanced Achievement System** (15.4):
+  - Expanded from 16 to 27 achievements across 4 categories (Care, Evolution, Social, Exploration)
+  - 4 hidden/secret achievements: Birthday Surprise, Midnight Snacker, Night Owl, Trade Master
+  - 3 survival achievements: Against All Odds, Iron Constitution, Sparkle Week
+  - Achievement rewards: 22 unlocked skins and accessories
+  - Hidden achievement system: achievements not shown until unlocked
+  - Category progress tracking with score system
+  - API endpoints: `GET /api/achievements/categories`, `GET /api/achievements/rewards`
+  - Achievement progress bars in web UI
+
+- **Web UI Modernization & Accessibility** (15.5):
+  - ARIA labels on all interactive elements (buttons, selects, inputs)
+  - Screen reader support: role="application", "main", "status", "group"
+  - Keyboard navigation: tabindex="0" on all action buttons
+  - Decorative icons: aria-hidden="true"
+  - Toast notifications for API responses (success/error/warning)
+  - WebSocket connection status indicator
+
+- **Pet Snapshot & Comparison** (Phase 15.6):
+  - Pet snapshot: `GET /api/pets/snapshot` — full pet state for sharing
+  - Pet comparison: `GET /api/pets/compare` — compare with gallery entries
+  - Community gallery UI with top-scoring pets
+  - Leaderboard UI section
+
+### Build Health
+- Build: SUCCESS (RAM 18.2%, Flash 80.7%)
+- Tests: 162/162 native tests pass (0 failures)
+- 27 achievements with full test coverage
+- PR #14 closed, PR #15 pending
+
+### Known Issues
+- IR_RECEIVER_PIN (GPIO 15) conflicts with OLED CS pin — use one or the other
+- MQTT broker must be configured at compile time via config.h
+- OTA rollback requires ESP32 partition scheme with at least 2 OTA partitions (default most boards)
+- Pet trading requires MQTT broker connection and both devices on same MQTT network
+- Hardware validation (15.2) requires physical ESP32 — not automated
+
+### Upgrade Guide
+- **From v1.4.0**: OTA update preserves all settings, pet data, achievements, and stats
+- **From v1.3.0+**: Backup/restore system available — create backup before upgrading if downgrading later
+- **All versions**: Achievement progress migrates automatically; new achievements start at 0 progress
 - First boot after flash: connect to "TamaPetchi" AP for WiFi configuration

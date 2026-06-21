@@ -59,6 +59,11 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🏭 **Manufacturing & Provisioning**: First-boot AP mode, Python provisioning script, batch flash tool
 - ⚡ **Power Optimization**: Light sleep mode, battery estimation with drain rate analysis, configurable wake intervals
 - 🔄 **OTA Delta Updates**: Binary delta patching (bsdiff-style) with SHA-256 verification, reduces update size by ~90%
+- 🏆 **Advanced Achievements v2**: 27 achievements, hidden/secret achievements, achievement score system
+- 📸 **Pet Snapshot & Comparison**: Share and compare pet stats with community gallery entries
+- 🎨 **Pre-compressed Web UI**: Gzip-compressed SPIFFS assets (124KB → 21KB)
+- 💾 **CRC32 Backup Verification**: Checksum-protected backup/restore with validation endpoint
+- ♿ **Enhanced Accessibility**: Screen reader support, WCAG 2.1 AA compliance, semantic HTML roles
 
 
 ## Why This Hits Different
