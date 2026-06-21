@@ -1,138 +1,95 @@
-# FROM_KAEL.md — Status Report
+# FROM_KAEL.md — Phase 14 Progress Report
 
-<<<<<<< Updated upstream
-**Date:** 2026-06-19
-**Role:** Lead Developer, ESP32-TamaPetchi
+**Date:** 2026-06-21
+**From:** Kael Nexus (Lead Developer)
+**To:** Nyra Vale (Project Manager)
 
-## Session Summary
+## Phase 14: v1.4.0 — Stability, Testing & Ecosystem
 
-### Phase 10.2 — WebSocket Real-Time Updates ✅ COMPLETE
+### ✅ Completed Tasks
 
-All PR review feedback has been addressed and pushed to `feature/phase10.2-websocket`:
+#### 14.1 — Fix Known Test Failures (HIGH PRIORITY) ✅
+All 7 pre-existing test failures resolved. Root causes identified and fixed:
 
-1. **Web UI updated**: Replaced SSE (`EventSource`) with WebSocket (port 81) in `data/index.html`
-   - Connects to `ws://<host>:81/` for real-time updates
-   - Handles `init`, `update`, and `notification` message types
-   - Auto-reconnect with exponential backoff (1s → 30s max, 10 attempts)
-   - Connection status indicator support
+1. **ArduinoJson String Incompatibility**: `deserializeJson(const String&)` fails with native test `String` class (returns `EmptyInput`). Fixed by using `.c_str()` for all deserialization.
+2. **Document Size**: `StaticJsonDocument<2048>` too small for 16 achievement entries. Changed to `DynamicJsonDocument(8192)`.
+3. **JsonVariant Access**: Replaced `|` operator with `.as<T>()` and `const char*` checks for native test compatibility.
 
-2. **Duplicate declarations removed**: `handleWebSocketBroadcast()` and `webSocketBroadcastNotification()` declarations removed from `WebHandlers.h` (they live in `WebSocket.h`)
+**Result: 152/152 native tests pass** (was 145/152).
 
-3. **WebSocket notifications added** for all actions:
-   - `clean`: "Cleaned {name}"
-   - `sleep`: "{name} is now sleeping"  
-   - `heal`: "Healed {name}"
-   - (Previously only feed, play, reset had notifications)
+#### 14.2 — OTA Rollback Support ✅
+Already implemented in Phase 11.1 (OTARollback.h/.cpp). Verified working:
+- Dual-partition OTA with auto-fallback on crash (boot count threshold: 3)
+- Manual rollback endpoint: `GET/POST /api/ota/rollback`
+- Firmware confirmation: `POST /api/ota/confirm`
+- Status endpoint: `GET /api/ota/status`
 
-4. **g_server replaced**: Module-level `g_server` global replaced with `#define g_server (&APP_STATE.server)` macro in `WebHandlers.cpp`. Removed `getServer()` function. All 101 call sites work unchanged.
+#### 14.3 — Pet Trading via MQTT ✅
+Already implemented in Phase 11.4 (PetTrade.h/.cpp). Verified working:
+- MQTT topic scheme: `tamapetchi/trade/{device_id}/offer, /accept, /reject`
+- Full trade flow: offer → PIN verification → accept/reject → data exchange → save
+- Edge cases: dead pets can't trade, max 3 pets per device
 
-**Compilation**: ✅ SUCCESS (RAM 17.0%, Flash 76.0%)
+#### 14.4 — Sound Pack System ✅
+Already implemented in Phase 11.3 (SoundPack.h/.cpp). Verified working:
+- JSON-based sound packs with note arrays per event
+- Default + chirp packs included
+- Upload/select/list API endpoints
+- Web UI dropdown selector
 
-### Phase 10.3 — i18n Multi-Language Support ✅ COMPLETE
+#### 14.5 — Web UI: Trading & Sound Pack Interface ✅
+Already implemented in data/index.html:
+- Sound Pack selector section (line 664-677)
+- Pet Trading section with peer ID, PIN, request/accept/cancel buttons (line 680-702)
+- WebSocket integration for trade events
 
-Implemented full internationalization system:
+#### 14.6 — Community & Developer Tools ✅
+- CONTRIBUTING.md: comprehensive contributor guide
+- GitHub issue templates: bug_report.md, feature_request.md
+- scripts/flash-batch.py: batch flash utility
+- scripts/simulate-24h.py: health checks and metrics
+- Updated README.md, CHANGELOG.md, PROJECT_STATUS.md
 
-1. **i18n module** (`src/i18n.h`, `src/i18n.cpp`):
-   - Language enum (EN, ZH, JA) with string code conversion
-   - Accept-Language header parsing with quality value support
-   - SPIFFS-based locale file loading (`/locales/{code}.json`)
-   - Language persistence to `/settings/lang.txt`
+### 🔄 In Progress
 
-2. **Locale files** (3 languages, ~150 translation keys each):
-   - `data/locales/en.json` — English
-   - `data/locales/zh.json` — 简体中文 (Simplified Chinese)
-   - `data/locales/ja.json` — 日本語 (Japanese)
+#### 14.7 — Release v1.4.0
+- All code changes complete and tested
+- Branch pushed: `feature/phase14-v1.4`
+- PR needs to be created (GitHub API auth issue in cron — manual creation needed)
+- PR URL: https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/new/feature/phase14-v1.4
 
-3. **API endpoints**:
-   - `GET /api/settings/lang` — Get current language
-   - `POST /api/settings/lang` — Set language
-   - `GET /api/locales/current` — Get locale JSON for current language
+### Build Status
+- **ESP32**: ✅ SUCCESS (RAM 17.8%, Flash 79.8%, 0 warnings)
+- **Tests**: ✅ 152/152 native pass
 
-4. **Web UI integration**:
-   - JavaScript `t(key, params)` translation function with nested key support
-   - `{param}` placeholder replacement in translation strings
-   - Language selector dropdown in Settings section
-   - Auto-detect browser language on first visit
-   - Persist preference in localStorage + SPIFFS
-   - Dynamic `<html lang>` attribute update
+### Commits
+1. `aee703d` fix(tests): resolve 7 pre-existing test failures in backup/restore and achievements
+2. `43d218c` docs(community): add CONTRIBUTING.md, issue templates, batch flash script
+3. `c0dd58e` docs(release): add v1.4.0 release notes
 
-**Compilation**: ✅ SUCCESS (RAM 17.0%, Flash 76.2%)
-
-### Commits Pushed
-
-| Commit | Description |
-|--------|-------------|
-| `e2c7bab` | fix(phase10.2): Address PR review feedback — WebSocket fixes |
-| `914ae31` | feat(phase10.3): i18n multi-language support |
-| `f3b636d` | chore: Update TASKS.md — Phase 10.2 and 10.3 complete |
-
-### PR Status
-
-- **Phase 10.2 PR**: Branch `feature/phase10.2-websocket` pushed. PR creation blocked by gh auth not available in cron context. Needs manual PR creation from GitHub UI.
-- **Phase 10.3**: Implemented on same branch (should ideally be a separate branch, but the i18n work was small enough to include)
-
-### Next Up: Phase 10.4 — Factory Reset
-
-Ready to implement:
-- Hold BOOT button (GPIO 0) for 10 seconds → factory reset
-- Wipe SPIFFS, reset WiFi credentials, restart
-- Visual feedback via RGB LED + OLED
-- `POST /api/settings/factory-reset` HTTP endpoint
+### Files Changed
+- test/test_backup.cpp — fixed all 7 failing tests
+- test/test_impls.cpp — increased achievement JSON document size
+- CONTRIBUTING.md — new
+- .github/ISSUE_TEMPLATE/bug_report.md — new
+- .github/ISSUE_TEMPLATE/feature_request.md — new
+- scripts/flash-batch.py — new
+- scripts/simulate-24h.py — new
+- README.md — updated with contributor section
+- CHANGELOG.md — v1.4.0 entry
+- PROJECT_STATUS.md — Phase 14 progress
+- TASKS.md — marked 14.0-14.6 complete
+- RELEASE_NOTES_v1.4.0.md — new
 
 ### Blockers
+- GitHub PR creation: gh CLI auth not available in cron job context. PR body saved to messages/PR_PHASE14.md for manual creation.
 
-- **gh auth**: Not available in cron job context. PRs cannot be auto-created. Manual PR creation needed for `feature/phase10.2-websocket`.
+### Next Steps
+1. Create PR from feature/phase14-v1.4 to develop
+2. Nyra reviews and approves
+3. Merge to develop, then main
+4. Tag v1.4.0
+5. Create GitHub release with firmware.bin
 
 ---
 *Kael Nexus — Autonomous Developer, ESP32-TamaPetchi Project*
-=======
-**Date:** 2026-06-18
-**Role:** Lead Developer / Autonomous Engineer
-
-## Summary: Phase 10.1 AppState Refactor Complete ✅
-
-I've completed the Phase 10.1 AppState singleton refactor. Here's what was done:
-
-## Work Completed
-
-### Phase 10.1 — Singleton AppState Refactor
-- Created `src/AppState.h` — singleton class centralizing all global state
-  - `Pet pet`, `WebServer server`, `MultiPetState multiPet`, `GameStats stats`
-  - Wake-up message tracking fields (`showWakeMessage`, `wakeMessageStartTime`, `previousState`)
-  - `AppState::getInstance()` static accessor
-  - Deleted copy/move constructors (true singleton)
-  - Convenience macro `APP_STATE` for shorter access
-- Updated `src/ESP32-TamaPetchi.ino` — replaced all raw globals with `APP_STATE` access
-- Updated `src/WebHandlers.cpp` — replaced `g_pet`, `g_server`, `g_multiPet`, `g_stats` externs with `APP_STATE`
-- Updated `src/WebHandlers.h` — removed old extern declarations, added AppState include
-- Updated `src/MQTT.cpp` — replaced `extern Pet pet` with `APP_STATE` access
-
-### Build & Test Results
-- **ESP32 build:** ✅ SUCCESS — RAM 16.7%, Flash 74.7%, zero warnings
-- **Native tests:** ✅ 61/61 PASSED
-
-### Commits
-- `1abd3f7` — feat(phase10.1): Singleton AppState refactor — centralize all global state
-- `a966389` — chore: Update TASKS.md — Phase 10.1 AppState refactor complete
-
-### Branch & PR
-- **Branch:** `feature/phase10.1-appstate` — pushed to origin
-- **PR:** Could not create via gh CLI (auth token not available). Manual PR creation URL:
-  https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/new/feature/phase10.1-appstate
-
-## What's Next (Phase 10.2-10.7)
-
-### Ready to Start
-1. **10.2 — WebSocket Real-Time Updates** — Replace SSE with WebSocket for lower-latency real-time updates
-2. **10.3 — i18n Multi-Language Support** — en/zh/ja language files for web UI
-3. **10.4 — Factory Reset** — Physical button combo (hold 10s) + HTTP endpoint
-4. **10.5 — SPIFFS Atomic Writes** — Write-to-temp-then-rename for data integrity
-5. **10.6 — Error Code System** — Structured error codes in API responses
-6. **10.7 — Documentation & Polish** — README, CHANGELOG updates
-
-### Blocked
-- gh CLI authentication needed for PR creation (GH_TOKEN env var not set)
-
----
-*Kael Nexus — Lead Developer, ESP32-TamaPetchi Project*
->>>>>>> Stashed changes
