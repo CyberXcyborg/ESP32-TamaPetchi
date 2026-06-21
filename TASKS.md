@@ -533,17 +533,17 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [ ] Fix any bugs found during validation (create sub-commits per fix)
 
 ### 15.3 — Backup & Restore System
-- [ ] Create Backup.h / Backup.cpp module
-- [ ] Implement `createBackup()` — serialize all pet data, stats, achievements, settings to JSON
-- [ ] Implement `restoreBackup()` — deserialize and validate backup JSON, restore all state
-- [ ] Add checksum validation (CRC32) to backup data
-- [ ] Add GET /api/backup/download — download full backup as JSON file
-- [ ] Add POST /api/backup/restore — upload and restore from backup JSON
-- [ ] Add GET /api/backup/verify — validate backup without restoring
-- [ ] Handle version mismatch (backup from older version — migrate format)
-- [ ] Add backup/restore UI section in web UI
-- [ ] Add unit tests: roundtrip backup/restore for all pet states, edge cases (empty, corrupt, old version)
-- [ ] Verify compilation and flash budget (< 85%)
+- [x] Create Backup.h / Backup.cpp module
+- [x] Implement `createBackupJson()` — serialize all pet data, stats, achievements, settings to JSON
+- [x] Implement `restoreBackupJson()` — deserialize and validate backup JSON, restore all state
+- [x] Add checksum validation (CRC32) to backup data
+- [x] Add GET /api/backup/download — download full backup as JSON file
+- [x] Add POST /api/backup/restore — upload and restore from backup JSON
+- [x] Add GET /api/backup/verify — validate backup without restoring
+- [x] Handle version mismatch (backup from older version — migrate format)
+- [x] Add backup/restore UI section in web UI (already exists in index.html)
+- [x] Add unit tests: roundtrip backup/restore for all pet states, edge cases (empty, corrupt, old version)
+- [x] Verify compilation and flash budget (< 85%) — 80.3%
 
 ### 15.4 — Advanced Achievement System
 - [ ] Add achievement categories: Care (feeding, cleaning), Social (trading, community), Survival (uptime, low stats), Evolution (evo count, type variety)
