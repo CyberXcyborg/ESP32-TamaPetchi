@@ -47,12 +47,23 @@ enum AchievementCategory {
 #define ACH_TRADE_COMPLETED "trade_completed"
 #define ACH_TRADE_RECEIVED  "trade_received"
 
-// --- Achievement IDs (Exploration) ---
+// --- Achievement IDs (Exploration) --
 #define ACH_GAME_WON_1X     "game_won_1x"
 #define ACH_GAME_WON_10X    "game_won_10x"
 #define ACH_ALL_WEATHERS    "all_weathers"
 #define ACH_SURVIVED_24H    "survived_24h"
 #define ACH_SURVIVED_7D     "survived_7d"
+
+// --- Achievement IDs (Survival - Phase 15.4) --
+#define ACH_LOW_STATS_SURVIVAL  "low_stats_survival"
+#define ACH_PERFECT_HEALTH_24H  "perfect_health_24h"
+#define ACH_CLEAN_STREAK_7D     "clean_streak_7d"
+
+// --- Achievement IDs (Hidden/Secret - Phase 15.4) --
+#define ACH_SECRET_BIRTHDAY     "secret_birthday"
+#define ACH_SECRET_MIDNIGHT     "secret_midnight"
+#define ACH_SECRET_NIGHT_OWL    "secret_night_owl"
+#define ACH_SECRET_TRADE_MASTER "secret_trade_master"
 
 #define ACHIEVEMENTS_FILE   "/achievements.json"
 
@@ -63,6 +74,7 @@ struct AchievementDef {
   AchievementCategory category;
   int target;            // target value for completion
   const char* rewardId;  // reward unlocked (pet skin/accessory ID)
+  bool isHidden;         // true = secret achievement (not shown until unlocked)
 };
 
 // --- Achievement State (runtime + persisted) ---
@@ -71,11 +83,12 @@ struct AchievementState {
   AchievementTier tier;  // current tier
   bool unlocked;         // fully unlocked (platinum)
   bool notified;         // WebSocket notification sent
+  bool revealed;         // for hidden achievements: true once player has "discovered" it
 };
 
 // --- Achievement Definitions Table ---
-// 16 achievements across 4 categories
-#define ACHIEVEMENT_COUNT 16
+// 27 achievements: 19 regular + 3 survival + 4 hidden + 1 bonus
+#define ACHIEVEMENT_COUNT 27
 extern const AchievementDef achievementDefs[ACHIEVEMENT_COUNT];
 
 // --- Runtime State ---
@@ -134,10 +147,24 @@ String getNewlyUnlockedJson();
 // --- Phase 12.1: Record specific achievement progress ---
 void recordAchievementProgress(const char* achId, int amount);
 
-// --- Phase 12.1: Get unlocked rewards ---
+// --- Phase 12.1: Get unlocked rewards --
 String getUnlockedRewardsJson();
-// --- Helper (needed by WebHandlers for restore) ---
+// --- Helper (needed by WebHandlers for restore) --
 int findAchievementIndex(const char* id);
+
+// --- Phase 15.4: Advanced Achievement System ---
+// Returns JSON with hidden achievements revealed/unlocked status
+String getHiddenAchievementsJson();
+// Check and trigger hidden achievements based on game state
+void checkHiddenAchievements(Pet &pet, unsigned long currentVirtualMinutes);
+// Get achievement rewards JSON (unlocked skins, melodies, OLED animations)
+String getAchievementRewardsJson();
+// Apply achievement reward (unlock skin, melody, animation)
+bool applyAchievementReward(const char* rewardId);
+// Get total achievement score (sum of tier points)
+int getAchievementScore();
+// Get category progress JSON { care: {unlocked, total}, evolution: ... }
+String getCategoryProgressJson();
 
 // --- Legacy compatibility ---
 // These maintain backward compatibility with existing code

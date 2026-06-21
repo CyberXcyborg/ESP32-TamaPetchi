@@ -304,6 +304,14 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/community/share", HTTP_POST, handleShareProfile);
   server.on("/api/community/import", HTTP_POST, handleImportProfile);
 
+  // Phase 15.4: Advanced achievement endpoints
+  server.on("/api/achievements/categories", HTTP_GET, handleGetCategoryProgress);
+  server.on("/api/achievements/rewards", HTTP_GET, handleGetAchievementRewards);
+
+  // Phase 15.6: Pet snapshot and comparison
+  server.on("/api/pets/snapshot", HTTP_GET, handleGetPetSnapshot);
+  server.on("/api/pets/compare", HTTP_GET, handleComparePets);
+
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
 }
@@ -1342,5 +1350,89 @@ void handleImportProfile() {
   resp["message"] = "Pet profile imported to gallery";
   String result;
   serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 15.4: Advanced Achievement Handlers
+// ============================================================
+
+void handleGetCategoryProgress() {
+  if (!g_server) return;
+  g_server->send(200, "application/json", getCategoryProgressJson());
+}
+
+void handleGetAchievementRewards() {
+  if (!g_server) return;
+  g_server->send(200, "application/json", getAchievementRewardsJson());
+}
+
+// ============================================================
+// Phase 15.6: Pet Snapshot & Comparison Handlers
+// ============================================================
+
+void handleGetPetSnapshot() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  // Create a snapshot JSON of the current pet state for sharing/comparison
+  StaticJsonDocument<1024> jsonDoc;
+  jsonDoc["name"] = state.pet.name.c_str();
+  jsonDoc["type"] = state.pet.type == BLOB ? "blob" : (state.pet.type == CAT ? "cat" : "dog");
+  jsonDoc["stage"] = state.pet.stage == BABY ? "baby" : (state.pet.stage == CHILD ? "child" : (state.pet.stage == ADULT ? "adult" : "elder"));
+  jsonDoc["age"] = state.pet.age;
+  jsonDoc["generation"] = state.pet.generation;
+  jsonDoc["feedCount"] = state.pet.feedCount;
+  jsonDoc["playCount"] = state.pet.playCount;
+  jsonDoc["highScore"] = state.pet.highScore;
+  jsonDoc["hunger"] = state.pet.hunger;
+  jsonDoc["happiness"] = state.pet.happiness;
+  jsonDoc["health"] = state.pet.health;
+  jsonDoc["energy"] = state.pet.energy;
+  jsonDoc["cleanliness"] = state.pet.cleanliness;
+  jsonDoc["achievementScore"] = getAchievementScore();
+  jsonDoc["achievements"] = getAchievementScore(); // compatibility
+  jsonDoc["score"] = calculatePetScore(state.pet);
+  jsonDoc["timestamp"] = millis() / 1000;
+  String result;
+  serializeJson(jsonDoc, result);
+  g_server->send(200, "application/json", result);
+}
+
+void handleComparePets() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  // Compare current pet with gallery entries
+  // Returns comparison data: current pet vs top gallery entry
+  String gallery = getGalleryJson();
+  String current = getShareableProfileJson(state.pet);
+
+  DynamicJsonDocument jsonDoc(4096);
+  jsonDoc["current"] = serialized(current);
+  // Find the top-scoring gallery entry for comparison
+  int bestIdx = -1;
+  int bestScore = -1;
+  DynamicJsonDocument galDoc(8192);
+  deserializeJson(galDoc, gallery.c_str());
+  JsonArray arr = galDoc["gallery"].as<JsonArray>();
+  int idx = 0;
+  for (JsonObject entry : arr) {
+    int score = entry["score"] | 0;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = idx;
+    }
+    idx++;
+  }
+  if (bestIdx >= 0) {
+    JsonObject topEntry = arr[bestIdx];
+    JsonObject compare = jsonDoc.createNestedObject("topGallery");
+    compare["petName"] = topEntry["petName"].as<String>();
+    compare["score"] = bestScore;
+    compare["achievementCount"] = topEntry["achievementCount"] | 0;
+  } else {
+    jsonDoc["topGallery"] = nullptr;
+  }
+  String result;
+  serializeJson(jsonDoc, result);
   g_server->send(200, "application/json", result);
 }

@@ -1,3 +1,5 @@
+/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
 # ESP32-TamaPetchi — Autonomous Development Tasks
 
 ## Status
@@ -11,6 +13,7 @@
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 13 ✅ Complete — v1.3.0 released (OTA Delta, HAL, Community, Provisioning, Power Opt)
 - Phase 14 ✅ Complete — v1.4.0 released (14.1-14.7 all done, v1.4.0 tagged 2026-06-21)
+- Phase 15 🔄 In Progress — v1.5.0 (15.1 flash opt + 15.3 backup/restore complete, PR #14 open, 15.2 hardware validation + 15.4-15.7 pending)
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -603,3 +606,89 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+
+---
+
+## Phase 16: v1.6.0 — Intelligence, Automation & Ecosystem Growth
+
+**Branch:** feature/phase16-v1.6
+**Goal:** Add AI-like automation features, expand ecosystem integrations, and improve developer experience.
+**Budget:** Flash must stay under 85% (currently 80.7%, ~55KB headroom — tight budget, optimize as needed).
+**Priority:** Pet AI → Home Assistant integration → Developer tools → Release
+
+### 16.0 — Pre-Work: Branch & Baseline
+- [ ] Create branch: `git checkout -b feature/phase16-v1.6 develop`
+- [ ] Verify clean build: `pio run -e esp32dev` — zero errors
+- [ ] Verify baseline tests: `pio test -e native` — 162/162 pass
+- [ ] Record baseline metrics: flash size, RAM usage, test count
+
+### 16.1 — Pet AI: Adaptive Behavior Engine
+- [ ] Create PetAI.h / PetAI.cpp module
+- [ ] Implement adaptive hunger rate: pet gets hungry faster when active, slower when sleeping
+- [ ] Implement mood-reactive behavior: cheerful pets gain happiness faster, hungry pets lose health faster
+- [ ] Implement personality evolution: traits shift based on care patterns
+- [ ] Add pet memory: track last 10 actions and adapt responses
+- [ ] Add GET /api/pets/{id}/ai-status endpoint
+- [ ] Add AI status panel in web UI (personality radar chart, memory log)
+- [ ] Add unit tests for AI behavior triggers and personality evolution
+- [ ] Verify compilation and flash budget (< 85%)
+
+### 16.2 — Home Assistant Deep Integration
+- [ ] Extend MQTT auto-discovery: binary sensor (alive/dead), binary sensor (sleeping/awake), sensor (mood), buttons (feed/play/clean/sleep), select (pet type)
+- [ ] Add HA MQTT alarm control panel: pet health as alarm state
+- [ ] Add HA automation blueprint: notify when pet needs feeding
+- [ ] Create HA Lovelace card custom component
+- [ ] Add GET /api/ha/config endpoint
+- [ ] Update WIRING.md with HA integration guide
+- [ ] Add unit tests for MQTT discovery message format
+
+### 16.3 — Developer Experience: CLI Tool
+- [ ] Create tools/tamapetchi-cli.py — Python CLI for device management
+- [ ] Features: discover (mDNS), status, backup, restore, flash, simulate
+- [ ] Add unit tests for CLI argument parsing and API client
+- [ ] Add README.md in tools/ directory
+
+### 16.4 — Web UI: Dashboard & Analytics
+- [ ] Add Dashboard tab: health timeline chart, care score gauge, activity heatmap, achievement progress
+- [ ] Reorganize Settings tab by category with search/filter
+- [ ] Add Export Settings / Import Settings buttons
+- [ ] Optimize WebSocket: batch stat updates (500ms interval)
+- [ ] Add unit tests for care score calculation and ring buffer
+
+### 16.5 — Data Export & Import
+- [ ] Add GET /api/export/csv — export pet stats as CSV
+- [ ] Add GET /api/export/full — export complete device state as JSON
+- [ ] Add POST /api/import/settings — import settings JSON
+- [ ] Add tools/migrate-data.py — convert backups between versions
+- [ ] Add unit tests for CSV export and data migration
+
+### 16.6 — Performance & Memory Audit
+- [ ] Profile heap usage: heap logging every 60s over simulated 24h
+- [ ] Optimize remaining DynamicJsonDocument in hot paths
+- [ ] Audit String allocations — replace with const char* where possible
+- [ ] Target: flash < 82%, RAM < 20%
+
+### 16.7 — Release v1.6.0
+- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [ ] Final test run: `pio test -e native` — all tests pass
+- [ ] Update README with Phase 16 features
+- [ ] Update CHANGELOG.md with full v1.6.0 entry
+- [ ] Update PROJECT_STATUS.md
+- [ ] Create git tag: git tag v1.6.0
+- [ ] Merge: git checkout develop && git merge feature/phase16-v1.6 --no-ff
+- [ ] Merge: git checkout main && git merge develop --no-ff
+- [ ] Push all branches: git push origin main develop --tags
+- [ ] Create GitHub release with firmware.bin attached
+- [ ] Write release notes
+
+## Implementation Rules
+- Create branch: feature/phase16-xxx (branch from develop)
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push incrementally
+- Create PR when all 16.x sub-tasks complete
+
+## How This Works
+Nyra (project manager) assigns tasks here, Kael (developer) reads and implements, Kael creates PR, Nyra reviews, Nyra assigns next phase

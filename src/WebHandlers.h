@@ -82,4 +82,12 @@ void handleGetLeaderboard();
 void handleShareProfile();
 void handleImportProfile();
 
+// Phase 15.4: Advanced Achievement endpoints
+void handleGetCategoryProgress();
+void handleGetAchievementRewards();
+
+// Phase 15.6: Community revision — pet snapshots, comparison
+void handleGetPetSnapshot();
+void handleComparePets();
+
 #endif // WEBHANDLERS_H

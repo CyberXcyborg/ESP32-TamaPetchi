@@ -48,7 +48,7 @@ void test_record_progress_updates_tier(void);
 void test_record_progress_ignores_invalid_id(void);
 void test_record_progress_ignores_already_unlocked(void);
 void test_record_progress_sets_notified_false_on_new_tier(void);
-void test_achievement_count_is_16(void);
+void test_achievement_count_is_27(void);
 void test_achievement_have_valid_targets(void);
 void test_achievement_categories_valid(void);
 void test_achievements_progress_json_format(void);
@@ -684,7 +684,7 @@ int run_pet_statemachine_tests() {
   RUN_TEST(test_record_progress_ignores_invalid_id);
   RUN_TEST(test_record_progress_ignores_already_unlocked);
   RUN_TEST(test_record_progress_sets_notified_false_on_new_tier);
-  RUN_TEST(test_achievement_count_is_16);
+  RUN_TEST(test_achievement_count_is_27);
   RUN_TEST(test_achievement_have_valid_targets);
   RUN_TEST(test_achievement_categories_valid);
   RUN_TEST(test_achievements_progress_json_format);

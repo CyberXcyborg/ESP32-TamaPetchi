@@ -439,14 +439,15 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4">
+<body class="bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 min-h-screen p-4"
+      role="application" aria-label="ESP32 TamaPetchi Virtual Pet">
     <!-- Phase 11.2: Toast Notification Container -->
-    <div id="toast-container"></div>
-    <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden" role="main">
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
             <h1 class="text-2xl font-bold flex items-center justify-center gap-2">
-                <i class="fas fa-heart text-pink-300"></i>
+                <i class="fas fa-heart text-pink-300" aria-hidden="true"></i>
                 <span id="header-name">ESP32 TamaPetchi</span>
                 <i class="fas fa-star text-yellow-300"></i>
                 <span id="ws-status" class="ws-status disconnected">
@@ -664,16 +665,58 @@
         <!-- Sound Pack Selector (Phase 11.3) -->
         <div class="px-6 pb-2">
             <div class="bg-green-50 rounded-xl p-3 border border-green-200">
-                <h3 class="text-sm font-bold text-green-700 mb-2"><i class="fas fa-music"></i> Sound Pack</h3>
+                <h3 class="text-sm font-bold text-green-700 mb-2"><i class="fas fa-music" aria-hidden="true"></i> Sound Pack</h3>
                 <div class="flex gap-2 items-center">
-                    <select id="soundpack-select" class="flex-1 border rounded px-2 py-1 text-xs">
+                    <select id="soundpack-select" class="flex-1 border rounded px-2 py-1 text-xs" aria-label="Select sound pack">
                         <option value="default">Default</option>
                         <option value="cute">Cute</option>
                     </select>
-                    <button id="soundpack-apply" class="game-button px-3 py-1 text-xs text-green-600">
-                        <i class="fas fa-check"></i> Apply
+                    <button id="soundpack-apply" class="game-button px-3 py-1 text-xs text-green-600" aria-label="Apply sound pack">
+                        <i class="fas fa-check" aria-hidden="true"></i> Apply
                     </button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Phase 15.4: Achievements Progress -->
+        <div id="achievements-progress-section" class="px-6 pb-2" style="display:none;">
+            <div class="bg-yellow-50 rounded-xl p-3 border border-yellow-200">
+                <h3 class="text-sm font-bold text-yellow-700 mb-2"><i class="fas fa-trophy" aria-hidden="true"></i> Achievement Progress</h3>
+                <div id="achievement-category-bars" class="space-y-2"></div>
+                <div id="achievement-score" class="text-xs text-yellow-600 mt-2 text-center"></div>
+            </div>
+        </div>
+
+        <!-- Phase 15.6: Pet Snapshot & Comparison -->
+        <div class="px-6 pb-2">
+            <div class="bg-blue-50 rounded-xl p-3 border border-blue-200">
+                <h3 class="text-sm font-bold text-blue-700 mb-2"><i class="fas fa-camera" aria-hidden="true"></i> Pet Snapshot</h3>
+                <div class="flex gap-2">
+                    <button id="snapshot-btn" class="game-button flex-1 px-2 py-1 text-xs text-blue-600" aria-label="View pet snapshot">
+                        <i class="fas fa-eye" aria-hidden="true"></i> View
+                    </button>
+                    <button id="compare-btn" class="game-button flex-1 px-2 py-1 text-xs text-blue-600" aria-label="Compare pets">
+                        <i class="fas fa-balance-scale" aria-hidden="true"></i> Compare
+                    </button>
+                </div>
+                <div id="snapshot-display" class="mt-2 text-xs text-center text-gray-500" style="display:none;"></div>
+                <div id="compare-display" class="mt-2 text-xs text-center text-gray-500" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- Phase 15.6: Community Gallery -->
+        <div class="px-6 pb-2">
+            <div class="bg-indigo-50 rounded-xl p-3 border border-indigo-200">
+                <h3 class="text-sm font-bold text-indigo-700 mb-2"><i class="fas fa-users" aria-hidden="true"></i> Community Gallery</h3>
+                <div class="flex gap-2">
+                    <button id="gallery-btn" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600" aria-label="View community gallery">
+                        <i class="fas fa-images" aria-hidden="true"></i> Gallery
+                    </button>
+                    <button id="leaderboard-btn" class="game-button flex-1 px-2 py-1 text-xs text-indigo-600" aria-label="View leaderboard">
+                        <i class="fas fa-list-ol" aria-hidden="true"></i> Leaderboard
+                    </button>
+                </div>
+                <div id="gallery-display" class="mt-2 text-xs text-center text-gray-500" style="display:none;"></div>
             </div>
         </div>
 
@@ -705,34 +748,40 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="p-6 grid grid-cols-2 gap-3">
-            <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700">
-                <i class="fas fa-utensils"></i>
+        <div class="p-6 grid grid-cols-2 gap-3" role="group" aria-label="Pet actions">
+            <button id="feed-btn" class="game-button p-3 flex items-center justify-center gap-2 text-orange-600 hover:text-orange-700"
+                    aria-label="Feed your pet" tabindex="0">
+                <i class="fas fa-utensils" aria-hidden="true"></i>
                 <span>Feed</span>
             </button>
             
-            <button id="play-btn" class="game-button p-3 flex items-center justify-center gap-2 text-green-600 hover:text-green-700">
-                <i class="fas fa-gamepad"></i>
+            <button id="play-btn" class="game-button p-3 flex items-center justify-center gap-2 text-green-600 hover:text-green-700"
+                    aria-label="Play with your pet" tabindex="0">
+                <i class="fas fa-gamepad" aria-hidden="true"></i>
                 <span>Play</span>
             </button>
             
-            <button id="clean-btn" class="game-button p-3 flex items-center justify-center gap-2 text-cyan-600 hover:text-cyan-700">
-                <i class="fas fa-soap"></i>
+            <button id="clean-btn" class="game-button p-3 flex items-center justify-center gap-2 text-cyan-600 hover:text-cyan-700"
+                    aria-label="Clean your pet" tabindex="0">
+                <i class="fas fa-soap" aria-hidden="true"></i>
                 <span>Clean</span>
             </button>
             
-            <button id="sleep-btn" class="game-button p-3 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700">
-                <i class="fas fa-bed"></i>
+            <button id="sleep-btn" class="game-button p-3 flex items-center justify-center gap-2 text-purple-600 hover:text-purple-700"
+                    aria-label="Put pet to sleep" tabindex="0">
+                <i class="fas fa-bed" aria-hidden="true"></i>
                 <span id="sleep-text">Sleep</span>
             </button>
             
-            <button id="heal-btn" class="game-button p-3 flex items-center justify-center gap-2 text-pink-600 hover:text-pink-700">
-                <i class="fas fa-heart-pulse"></i>
+            <button id="heal-btn" class="game-button p-3 flex items-center justify-center gap-2 text-pink-600 hover:text-pink-700"
+                    aria-label="Heal your pet" tabindex="0">
+                <i class="fas fa-heart-pulse" aria-hidden="true"></i>
                 <span>Heal</span>
             </button>
             
-            <button id="reset-btn" class="game-button p-3 flex items-center justify-center gap-2 text-red-600 hover:text-red-700">
-                <i class="fas fa-refresh"></i>
+            <button id="reset-btn" class="game-button p-3 flex items-center justify-center gap-2 text-red-600 hover:text-red-700"
+                    aria-label="Reset pet (destructive action)" tabindex="0">
+                <i class="fas fa-refresh" aria-hidden="true"></i>
                 <span>Reset</span>
             </button>
         </div>

@@ -862,25 +862,39 @@ void setAccessibilityFromJson(Pet &pet, const String &json) {
 
 const AchievementDef achievementDefs[ACHIEVEMENT_COUNT] = {
   // Care
-  { ACH_FED_10X,        "Feeding Fledgling",    CAT_CARE,       10,    "skin_green" },
-  { ACH_FED_100X,       "Master Feeder",        CAT_CARE,       100,   "skin_gold" },
-  { ACH_CLEANED_10X,    "Sparkle Clean",        CAT_CARE,       10,    "acc_brush" },
-  { ACH_HEALED_5X,      "Pet Medic",            CAT_CARE,       5,     "acc_medkit" },
-  { ACH_PLAYED_10X,     "Playful Pal",          CAT_CARE,       10,    "acc_ball" },
-  { ACH_PLAYED_100X,    "Fun Master",           CAT_CARE,       100,   "skin_rainbow" },
-  { ACH_NAMED_PET,      "Name Bearer",          CAT_CARE,       1,     "acc_nameplate" },
-  { ACH_SCHEDULED_FEED, "Auto-Caregiver",       CAT_CARE,       1,     "acc_clock" },
+  { ACH_FED_10X,        "Feeding Fledgling",    CAT_CARE,       10,    "skin_green", false },
+  { ACH_FED_100X,       "Master Feeder",        CAT_CARE,       100,   "skin_gold", false },
+  { ACH_CLEANED_10X,    "Sparkle Clean",        CAT_CARE,       10,    "acc_brush", false },
+  { ACH_HEALED_5X,      "Pet Medic",            CAT_CARE,       5,     "acc_medkit", false },
+  { ACH_PLAYED_10X,     "Playful Pal",          CAT_CARE,       10,    "acc_ball", false },
+  { ACH_PLAYED_100X,    "Fun Master",           CAT_CARE,       100,   "skin_rainbow", false },
+  { ACH_NAMED_PET,      "Name Bearer",          CAT_CARE,       1,     "acc_nameplate", false },
+  { ACH_SCHEDULED_FEED, "Auto-Caregiver",       CAT_CARE,       1,     "acc_clock", false },
   // Evolution
-  { ACH_REACHED_CHILD,  "Growing Up",           CAT_EVOLUTION,  1,     NULL },
-  { ACH_REACHED_ADULT,  "Coming of Age",        CAT_EVOLUTION,  1,     "acc_crown" },
-  { ACH_REACHED_ELDER,  "Elder Wisdom",         CAT_EVOLUTION,  1,     "skin_elder" },
-  { ACH_FULLY_EVOLVED,  "Full Evolution",       CAT_EVOLUTION,  1,     "acc_wings" },
+  { ACH_REACHED_CHILD,  "Growing Up",           CAT_EVOLUTION,  1,     NULL, false },
+  { ACH_REACHED_ADULT,  "Coming of Age",        CAT_EVOLUTION,  1,     "acc_crown", false },
+  { ACH_REACHED_ELDER,  "Elder Wisdom",         CAT_EVOLUTION,  1,     "skin_elder", false },
+  { ACH_FULLY_EVOLVED,  "Full Evolution",       CAT_EVOLUTION,  1,     "acc_wings", false },
   // Social
-  { ACH_TRADE_COMPLETED,"Trading Post",         CAT_SOCIAL,     1,     NULL },
-  { ACH_TRADE_RECEIVED, "Welcome Gift",         CAT_SOCIAL,     1,     NULL },
+  { ACH_TRADE_COMPLETED,"Trading Post",         CAT_SOCIAL,     1,     NULL, false },
+  { ACH_TRADE_RECEIVED, "Welcome Gift",         CAT_SOCIAL,     1,     NULL, false },
   // Exploration
-  { ACH_GAME_WON_1X,    "Game Winner",          CAT_EXPLORATION,1,     "acc_trophy" },
-  { ACH_GAME_WON_10X,   "Game Champion",        CAT_EXPLORATION,10,    "skin_champion" },
+  { ACH_GAME_WON_1X,    "Game Winner",          CAT_EXPLORATION,1,     "acc_trophy", false },
+  { ACH_GAME_WON_10X,   "Game Champion",        CAT_EXPLORATION,10,    "skin_champion", false },
+  { ACH_ALL_WEATHERS,   "Weather Watcher",      CAT_EXPLORATION,5,     "acc_compass", false },
+  { ACH_SURVIVED_24H,   "Day Survivor",         CAT_EXPLORATION,1,     "acc_sun", false },
+  { ACH_SURVIVED_7D,    "Week Warrior",         CAT_EXPLORATION,1,     "acc_medal", false },
+  // Survival (Phase 15.4)
+  { ACH_LOW_STATS_SURVIVAL, "Against All Odds", CAT_EXPLORATION,1,     "acc_phoenix", false },
+  { ACH_PERFECT_HEALTH_24H, "Iron Constitution",CAT_EXPLORATION,1,     "acc_shield", false },
+  { ACH_CLEAN_STREAK_7D, "Sparkle Week",       CAT_CARE,       7,     "acc_sparkle", false },
+  // Hidden/Secret Achievements (Phase 15.4)
+  { ACH_SECRET_BIRTHDAY,     "Birthday Surprise",  CAT_SOCIAL,     1,     "skin_party", true },
+  { ACH_SECRET_MIDNIGHT,     "Midnight Snacker",   CAT_SOCIAL,     1,     "acc_moon", true },
+  { ACH_SECRET_NIGHT_OWL,    "Night Owl",          CAT_SOCIAL,     10,    "acc_owl", true },
+  { ACH_SECRET_TRADE_MASTER, "Trade Master",       CAT_SOCIAL,     1,     "acc_globe", true },
+  // Bonus (Phase 15.4) — 27th achievement: Deep sleep 5x
+  { "deep_sleep_5x",     "Deep Sleeper",         CAT_CARE,       5,     "acc_pillow", false },
 };
 
 AchievementState achievementStates[ACHIEVEMENT_COUNT];
