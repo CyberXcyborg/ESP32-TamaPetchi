@@ -159,4 +159,7 @@
 // Example: "http://192.168.1.100:8080/tamapetchi/manifest.json"
 #define OTA_DELTA_MANIFEST_URL  ""
 
+// --- Phase 15.3: Backup & Restore ---
+#define BACKUP_VERSION    "1.5.0"
+
 #endif // CONFIG_H

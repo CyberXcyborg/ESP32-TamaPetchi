@@ -80,7 +80,7 @@ void savePetData(const Pet &pet) {
   }
   lastPetSaveTime = now;
 
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<1024> jsonDoc;
   jsonDoc["hunger"]      = pet.hunger;
   jsonDoc["happiness"]   = pet.happiness;
   jsonDoc["health"]      = pet.health;
@@ -167,7 +167,7 @@ void loadPetData(Pet &pet) {
     return;
   }
 
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<1024> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, file);
 
   if (error) {

@@ -16,6 +16,7 @@
 #include "PetTrade.h"
 #include "Community.h"   // Phase 13.3: Community features
 #include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning
+#include "Backup.h"      // Phase 15.3: Backup & Restore
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
@@ -292,15 +293,24 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/settings/accessibility", HTTP_GET, handleGetAccessibility);
   server.on("/api/settings/accessibility", HTTP_POST, handleSetAccessibility);
 
-  // Phase 12.5: Backup & restore
+  // Phase 12.5 / 15.3: Backup & restore
   server.on("/api/backup", HTTP_GET, handleGetBackup);
   server.on("/api/restore", HTTP_POST, handlePostRestore);
+  server.on("/api/backup/verify", HTTP_POST, handleVerifyBackup);
 
   // Phase 13.3: Community features
   server.on("/api/community/gallery", HTTP_GET, handleGetGallery);
   server.on("/api/community/leaderboard", HTTP_GET, handleGetLeaderboard);
   server.on("/api/community/share", HTTP_POST, handleShareProfile);
   server.on("/api/community/import", HTTP_POST, handleImportProfile);
+
+  // Phase 15.4: Advanced achievement endpoints
+  server.on("/api/achievements/categories", HTTP_GET, handleGetCategoryProgress);
+  server.on("/api/achievements/rewards", HTTP_GET, handleGetAchievementRewards);
+
+  // Phase 15.6: Pet snapshot and comparison
+  server.on("/api/pets/snapshot", HTTP_GET, handleGetPetSnapshot);
+  server.on("/api/pets/compare", HTTP_GET, handleComparePets);
 
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
@@ -382,52 +392,17 @@ void handleSetAccessibility() {
 }
 
 // ============================================================
-// Phase 12.5: Backup & Restore Handlers
+// Phase 12.5 / 15.3: Backup & Restore Handlers
 // ============================================================
 
 void handleGetBackup() {
   if (!g_server) return;
   AppState& state = APP_STATE;
 
-  // Build a JSON backup of all SPIFFS config files
-  DynamicJsonDocument jsonDoc(8192);
-  jsonDoc["version"] = "1.2.0";
-  jsonDoc["timestamp"] = millis();
-
-  // Include pet data
-  JsonObject petObj = jsonDoc.createNestedObject("pet");
-  petObj["name"] = state.pet.name;
-  petObj["type"] = (int)state.pet.type;
-  petObj["stage"] = (int)state.pet.stage;
-  petObj["generation"] = state.pet.generation;
-  petObj["birthDeviceId"] = state.pet.birthDeviceId;
-  petObj["highContrastMode"] = state.pet.highContrastMode;
-  petObj["fontSize"] = state.pet.fontSize;
-  petObj["reducedMotion"] = state.pet.reducedMotion;
-  petObj["soundVolume"] = state.pet.soundVolume;
-
-  // Include achievements progress
-  JsonArray achArr = jsonDoc.createNestedArray("achievements");
-  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
-    if (achievementStates[i].progress > 0 || achievementStates[i].unlocked) {
-      JsonObject obj = achArr.createNestedObject();
-      obj["id"] = achievementDefs[i].id;
-      obj["progress"] = achievementStates[i].progress;
-      obj["unlocked"] = achievementStates[i].unlocked;
-    }
-  }
-
-  // Compute simple checksum (sum of all pet stat values as integrity check)
-  unsigned long checksum = 0;
-  checksum += state.pet.hunger + state.pet.happiness + state.pet.health;
-  checksum += state.pet.energy + state.pet.cleanliness + state.pet.age;
-  checksum += state.pet.feedCount + state.pet.playCount;
-  jsonDoc["checksum"] = checksum;
-
-  String backup;
-  serializeJson(jsonDoc, backup);
+  String backup = createBackupJson(state.pet);
 
   g_server->sendHeader("Content-Disposition", "attachment; filename=\"tamapetchi_backup.json\"");
+  g_server->sendHeader("Cache-Control", "no-cache");
   g_server->send(200, "application/json", backup);
 }
 
@@ -440,46 +415,43 @@ void handlePostRestore() {
   AppState& state = APP_STATE;
   String body = g_server->arg("plain");
 
-  DynamicJsonDocument jsonDoc(8192);
-  DeserializationError err = deserializeJson(jsonDoc, body);
-  if (err) { sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid backup JSON"); return; }
-
-  // Verify checksum
-  unsigned long storedChecksum = jsonDoc["checksum"] | 0UL;
-
-  // Restore pet settings
-  JsonObject petObj = jsonDoc["pet"];
-  if (petObj) {
-    String name = petObj["name"] | "";
-    if (name.length() > 0 && name.length() <= 16) {
-      state.pet.name = name;
-      state.pet.hasBeenNamed = true;
-    }
-    int fontSize = petObj["fontSize"] | 1;
-    state.pet.fontSize = constrain(fontSize, 0, 2);
-    state.pet.highContrastMode = petObj["highContrastMode"] | false;
-    state.pet.reducedMotion = petObj["reducedMotion"] | false;
-    state.pet.soundVolume = constrain((int)(petObj["soundVolume"] | 80), 0, 100);
+  // Use Backup module for validation and restore
+  int result = restoreBackupJson(body, state.pet);
+  if (result != ERR_OK) {
+    const char *errStr = "backup_restore_fail";
+    if (result == ERR_BACKUP_VERSION_MISSING) errStr = ERR_STR_BACKUP_VERSION_MISSING;
+    else if (result == ERR_BACKUP_NO_PET) errStr = ERR_STR_BACKUP_NO_PET;
+    else if (result == ERR_BACKUP_NO_CHECKSUM) errStr = ERR_STR_BACKUP_NO_CHECKSUM;
+    else if (result == ERR_BACKUP_CHECKSUM_MISMATCH) errStr = ERR_STR_BACKUP_CHECKSUM_MISMATCH;
+    sendErrorResponse(errStr, "Backup restore failed — invalid or corrupt data");
+    return;
   }
 
-  // Restore achievements
-  JsonArray achArr = jsonDoc["achievements"];
-  if (achArr) {
-    for (JsonObject obj : achArr) {
-      const char* id = obj["id"];
-      int idx = findAchievementIndex(id);
-      if (idx >= 0) {
-        achievementStates[idx].progress = obj["progress"] | 0;
-        achievementStates[idx].unlocked = obj["unlocked"] | false;
-        achievementStates[idx].tier = calculateTier(achievementStates[idx].progress, achievementDefs[idx].target);
-      }
-    }
-  }
-
+  // Persist restored data
   savePetData(state.pet);
   saveAchievements(state.pet);
 
   g_server->send(200, "application/json", "{\"success\":true,\"message\":\"Backup restored successfully\"}");
+}
+
+void handleVerifyBackup() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String body = g_server->arg("plain");
+
+  int result = verifyBackupJson(body);
+  if (result == ERR_OK) {
+    String ver = getBackupVersion(body);
+    g_server->send(200, "application/json", "{\"success\":true,\"valid\":true,\"version\":\"" + ver + "\"}");
+  } else {
+    const char *errStr = "backup_verify_fail";
+    if (result == ERR_INT_JSON_PARSE_FAIL) errStr = ERR_JSON_PARSE_FAIL;
+    else if (result == ERR_BACKUP_VERSION_MISSING) errStr = ERR_STR_BACKUP_VERSION_MISSING;
+    else if (result == ERR_BACKUP_NO_PET) errStr = ERR_STR_BACKUP_NO_PET;
+    else if (result == ERR_BACKUP_NO_CHECKSUM) errStr = ERR_STR_BACKUP_NO_CHECKSUM;
+    else if (result == ERR_BACKUP_CHECKSUM_MISMATCH) errStr = ERR_STR_BACKUP_CHECKSUM_MISMATCH;
+    sendErrorResponse(errStr, "Backup verification failed");
+  }
 }
 
 // ============================================================
@@ -1378,5 +1350,89 @@ void handleImportProfile() {
   resp["message"] = "Pet profile imported to gallery";
   String result;
   serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 15.4: Advanced Achievement Handlers
+// ============================================================
+
+void handleGetCategoryProgress() {
+  if (!g_server) return;
+  g_server->send(200, "application/json", getCategoryProgressJson());
+}
+
+void handleGetAchievementRewards() {
+  if (!g_server) return;
+  g_server->send(200, "application/json", getAchievementRewardsJson());
+}
+
+// ============================================================
+// Phase 15.6: Pet Snapshot & Comparison Handlers
+// ============================================================
+
+void handleGetPetSnapshot() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  // Create a snapshot JSON of the current pet state for sharing/comparison
+  StaticJsonDocument<1024> jsonDoc;
+  jsonDoc["name"] = state.pet.name.c_str();
+  jsonDoc["type"] = state.pet.type == BLOB ? "blob" : (state.pet.type == CAT ? "cat" : "dog");
+  jsonDoc["stage"] = state.pet.stage == BABY ? "baby" : (state.pet.stage == CHILD ? "child" : (state.pet.stage == ADULT ? "adult" : "elder"));
+  jsonDoc["age"] = state.pet.age;
+  jsonDoc["generation"] = state.pet.generation;
+  jsonDoc["feedCount"] = state.pet.feedCount;
+  jsonDoc["playCount"] = state.pet.playCount;
+  jsonDoc["highScore"] = state.pet.highScore;
+  jsonDoc["hunger"] = state.pet.hunger;
+  jsonDoc["happiness"] = state.pet.happiness;
+  jsonDoc["health"] = state.pet.health;
+  jsonDoc["energy"] = state.pet.energy;
+  jsonDoc["cleanliness"] = state.pet.cleanliness;
+  jsonDoc["achievementScore"] = getAchievementScore();
+  jsonDoc["achievements"] = getAchievementScore(); // compatibility
+  jsonDoc["score"] = calculatePetScore(state.pet);
+  jsonDoc["timestamp"] = millis() / 1000;
+  String result;
+  serializeJson(jsonDoc, result);
+  g_server->send(200, "application/json", result);
+}
+
+void handleComparePets() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  // Compare current pet with gallery entries
+  // Returns comparison data: current pet vs top gallery entry
+  String gallery = getGalleryJson();
+  String current = getShareableProfileJson(state.pet);
+
+  DynamicJsonDocument jsonDoc(4096);
+  jsonDoc["current"] = serialized(current);
+  // Find the top-scoring gallery entry for comparison
+  int bestIdx = -1;
+  int bestScore = -1;
+  DynamicJsonDocument galDoc(8192);
+  deserializeJson(galDoc, gallery.c_str());
+  JsonArray arr = galDoc["gallery"].as<JsonArray>();
+  int idx = 0;
+  for (JsonObject entry : arr) {
+    int score = entry["score"] | 0;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIdx = idx;
+    }
+    idx++;
+  }
+  if (bestIdx >= 0) {
+    JsonObject topEntry = arr[bestIdx];
+    JsonObject compare = jsonDoc.createNestedObject("topGallery");
+    compare["petName"] = topEntry["petName"].as<String>();
+    compare["score"] = bestScore;
+    compare["achievementCount"] = topEntry["achievementCount"] | 0;
+  } else {
+    jsonDoc["topGallery"] = nullptr;
+  }
+  String result;
+  serializeJson(jsonDoc, result);
   g_server->send(200, "application/json", result);
 }
