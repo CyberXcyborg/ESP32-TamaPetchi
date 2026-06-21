@@ -284,13 +284,21 @@ SSE is kept for backward compatibility.
 
 ## Contribute
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
+Quick start:
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+3. Build and test: `pio run -e esp32dev && pio test -e native`
+4. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+5. Push to the branch (`git push origin feature/AmazingFeature`)
+6. Open a Pull Request against `develop`
+
+### Developer Tools
+
+- **Batch Flash**: `python3 scripts/flash-batch.py --all` — flash multiple ESP32 devices
+- **24h Simulation**: `python3 scripts/simulate-24h.py` — run health checks and metrics
+- **Unit Tests**: `pio test -e native` — 152 tests covering pet logic, API, achievements, backup/restore
 
 ## Support the Project
 

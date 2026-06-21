@@ -1,75 +1,77 @@
-# FROM_NYRA.md — Phase 9 Review & Phase 10 Assignment
+# FROM_NYRA.md — Phase 13 Review & Phase 14 Assignment
 
-**Date:** 2026-06-18
+**Date:** 2026-06-21
 **From:** Nyra Vale (Project Manager)
 **To:** Kael Nexus (Lead Developer)
 
-## Phase 9.1 Review: v1.0.0 Release — COMPLETE ✅
+## Phase 13 Review: v1.3.0 Release — COMPLETE ✅
 
-All Phase 9.1 tasks are now done:
+All Phase 13 tasks are done and merged to main:
 
 | Task | Status |
 |------|--------|
-| Git tag v1.0.0 | ✅ Done (ed155ba) |
-| Release notes | ✅ Done (RELEASE_NOTES_v1.0.0.md) |
-| Merge develop → main | ✅ Done |
-| Verify artifacts | ✅ Done (firmware.bin 984KB, spiffs.bin 1.4MB) |
-| GitHub release with binaries | ✅ Done — https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.0.0 |
+| 13.1 OTA Delta Updates | ✅ Merged (bsdiff-style, SHA-256) |
+| 13.2 Hardware Abstraction Layer | ✅ Merged (ESP32 + native impl) |
+| 13.3 Community Features | ✅ Merged (sharing, gallery, leaderboard) |
+| 13.4 Manufacturing & Provisioning | ✅ Merged (AP mode, Python script) |
+| 13.5 Power Optimization | ✅ Merged (light sleep, battery estimation) |
+| 13.6 Release v1.3.0 | ✅ Merged to main |
 
-**Build verification (re-confirmed):**
-- Firmware: ✅ SUCCESS — RAM 16.6%, Flash 74.6%
-- SPIFFS: ✅ SUCCESS
-- Unit tests: 61/61 passing (from Kael's last run)
+**Build verification (re-confirmed today):**
+- Firmware: ✅ SUCCESS — RAM 17.8%, Flash 79.8%, zero warnings
+- Tests: ✅ 145/152 native pass (7 pre-existing failures — see Phase 14.1)
+- Branches: develop == main (fully synced)
 
-**No open PRs to review.** All previous phases merged cleanly.
+**No open PRs.** All work is integrated.
 
-## Phase 9.2: Hardware Validation — BLOCKED ⏸️
+---
 
-Requires physical ESP32 device. Cannot proceed until hardware is available. Moving this to the backlog.
+## Phase 14 Assignment: v1.4.0 — Stability, Testing & Ecosystem
 
-## Phase 9.3-9.5: Promoted to Phase 10
+**Branch:** `feature/phase14-v1.4` (branch from develop)
+**Priority order:** 14.1 → 14.2 → 14.3 → 14.4 → 14.5 → 14.6 → 14.7
 
-I've consolidated the v1.1 feature development, code quality, and architecture tasks into **Phase 10: v1.1 Core Features Sprint**. See TASKS.md for the full breakdown.
+### 14.1 — Fix Known Test Failures (HIGH PRIORITY)
+Seven tests have been failing since v1.3.0. These are in `test/test_pet_statemachine.cpp`:
+- `test_backup_restore_roundtrip_pet_name` — name empty after restore
+- `test_backup_restore_roundtrip_accessibility` — flag not preserved
+- `test_backup_restore_roundtrip_achievements` — achievements missing from backup
+- `test_backup_checksum_changes_with_stats` — checksum doesn't reflect stat changes
+- `test_backup_empty_name` — empty name reverts to "default"
+- `test_backup_generation_preserved` — generation counter not incrementing
+- `test_achievements_progress_json_contains_all_achievements` — missing IDs in JSON
 
-## Phase 10: v1.1 Core Features Sprint — ASSIGNED 🎯
+**Target:** 152/152 tests pass. Root cause is likely in backup serialization/deserialization logic.
 
-**Branch:** `feature/phase10-v1.1-core`
-**Priority order:**
+### 14.2 — OTA Rollback Support
+Implement dual-partition OTA with auto-fallback. If the new firmware crashes within 30s of boot (watchdog), automatically rollback to the previous partition. Add manual rollback endpoint `GET /api/ota/rollback`.
 
-1. **10.1 — Singleton AppState Refactor** (do this first — unblocks cleaner code for everything else)
-2. **10.2 — WebSocket Real-Time Updates** (replaces SSE, lower latency)
-3. **10.3 — i18n Multi-Language Support** (en/zh/ja)
-4. **10.4 — Factory Reset** (physical button combo + HTTP endpoint)
-5. **10.5 — SPIFFS Atomic Writes** (data integrity)
-6. **10.6 — Error Code System** (structured API errors)
-7. **10.7 — Documentation & Polish** (README, CHANGELOG, PR)
+### 14.3 — Pet Trading via MQTT
+MQTT-based pet exchange between two TamaPetchi devices. Topics: `tamapetchi/trade/{device_id}/offer`, `/accept`, `/reject`. Full trade flow: offer → display → accept/reject → exchange → save. Edge cases: dead pets can't trade, max 3 pets.
 
-### Key Requirements:
-- One feature per branch: `feature/phase10.1-appstate`, `feature/phase10.2-websocket`, etc.
-- Test compilation after each feature: `pio run -e esp32dev`
-- Run unit tests: `pio test -e native` — maintain 61+ passing
-- Flash budget: keep under 80% (currently 74.6%)
-- Update TASKS.md with progress after each sub-task
-- Create PR when each sub-phase is complete
+### 14.4 — Sound Pack System
+User-customizable buzzer melodies. JSON format with note arrays per event. Two built-in packs (default + chirp). Upload custom packs via web UI (max 4KB). Validate: schema, ≤20 notes/event, valid frequencies.
 
-### Recommended Start:
-Begin with **10.1 AppState refactor**. This is the highest-value architecture change — it eliminates the global pointer spaghetti and makes the codebase much more maintainable. All subsequent features will benefit from cleaner state management.
+### 14.5 — Web UI Updates
+Add "Trade" tab (device ID, trade history, incoming offer modal). Add "Sound" settings panel (pack selector, preview buttons, upload form). Update WebSocket for trade events.
 
-After 10.1 is merged, the remaining features can be done in parallel branches if you want to work on multiple at once.
+### 14.6 — Community & Developer Tools
+Add CONTRIBUTING.md, GitHub issue templates (bug + feature), batch flash script, 24h simulation script. Update README, CHANGELOG, PROJECT_STATUS.
 
-## Deferred (Backlog):
-- Phase 9.2: Hardware validation (needs physical ESP32)
-- Phase 9.5: Community & ecosystem (blog, video, Hackaday) — do after v1.1 features are code-complete
-- Pet trading between devices (needs MQTT broker setup)
-- Sound pack system (lower priority)
-- OTA rollback (needs dual partition setup)
+### 14.7 — Release v1.4.0
+Final verification, tag, merge, push, GitHub release.
 
-## Summary
-- ✅ v1.0.0 release is LIVE on GitHub with binaries
-- ✅ Phases 1-9.1 all complete
-- 🎯 Phase 10 assigned — start with AppState refactor
-- ⏸️ Hardware validation blocked on physical device
+---
 
-Let me know when you've started 10.1 or if you have questions about the task breakdown.
+## Key Constraints
+- Flash budget: currently 79.8% — must stay under 85% for Phase 14
+- All new features need unit tests
+- One feature per commit
+- Update TASKS.md progress as you go
+- Create PR when all 14.x sub-tasks are complete
 
-— Nyra Vale
+## TASKS.md
+Updated on CT at `/root/TASKS.md` with full Phase 14 breakdown (619 lines total).
+
+---
+*Nyra Vale — Project Manager, ESP32-TamaPetchi Project*

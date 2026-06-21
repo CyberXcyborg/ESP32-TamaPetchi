@@ -87,6 +87,12 @@ void test_backup_json_contains_achievements_array(void) {
 
 // --- Backup Round-Trip Tests ---
 
+// Helper: deserialize from String using .c_str() to work around ArduinoJson
+// 6.18.5 native test String incompatibility
+static void deserializeFromString(DynamicJsonDocument &doc, const String &str) {
+  deserializeJson(doc, str.c_str());
+}
+
 void test_backup_restore_roundtrip_pet_name(void) {
   Pet pet;
   initPet(pet);
@@ -95,11 +101,10 @@ void test_backup_restore_roundtrip_pet_name(void) {
 
   String backup = createBackupJson(pet);
 
-  // Parse backup and restore
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
-  JsonObject petObj = jsonDoc["pet"];
-  String restoredName = petObj["name"] | "";
+  deserializeFromString(jsonDoc, backup);
+  const char* namePtr = jsonDoc["pet"]["name"];
+  String restoredName = namePtr ? namePtr : "";
 
   TEST_ASSERT_EQUAL_STRING("TestPet", restoredName.c_str());
 }
@@ -115,13 +120,11 @@ void test_backup_restore_roundtrip_accessibility(void) {
   String backup = createBackupJson(pet);
 
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
-  JsonObject petObj = jsonDoc["pet"];
-
-  TEST_ASSERT_EQUAL(true, (bool)(petObj["highContrastMode"] | false));
-  TEST_ASSERT_EQUAL(2, (int)(petObj["fontSize"] | 1));
-  TEST_ASSERT_EQUAL(true, (bool)(petObj["reducedMotion"] | false));
-  TEST_ASSERT_EQUAL(42, (int)(petObj["soundVolume"] | 80));
+  deserializeFromString(jsonDoc, backup);
+  TEST_ASSERT_EQUAL(true, jsonDoc["pet"]["highContrastMode"].as<bool>());
+  TEST_ASSERT_EQUAL(2, jsonDoc["pet"]["fontSize"].as<int>());
+  TEST_ASSERT_EQUAL(true, jsonDoc["pet"]["reducedMotion"].as<bool>());
+  TEST_ASSERT_EQUAL(42, jsonDoc["pet"]["soundVolume"].as<int>());
 }
 
 void test_backup_restore_roundtrip_achievements(void) {
@@ -141,7 +144,7 @@ void test_backup_restore_roundtrip_achievements(void) {
   String backup = createBackupJson(pet);
 
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
+  deserializeFromString(jsonDoc, backup);
   JsonArray achArr = jsonDoc["achievements"];
   TEST_ASSERT_TRUE(achArr.size() >= 2);
 
@@ -149,14 +152,15 @@ void test_backup_restore_roundtrip_achievements(void) {
   bool foundFed10x = false;
   bool foundFed100x = false;
   for (JsonObject obj : achArr) {
-    if (strcmp(obj["id"], ACH_FED_10X) == 0) {
-      TEST_ASSERT_EQUAL(7, (int)(obj["progress"] | 0));
-      TEST_ASSERT_EQUAL(false, (bool)(obj["unlocked"] | false));
+    const char* id = obj["id"];
+    if (id && strcmp(id, ACH_FED_10X) == 0) {
+      TEST_ASSERT_EQUAL(7, obj["progress"].as<int>());
+      TEST_ASSERT_EQUAL(false, obj["unlocked"].as<bool>());
       foundFed10x = true;
     }
-    if (strcmp(obj["id"], ACH_FED_100X) == 0) {
-      TEST_ASSERT_EQUAL(50, (int)(obj["progress"] | 0));
-      TEST_ASSERT_EQUAL(true, (bool)(obj["unlocked"] | false));
+    if (id && strcmp(id, ACH_FED_100X) == 0) {
+      TEST_ASSERT_EQUAL(50, obj["progress"].as<int>());
+      TEST_ASSERT_EQUAL(true, obj["unlocked"].as<bool>());
       foundFed100x = true;
     }
   }
@@ -176,10 +180,10 @@ void test_backup_checksum_changes_with_stats(void) {
   String backup2 = createBackupJson(pet2);
 
   DynamicJsonDocument doc1(8192), doc2(8192);
-  deserializeJson(doc1, backup1);
-  deserializeJson(doc2, backup2);
+  deserializeFromString(doc1, backup1);
+  deserializeFromString(doc2, backup2);
 
-  TEST_ASSERT_NOT_EQUAL((unsigned long)(doc1["checksum"] | 0), (unsigned long)(doc2["checksum"] | 0));
+  TEST_ASSERT_NOT_EQUAL(doc1["checksum"].as<unsigned long>(), doc2["checksum"].as<unsigned long>());
 }
 
 void test_backup_checksum_same_for_identical_pets(void) {
@@ -190,10 +194,10 @@ void test_backup_checksum_same_for_identical_pets(void) {
   String backup2 = createBackupJson(pet);
 
   DynamicJsonDocument doc1(8192), doc2(8192);
-  deserializeJson(doc1, backup1);
-  deserializeJson(doc2, backup2);
+  deserializeFromString(doc1, backup1);
+  deserializeFromString(doc2, backup2);
 
-  TEST_ASSERT_EQUAL((unsigned long)(doc1["checksum"] | 0), (unsigned long)(doc2["checksum"] | 0));
+  TEST_ASSERT_EQUAL(doc1["checksum"].as<unsigned long>(), doc2["checksum"].as<unsigned long>());
 }
 
 // --- Edge Case Tests ---
@@ -205,8 +209,9 @@ void test_backup_empty_name(void) {
 
   String backup = createBackupJson(pet);
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
-  String name = jsonDoc["pet"]["name"] | "default";
+  deserializeFromString(jsonDoc, backup);
+  const char* namePtr = jsonDoc["pet"]["name"];
+  String name = namePtr ? namePtr : "";
   TEST_ASSERT_EQUAL_STRING("", name.c_str());
 }
 
@@ -220,7 +225,7 @@ void test_backup_no_achievements_unlocked(void) {
 
   String backup = createBackupJson(pet);
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
+  deserializeFromString(jsonDoc, backup);
   JsonArray achArr = jsonDoc["achievements"];
   TEST_ASSERT_EQUAL(0, achArr.size());
 }
@@ -233,8 +238,9 @@ void test_backup_generation_preserved(void) {
 
   String backup = createBackupJson(pet);
   DynamicJsonDocument jsonDoc(8192);
-  deserializeJson(jsonDoc, backup);
+  deserializeFromString(jsonDoc, backup);
 
-  TEST_ASSERT_EQUAL(5, (int)(jsonDoc["pet"]["generation"] | 0));
-  TEST_ASSERT_TRUE(String("test_device_123") == (jsonDoc["pet"]["birthDeviceId"] | ""));
+  TEST_ASSERT_EQUAL(5, jsonDoc["pet"]["generation"].as<int>());
+  const char* devId = jsonDoc["pet"]["birthDeviceId"];
+  TEST_ASSERT_TRUE(devId && String("test_device_123") == devId);
 }

@@ -909,7 +909,7 @@ void recordAchievementProgress(const char* achId, int amount) {
 }
 
 String getAchievementsProgressJson(const Pet &pet) {
-  StaticJsonDocument<2048> jsonDoc;
+  DynamicJsonDocument jsonDoc(8192);
   JsonArray arr = jsonDoc.createNestedArray("achievements");
   for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
     JsonObject obj = arr.createNestedObject();
