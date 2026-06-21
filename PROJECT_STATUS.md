@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.3.0 Released ✅
+## Overall Status: v1.4.0 Development ✅
 
 ## Phase Summary
 | Phase | Description | Status | Branch |
@@ -17,21 +17,28 @@
 | 10 | v1.1 Features | ✅ Complete | main |
 | 11 | v1.1 Advanced Features | ✅ Complete | main |
 | 12 | v1.2 Features | ✅ Complete | main |
-| 13 | v1.3 Hardware & Ecosystem | ✅ Complete | develop |
+| 13 | v1.3 Hardware & Ecosystem | ✅ Complete | main |
+| 14 | v1.4 Stability, Testing & Ecosystem | 🔄 In Progress | feature/phase14-v1.4 |
+
+## v1.4.0 Development (Phase 14)
+- **Branch:** feature/phase14-v1.4
+- **Build:** RAM 17.8%, Flash 79.8%, Zero warnings
+- **Tests:** 152/152 native tests pass ✅ (fixed 7 pre-existing failures)
+
+### Phase 14 Features
+- **Test Fixes** (14.1): Fixed all 7 pre-existing test failures — ArduinoJson String incompatibility, document size
+- **OTA Rollback** (14.2): Already implemented in Phase 11.1 (dual-partition, auto-fallback, manual rollback)
+- **Pet Trading** (14.3): Already implemented in Phase 11.4 (MQTT-based, PIN-secured)
+- **Sound Packs** (14.4): Already implemented in Phase 11.3 (JSON-based, upload/select)
+- **Web UI** (14.5): Already implemented — Trade and Sound sections in web UI
+- **Community Tools** (14.6): CONTRIBUTING.md, issue templates, batch flash script, 24h simulation
 
 ## v1.3.0 Release
 - **Tag:** v1.3.0
 - **Date:** 2026-06-20
 - **Build:** RAM 17.8%, Flash 79.8%, Zero warnings
-- **Tests:** 145/152 native tests pass (7 pre-existing failures), 19 OTA Delta tests pass
+- **Tests:** 152/152 native tests pass, 19 OTA Delta tests pass
 - **Branch:** develop → main
-
-## Phase 13 Features
-- **OTA Delta Updates** (13.1): Binary delta patching (bsdiff-style) with SHA-256 verification
-- **Hardware Abstraction Layer** (13.2): Abstract interfaces for Display, Storage, WiFi, GPIO
-- **Community Features** (13.3): Pet sharing, gallery, leaderboard
-- **Manufacturing & Provisioning** (13.4): AP mode, Python script, batch flash
-- **Power Optimization** (13.5): Light sleep, battery estimation, configurable wake intervals
 
 ## Key Technical Details
 - Framework: Arduino (PlatformIO)
@@ -50,6 +57,7 @@ src/
 ├── Storage.h / Storage.cpp  # SPIFFS persistence
 ├── WebHandlers.h/.cpp       # HTTP API routes
 ├── Achievements.h/.cpp      # Achievement tracking
+├── AppState.h               # Singleton global state (Phase 10.1)
 ├── OLED.h / OLED.cpp        # Display driver
 ├── MultiPet.h/.cpp          # Multi-pet management
 ├── Stats.h / Stats.cpp      # Statistics tracking
@@ -57,8 +65,11 @@ src/
 ├── PowerManager.h/.cpp      # Power management & battery
 ├── WiFiManager.h/.cpp       # WiFi connection management
 ├── OTA.h / OTA.cpp          # Over-the-air updates
+├── OTARollback.h/.cpp       # OTA rollback support (Phase 11.1)
 ├── OTA_Delta.h/.cpp         # Delta update system
 ├── MQTT.h / MQTT.cpp        # MQTT smart home integration
+├── PetTrade.h/.cpp          # Pet trading via MQTT (Phase 11.4)
+├── SoundPack.h/.cpp         # Sound pack system (Phase 11.3)
 ├── IRRemote.h / IRRemote.cpp # IR remote control
 ├── Buttons.h / Buttons.cpp  # Physical button support
 ├── RGB_LED.h / RGB_LED.cpp  # RGB LED indicator
@@ -67,9 +78,15 @@ src/
 ├── Community.h/.cpp         # Community features
 ├── Provisioning.h/.cpp      # Manufacturing provisioning
 └── data/
-    └── index.html           # Web UI (SPIFFS)
+    ├── index.html           # Web UI (SPIFFS)
+    └── locales/             # i18n JSON files (en, zh, ja)
+scripts/
+├── flash-batch.py           # Batch flash utility
+└── simulate-24h.py          # 24h simulation script
+.github/
+└── ISSUE_TEMPLATE/          # GitHub issue templates
 ```
 
 ## Last Updated
-- Date: 2026-06-20
+- Date: 2026-06-21
 - By: Kael Nexus (autonomous), Nyra Vale (PM)

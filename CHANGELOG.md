@@ -292,3 +292,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **From v1.0.0**: OTA update preserves all settings and pet data; OTA rollback available if update causes issues
 - **From v1.1.0+**: OTA rollback — if new firmware crashes 3 times, device auto-reverts to previous version
 - First boot after flash: connect to "TamaPetchi" AP for WiFi configuration
+
+---
+
+## [1.4.0] - 2026-06-21
+
+### Added
+
+#### Phase 14 — v1.4 Stability, Testing & Ecosystem
+
+- **Test Infrastructure Fixes** (14.1): Resolved all 7 pre-existing test failures
+  - Fixed `deserializeJson(const String&)` incompatibility with native test String class (use `.c_str()`)
+  - Increased `getAchievementsProgressJson` document size from `StaticJsonDocument<2048>` to `DynamicJsonDocument(8192)` to fit all 16 achievement entries
+  - Fixed backup/restore roundtrip tests for name, accessibility, achievements, checksum, and generation
+  - Now 152/152 native tests pass
+
+- **Community & Developer Tools** (14.6):
+  - Added `CONTRIBUTING.md` with build instructions, code style, PR process, testing requirements
+  - Added GitHub issue templates: `bug_report.md` and `feature_request.md`
+  - Added `scripts/flash-batch.py` for batch flashing multiple ESP32 devices
+  - Added `scripts/simulate-24h.py` for project health checks and metrics
+  - Updated README.md with contributor quick-start and developer tools section
+
+### Known Issues
+- IR_RECEIVER_PIN (GPIO 15) conflicts with OLED CS pin — use one or the other
+- MQTT broker must be configured at compile time via config.h
+- OTA rollback requires ESP32 partition scheme with at least 2 OTA partitions (default most boards)
+- Pet trading requires MQTT broker connection and both devices on same MQTT network
+
+### Upgrade Guide
+- **From v1.3.0**: OTA update preserves all settings and pet data; all existing features remain compatible
+- **From v1.1.0+**: OTA rollback — if new firmware crashes 3 times, device auto-reverts to previous version
+- First boot after flash: connect to "TamaPetchi" AP for WiFi configuration
