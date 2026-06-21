@@ -865,6 +865,132 @@
             document.getElementById('trade-request-btn').addEventListener('click', sendTradeRequest);
             document.getElementById('trade-accept-btn').addEventListener('click', acceptTradeRequest);
             document.getElementById('trade-cancel-btn').addEventListener('click', cancelTrade);
+
+            // Phase 15.4: Achievement progress
+            document.getElementById('achievements-progress-section').style.display = 'block';
+            loadAchievementProgress();
+
+            // Phase 15.6: Pet snapshot & comparison
+            document.getElementById('snapshot-btn').addEventListener('click', showPetSnapshot);
+            document.getElementById('compare-btn').addEventListener('click', comparePets);
+
+            // Phase 15.6: Community gallery & leaderboard
+            document.getElementById('gallery-btn').addEventListener('click', showGallery);
+            document.getElementById('leaderboard-btn').addEventListener('click', showLeaderboard);
+        }
+
+        // ============================================================
+        // Phase 15.4: Achievement Progress
+        // ============================================================
+        function loadAchievementProgress() {
+            fetch('/api/achievements/categories')
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById('achievement-category-bars');
+                if (!container) return;
+                container.innerHTML = '';
+                const catLabels = {care: 'Care', evolution: 'Evolution', social: 'Social', exploration: 'Exploration'};
+                const catColors = {care: 'bg-green-400', evolution: 'bg-purple-400', social: 'bg-blue-400', exploration: 'bg-orange-400'};
+                for (const [cat, info] of Object.entries(data)) {
+                    if (cat === 'overall') continue;
+                    const pct = info.total > 0 ? Math.round((info.unlocked / info.total) * 100) : 0;
+                    const label = catLabels[cat] || cat;
+                    const color = catColors[cat] || 'bg-gray-400';
+                    container.innerHTML += '<div class="text-xs text-gray-600 mb-1">' + label + ' ' + info.unlocked + '/' + info.total + '</div>';
+                    container.innerHTML += '<div class="w-full bg-gray-200 rounded-full h-2"><div class="' + color + ' h-2 rounded-full" style="width:' + pct + '%"></div></div>';
+                }
+                const scoreEl = document.getElementById('achievement-score');
+                if (scoreEl && data.overall) {
+                    scoreEl.textContent = 'Score: ' + (data.overall.score || 0) + ' | ' + data.overall.unlocked + '/' + data.overall.total + ' unlocked';
+                }
+            })
+            .catch(() => {});
+        }
+
+        // ============================================================
+        // Phase 15.6: Pet Snapshot & Comparison
+        // ============================================================
+        function showPetSnapshot() {
+            fetch('/api/pets/snapshot')
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById('snapshot-display');
+                if (!el) return;
+                el.style.display = 'block';
+                el.innerHTML = '<div class="bg-white rounded p-2 text-left">' +
+                    '<div class="font-bold text-blue-700">' + (data.name || 'Pet') + '</div>' +
+                    '<div>Stage: ' + (data.stage || '?') + ' | Age: ' + (data.age || 0) + '</div>' +
+                    '<div>Score: ' + (data.score || 0) + ' | Achievements: ' + (data.achievementScore || 0) + '</div>' +
+                    '<div class="text-gray-400 mt-1">Gen ' + (data.generation || 1) + ' | Fed ' + (data.feedCount || 0) + 'x | Played ' + (data.playCount || 0) + 'x</div>' +
+                    '</div>';
+                showToast('Snapshot loaded', 'success');
+            })
+            .catch(() => showToast('Error loading snapshot', 'error'));
+        }
+
+        function comparePets() {
+            fetch('/api/pets/compare')
+            .then(r => r.json())
+            .then(data => {
+                const el = document.getElementById('compare-display');
+                if (!el) return;
+                el.style.display = 'block';
+                if (data.topGallery) {
+                    el.innerHTML = '<div class="bg-white rounded p-2 text-left">' +
+                        '<div class="font-bold text-blue-700">Top Gallery Pet</div>' +
+                        '<div>' + (data.topGallery.petName || '?') + ' — Score: ' + (data.topGallery.score || 0) + '</div>' +
+                        '<div>Achievements: ' + (data.topGallery.achievementCount || 0) + '</div>' +
+                        '</div>';
+                } else {
+                    el.innerHTML = '<div class="text-gray-400">No gallery entries yet</div>';
+                }
+                showToast('Comparison loaded', 'success');
+            })
+            .catch(() => showToast('Error loading comparison', 'error'));
+        }
+
+        function showGallery() {
+            fetch('/api/community/gallery')
+            .then(r => r.json())
+            .then(data) {
+                const el = document.getElementById('gallery-display');
+                if (!el) return;
+                el.style.display = 'block';
+                if (data.gallery && data.gallery.length > 0) {
+                    let html = '<div class="bg-white rounded p-2 max-h-32 overflow-y-auto">';
+                    data.gallery.slice(0, 5).forEach(function(entry) {
+                        html += '<div class="text-xs border-b py-1"><span class="font-bold">' + (entry.petName || '?') + '</span> — Score: ' + (entry.score || 0) + '</div>';
+                    });
+                    html += '</div>';
+                    el.innerHTML = html;
+                } else {
+                    el.innerHTML = '<div class="text-gray-400">No gallery entries yet</div>';
+                }
+                showToast('Gallery loaded', 'success');
+            })
+            .catch(() => showToast('Error loading gallery', 'error'));
+        }
+
+        function showLeaderboard() {
+            fetch('/api/community/leaderboard')
+            .then(r => r.json())
+            .then(data) {
+                const el = document.getElementById('gallery-display');
+                if (!el) return;
+                el.style.display = 'block';
+                if (data.leaderboard && data.leaderboard.length > 0) {
+                    let html = '<div class="bg-white rounded p-2 max-h-32 overflow-y-auto">';
+                    data.leaderboard.slice(0, 10).forEach(function(entry, i) {
+                        html += '<div class="text-xs border-b py-1"><span class="font-bold">#' + (i+1) + '</span> ' + (entry.petName || '?') + ' — ' + (entry.score || 0) + '</div>';
+                    });
+                    html += '</div>';
+                    el.innerHTML = html;
+                } else {
+                    el.innerHTML = '<div class="text-gray-400">No leaderboard entries yet</div>';
+                }
+                showToast('Leaderboard loaded', 'success');
+            })
+            .catch(() => showToast('Error loading leaderboard', 'error'));
         }
 
         function setPetType(type) {
