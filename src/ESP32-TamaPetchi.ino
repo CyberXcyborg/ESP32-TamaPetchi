@@ -29,6 +29,7 @@
 #include "PetTrade.h"
 #include "Community.h"   // Phase 13.3: Community features
 #include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning
+#include "PetAI.h"       // Phase 16.1: Pet AI
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED

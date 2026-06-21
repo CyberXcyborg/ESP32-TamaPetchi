@@ -18,6 +18,7 @@
 #include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning
 #include "Backup.h"      // Phase 15.3: Backup & Restore
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
+#include "PetAI.h"      // Phase 16.1: Pet AI
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
 #endif
@@ -311,6 +312,10 @@ void registerHandlers(WebServer &server, Pet &pet) {
   // Phase 15.6: Pet snapshot and comparison
   server.on("/api/pets/snapshot", HTTP_GET, handleGetPetSnapshot);
   server.on("/api/pets/compare", HTTP_GET, handleComparePets);
+
+  // Phase 16.1: Pet AI routes
+  server.on("/api/pets/ai/status", HTTP_GET, handleGetPetAIStatus);
+  server.on("/api/pets/ai/memory", HTTP_GET, handleGetPetAIMemory);
 
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
@@ -1435,4 +1440,22 @@ void handleComparePets() {
   String result;
   serializeJson(jsonDoc, result);
   g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 16.1: Pet AI Handlers
+// ============================================================
+
+void handleGetPetAIStatus() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String json = getPetAIStatusJson(state.pet);
+  g_server->send(200, "application/json", json);
+}
+
+void handleGetPetAIMemory() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  String json = getPetAIMemoryJson(state.pet);
+  g_server->send(200, "application/json", json);
 }

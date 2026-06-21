@@ -90,4 +90,8 @@ void handleGetAchievementRewards();
 void handleGetPetSnapshot();
 void handleComparePets();
 
+// Phase 16.1: Pet AI
+void handleGetPetAIStatus();
+void handleGetPetAIMemory();
+
 #endif // WEBHANDLERS_H
