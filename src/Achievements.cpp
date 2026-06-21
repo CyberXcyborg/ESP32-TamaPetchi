@@ -78,7 +78,7 @@ void loadAchievements(Pet &pet) {
     return;
   }
 
-  DynamicJsonDocument jsonDoc(2048);
+  StaticJsonDocument<2048> jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, file);
   if (error) {
     Serial.println("Failed to parse achievements file");
@@ -131,7 +131,7 @@ void saveAchievements(const Pet &pet) {
   }
   lastAchSaveTime = now;
 
-  DynamicJsonDocument jsonDoc(2048);
+  StaticJsonDocument<2048> jsonDoc;
 
   // Legacy fields for backward compatibility
   jsonDoc["feedCount"]     = pet.feedCount;
@@ -223,7 +223,7 @@ void checkAchievements(Pet &pet) {
 String getAchievementsJson(const Pet &pet) {
   // Legacy format: { achievements: ["id1", "id2"] }
   // Now includes all unlocked achievements
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<512> jsonDoc;
   JsonArray arr = jsonDoc.createNestedArray("achievements");
 
   for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
@@ -249,7 +249,7 @@ String getAchievementsJson(const Pet &pet) {
 // Phase 12.1: Full Progress JSON
 // ============================================================
 String getAchievementsProgressJson(const Pet &pet) {
-  DynamicJsonDocument jsonDoc(8192);
+  StaticJsonDocument<4096> jsonDoc;
   JsonArray arr = jsonDoc.createNestedArray("achievements");
 
   for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
@@ -275,7 +275,7 @@ String getAchievementsProgressJson(const Pet &pet) {
 // Phase 12.1: Newly Unlocked (for WebSocket notification)
 // ============================================================
 String getNewlyUnlockedJson() {
-  DynamicJsonDocument jsonDoc(2048);
+  StaticJsonDocument<1024> jsonDoc;
   JsonArray arr = jsonDoc.createNestedArray("newAchievements");
   bool any = false;
 
@@ -303,7 +303,7 @@ String getNewlyUnlockedJson() {
 // Phase 12.1: Unlocked Rewards
 // ============================================================
 String getUnlockedRewardsJson() {
-  DynamicJsonDocument jsonDoc(1024);
+  StaticJsonDocument<512> jsonDoc;
   JsonArray arr = jsonDoc.createNestedArray("rewards");
 
   for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
