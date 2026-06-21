@@ -490,3 +490,116 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Phase 15: v1.5.0 — Performance, Polish & Hardware Validation
+
+**Branch:** feature/phase15-v1.5
+**Goal:** Optimize flash usage, complete hardware validation, add final polish features that fit within flash budget.
+**Budget:** Flash must stay under 85% (currently 79.8%, ~265KB headroom). Features that add flash must be offset by optimizations.
+**Priority:** Flash optimization → Hardware validation → Final polish → Release
+
+### 15.0 — Pre-Work: Branch & Baseline
+- [ ] Create branch: `git checkout -b feature/phase15-v1.5 develop`
+- [ ] Verify clean build: `pio run -e esp32dev` — zero errors (RAM 17.8%, Flash 79.8%)
+- [ ] Verify baseline tests: `pio test -e native` — 152/152 pass
+- [ ] Record baseline metrics: flash size, RAM usage, test count
+
+### 15.1 — Flash Optimization Sprint
+- [ ] Audit all String usages in src/ — replace with `const char*` or `std::string` where possible
+- [ ] Replace remaining DynamicJsonDocument with StaticJsonDocument (target: zero DynamicJsonDoc allocations in hot path)
+- [ ] Enable LTO (Link-Time Optimization) in platformio.ini: `build_flags = -flto` + `build_unflags = -fno-fat-lto-objects`
+- [ ] Audit web UI (data/index.html) — minify HTML/CSS/JS, remove unused code
+- [ ] Compress index.html.gz and serve pre-compressed version (saves ~40% SPIFFS space)
+- [ ] Review all `#define` macros — convert to `constexpr` where possible (better compiler optimization)
+- [ ] Verify: flash usage reduced by ≥5% from baseline (target: ≤75%)
+- [ ] Verify: all 152 tests still pass after optimizations
+- [ ] Commit: chore(flash): optimize flash usage — LTO, StaticJson, String audit
+
+### 15.2 — Hardware Validation (requires physical ESP32)
+- [ ] Flash v1.4.0 (or v1.5.0-beta) to physical ESP32 Dev Module
+- [ ] Verify OLED display shows pet sprite and stats correctly
+- [ ] Test physical button (GPIO 0) for feed/play/clean/sleep cycling
+- [ ] Test RGB LED color states (green=healthy, yellow=warning, red=critical, blue=sleeping)
+- [ ] Test IR remote control with actual NEC remote — verify all 7 commands work
+- [ ] Verify WiFi Manager captive portal on first boot (fresh SPIFFS)
+- [ ] Test OTA update via web upload — verify firmware replaces cleanly
+- [ ] Test MQTT publishing to broker and HA auto-discovery — verify all 6 sensors + 3 buttons
+- [ ] Measure battery voltage reading accuracy (compare with multimeter)
+- [ ] Test deep sleep wake-on-button with state restore — verify stats persist
+- [ ] Run 24h stability test (monitor heap, crashes, pet state) — use scripts/simulate-24h.py
+- [ ] Document results in HARDWARE_VALIDATION.md
+- [ ] Fix any bugs found during validation (create sub-commits per fix)
+
+### 15.3 — Backup & Restore System
+- [ ] Create Backup.h / Backup.cpp module
+- [ ] Implement `createBackup()` — serialize all pet data, stats, achievements, settings to JSON
+- [ ] Implement `restoreBackup()` — deserialize and validate backup JSON, restore all state
+- [ ] Add checksum validation (CRC32) to backup data
+- [ ] Add GET /api/backup/download — download full backup as JSON file
+- [ ] Add POST /api/backup/restore — upload and restore from backup JSON
+- [ ] Add GET /api/backup/verify — validate backup without restoring
+- [ ] Handle version mismatch (backup from older version — migrate format)
+- [ ] Add backup/restore UI section in web UI
+- [ ] Add unit tests: roundtrip backup/restore for all pet states, edge cases (empty, corrupt, old version)
+- [ ] Verify compilation and flash budget (< 85%)
+
+### 15.4 — Advanced Achievement System
+- [ ] Add achievement categories: Care (feeding, cleaning), Social (trading, community), Survival (uptime, low stats), Evolution (evo count, type variety)
+- [ ] Add hidden achievements (secret unlocks — not shown until unlocked)
+- [ ] Add achievement progress tracking (e.g., "Feed 100 times" shows 67/100)
+- [ ] Add achievement rewards: unlock new pet skins, buzzer melodies, OLED animations
+- [ ] Add GET /api/achievements/progress endpoint
+- [ ] Add achievement progress bar in web UI
+- [ ] Add achievement unlock animation on OLED
+- [ ] Add unit tests for achievement triggers, progress, hidden achievement reveal
+- [ ] Verify compilation and flash budget (< 85%)
+
+### 15.5 — Web UI: Modernization & Accessibility
+- [ ] Audit current web UI for accessibility (WCAG 2.1 AA compliance)
+- [ ] Add ARIA labels to all interactive elements
+- [ ] Add keyboard navigation support (Tab, Enter, Escape for all controls)
+- [ ] Improve color contrast ratios (minimum 4.5:1 for text)
+- [ ] Add screen reader support (semantic HTML, role attributes)
+- [ ] Add PWA manifest.json for "Add to Home Screen" support
+- [ ] Add service worker for offline functionality (cache static assets)
+- [ ] Add loading skeleton screens (replace basic spinners)
+- [ ] Add toast notifications for API responses (success/error/warning)
+- [ ] Optimize WebSocket reconnection: add visual indicator + manual reconnect button
+- [ ] Verify: Lighthouse accessibility score ≥ 90
+- [ ] Verify: all 152 tests pass
+
+### 15.6 — Community Features Extension
+- [ ] Add pet photo/gallery system — store pet snapshots in SPIFFS (base64 encoded, max 10KB each)
+- [ ] Add GET /api/community/gallery — list public pet snapshots
+- [ ] Add POST /api/community/share — share pet to community gallery via MQTT
+- [ ] Add leaderboard: rank pets by achievement count, care score, uptime
+- [ ] Add GET /api/community/leaderboard endpoint
+- [ ] Add leaderboard UI section in web UI
+- [ ] Add pet comparison view (compare stats between local pets)
+- [ ] Add unit tests for gallery, leaderboard, sharing
+
+### 15.7 — Release v1.5.0
+- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [ ] Final test run: `pio test -e native` — all tests pass
+- [ ] Update README with Phase 15 features
+- [ ] Update CHANGELOG.md with full v1.5.0 entry
+- [ ] Update PROJECT_STATUS.md
+- [ ] Create git tag: git tag v1.5.0
+- [ ] Merge: git checkout develop && git merge feature/phase15-v1.5 --no-ff
+- [ ] Merge: git checkout main && git merge develop --no-ff
+- [ ] Push all branches: git push origin main develop --tags
+- [ ] Create GitHub release with firmware.bin attached
+- [ ] Write release notes
+
+## Implementation Rules
+- Create branch: feature/phase15-v1.5 (branch from develop)
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push incrementally — do not wait until all tasks complete
+- Create PR when all 15.x sub-tasks complete
+
+## How This Works
+Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase

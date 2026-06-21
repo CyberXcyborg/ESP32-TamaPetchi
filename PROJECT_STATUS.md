@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.4.0 Development ✅
+## Overall Status: v1.5.0 Development — Phase 15
 
 ## Phase Summary
 | Phase | Description | Status | Branch |
@@ -18,7 +18,8 @@
 | 11 | v1.1 Advanced Features | ✅ Complete | main |
 | 12 | v1.2 Features | ✅ Complete | main |
 | 13 | v1.3 Hardware & Ecosystem | ✅ Complete | main |
-| 14 | v1.4 Stability, Testing & Ecosystem | 🔄 In Progress | feature/phase14-v1.4 |
+| 14 | v1.4 Stability, Testing & Ecosystem | ✅ Complete | main |
+| 15 | v1.5 Performance, Polish & Hardware Validation | 🔄 In Progress | feature/phase15-v1.5 |
 
 ## v1.4.0 Development (Phase 14)
 - **Branch:** feature/phase14-v1.4
