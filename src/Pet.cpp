@@ -1,5 +1,6 @@
 #include "Pet.h"
 #include "config.h"
+#include "PetAI.h"
 #include <ArduinoJson.h>
 #include <WiFi.h>
 
@@ -141,6 +142,14 @@ void initPet(Pet &pet) {
   // Phase 7.5 init
   initMoodSystem(pet);
   initScheduledFeed(pet);
+
+  // Phase 16.1: Pet AI
+  initPetAI(pet);
+
+  // Phase 12 init (lineage, analytics, accessibility)
+  initLineage(pet);
+  initAnalytics(pet);
+  initAccessibility(pet);
 }
 
 void updatePet(Pet &pet) {
@@ -298,6 +307,9 @@ void updatePet(Pet &pet) {
   // Phase 7.5: Update mood and check scheduled feeding
   updateMood(pet);
   checkScheduledFeed(pet);
+
+  // Phase 16.1: Update AI behavior engine
+  updatePetAI(pet);
 }
 
 // ============================================================
@@ -320,6 +332,9 @@ void feedPet(Pet &pet) {
   pet.stateChangeTime    = millis();
   pet.lastInteractionTime = millis();
 
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_FEED);
+
   if (pet.soundEnabled) soundFeed();
 }
 
@@ -338,6 +353,9 @@ void playPet(Pet &pet) {
   // Phase 3: track play count for achievements
   pet.playCount++;
 
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_PLAY);
+
   if (pet.soundEnabled) soundPlay();
 }
 
@@ -347,6 +365,9 @@ void cleanPet(Pet &pet) {
   pet.cleanliness = STAT_MAX;
   pet.health      = clampStat(pet.health + CLEAN_HEALTH_BONUS);
   pet.lastInteractionTime = millis();
+
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_CLEAN);
 }
 
 void sleepPet(Pet &pet) {
@@ -359,6 +380,9 @@ void sleepPet(Pet &pet) {
     pet.stateChangeTime = millis();
   }
   pet.lastInteractionTime = millis();
+
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_SLEEP);
 }
 
 void healPet(Pet &pet) {
@@ -378,6 +402,9 @@ void healPet(Pet &pet) {
   pet.health = STAT_MAX;
   pet.state  = "normal";
   pet.lastInteractionTime = millis();
+
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_HEAL);
 }
 
 void resetPet(Pet &pet) {
@@ -530,6 +557,9 @@ void startGame(Pet &pet, int gameType) {
   pet.gameScore = 0;
   pet.gameRound = 0;
   pet.energy = clampStat(pet.energy - 10);
+
+  // Phase 16.1: Record action in AI memory
+  recordPetAction(pet, ACTION_GAME);
 
   if (gameType == 1) {
     generateMemorySequence(pet);

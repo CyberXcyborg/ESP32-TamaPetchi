@@ -155,6 +155,21 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
     state.pet.soundEnabled = !state.pet.soundEnabled;
     savePetData(state.pet);
     Serial.println("[MQTT] Command: toggle_sound");
+  } else if (action == "sleep" && state.pet.isAlive && state.pet.state != "sleeping") {
+    sleepPet(state.pet);
+    savePetData(state.pet);
+    Serial.println("[MQTT] Command: sleep");
+  } else if (action == "heal" && state.pet.isAlive) {
+    healPet(state.pet);
+    savePetData(state.pet);
+    Serial.println("[MQTT] Command: heal");
+  } else if (action == "set_type" && state.pet.isAlive) {
+    String typeStr = jsonDoc["type"] | "blob";
+    if (typeStr == "blob") state.pet.type = BLOB;
+    else if (typeStr == "cat") state.pet.type = CAT;
+    else if (typeStr == "dog") state.pet.type = DOG;
+    savePetData(state.pet);
+    Serial.println("[MQTT] Command: set_type");
   } else {
     Serial.printf("[MQTT] Unknown or invalid action: %s\n", action.c_str());
     return;
@@ -302,7 +317,172 @@ static void publishHADiscovery() {
     mqttClient.publish(topic.c_str(), payload.c_str(), true);
   }
 
-  Serial.println("[MQTT] HA auto-discovery published");
+  // ============================================================
+  // Phase 16.2: Additional HA entities
+  // ============================================================
+
+  // Sleep button
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Sleep";
+    doc["unique_id"] = "tamapetchi_sleep";
+    doc["command_topic"] = TOPIC_COMMAND;
+    doc["payload_press"] = "{\"action\":\"sleep\"}";
+    doc["icon"] = "mdi:bed";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/button/" + MQTT_CLIENT_ID + "/sleep/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Heal button
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Heal";
+    doc["unique_id"] = "tamapetchi_heal";
+    doc["command_topic"] = TOPIC_COMMAND;
+    doc["payload_press"] = "{\"action\":\"heal\"}";
+    doc["icon"] = "mdi:medical-bag";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/button/" + MQTT_CLIENT_ID + "/heal/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Alive binary sensor
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Alive";
+    doc["unique_id"] = "tamapetchi_alive";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{{ value_json.isAlive }}";
+    doc["payload_on"] = "true";
+    doc["payload_off"] = "false";
+    doc["device_class"] = "connectivity";
+    doc["icon"] = "mdi:paw";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/binary_sensor/" + MQTT_CLIENT_ID + "/alive/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Sleeping binary sensor
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Sleeping";
+    doc["unique_id"] = "tamapetchi_sleeping";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{% if value_json.state == 'sleeping' %}true{% else %}false{% endif %}";
+    doc["payload_on"] = "true";
+    doc["payload_off"] = "false";
+    doc["icon"] = "mdi:sleep";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/binary_sensor/" + MQTT_CLIENT_ID + "/sleeping/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Mood sensor (numeric)
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Mood";
+    doc["unique_id"] = "tamapetchi_mood";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{{ value_json.mood }}";
+    doc["icon"] = "mdi:emoticon";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/sensor/" + MQTT_CLIENT_ID + "/mood/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Pet type select
+  {
+    StaticJsonDocument<1024> doc;
+    doc["name"] = "TamaPetchi Type";
+    doc["unique_id"] = "tamapetchi_type";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{{ value_json.type }}";
+    doc["command_topic"] = TOPIC_COMMAND;
+    doc["command_template"] = "{\"action\":\"set_type\",\"type\":\"{{ value }}\"}";
+    JsonArray opts = doc.createNestedArray("options");
+    opts.add("blob");
+    opts.add("cat");
+    opts.add("dog");
+    doc["icon"] = "mdi:shape";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/select/" + MQTT_CLIENT_ID + "/type/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Health alarm control panel (pet health as alarm state)
+  {
+    StaticJsonDocument<1024> doc;
+    doc["name"] = "TamaPetchi Health Alarm";
+    doc["unique_id"] = "tamapetchi_health_alarm";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{% if value_json.isAlive == false %}triggered{% elif value_json.health <= 10 %}armed_away{% elif value_json.health <= 30 %}armed_home{% else %}disarmed{% endif %}";
+    doc["command_topic"] = TOPIC_COMMAND;
+    doc["payload_disarm"] = "{\"action\":\"heal\"}";
+    doc["payload_arm_home"] = "{\"action\":\"sleep\"}";
+    doc["code_arm_required"] = false;
+    doc["code_disarm_required"] = false;
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/alarm_control_panel/" + MQTT_CLIENT_ID + "/health/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Energy sensor
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Energy";
+    doc["unique_id"] = "tamapetchi_energy";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{{ value_json.energy }}";
+    doc["unit_of_measurement"] = "%";
+    doc["icon"] = "mdi:lightning-bolt";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/sensor/" + MQTT_CLIENT_ID + "/energy/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  // Cleanliness sensor
+  {
+    StaticJsonDocument<512> doc;
+    doc["name"] = "TamaPetchi Cleanliness";
+    doc["unique_id"] = "tamapetchi_cleanliness";
+    doc["state_topic"] = TOPIC_STATE;
+    doc["value_template"] = "{{ value_json.cleanliness }}";
+    doc["unit_of_measurement"] = "%";
+    doc["icon"] = "mdi:sparkles";
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    String payload;
+    serializeJson(doc, payload);
+    String topic = String(HA_DISCOVERY_PREFIX) + "/sensor/" + MQTT_CLIENT_ID + "/cleanliness/config";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true);
+  }
+
+  Serial.println("[MQTT] HA auto-discovery published (Phase 16.2: 13 entities)");
 }
 
 // ============================================================
@@ -351,6 +531,7 @@ void mqttPublishState() {
   doc["isDying"] = state.pet.isDying;
   doc["isEvolving"] = state.pet.isEvolving;
   doc["name"] = state.pet.name;
+  doc["type"] = state.pet.type == BLOB ? "blob" : (state.pet.type == CAT ? "cat" : "dog");
 
   String payload;
   serializeJson(doc, payload);
@@ -436,5 +617,32 @@ void registerMQTTRoutes(WebServer &server) {
     }
     mqttPublishNotification("Test notification from TamaPetchi");
     server.send(200, "application/json", "{\"success\":true}");
+  });
+}
+
+// ============================================================
+// Phase 16.2: HA Config Endpoint
+// ============================================================
+void registerHARoutes(WebServer &server) {
+  server.on("/api/ha/config", HTTP_GET, [&server]() {
+    StaticJsonDocument<1024> doc;
+    doc["discovery_prefix"] = HA_DISCOVERY_PREFIX;
+    doc["topic_prefix"] = TOPIC_PREFIX;
+    doc["client_id"] = MQTT_CLIENT_ID;
+    doc["state_topic"] = TOPIC_STATE;
+    doc["command_topic"] = TOPIC_COMMAND;
+    doc["availability_topic"] = TOPIC_AVAILABILITY;
+
+    // Entity counts by type
+    JsonObject entities = doc.createNestedObject("entities");
+    entities["sensors"] = 9;    // state, hunger, happiness, health, battery, mood, energy, cleanliness
+    entities["binary_sensors"] = 2; // alive, sleeping
+    entities["buttons"] = 4;    // feed, play, clean, sleep, heal
+    entities["selects"] = 1;    // pet type
+    entities["alarm_panels"] = 1; // health alarm
+
+    String result;
+    serializeJson(doc, result);
+    server.send(200, "application/json", result);
   });
 }

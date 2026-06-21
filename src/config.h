@@ -160,6 +160,11 @@
 #define OTA_DELTA_MANIFEST_URL  ""
 
 // --- Phase 15.3: Backup & Restore ---
-#define BACKUP_VERSION    "1.5.0"
+#define BACKUP_VERSION    "1.6.0"
+
+// --- Phase 16.1: Pet AI ---
+// AI_UPDATE_INTERVAL: how often (ms) the AI engine recomputes modifiers
+#define AI_UPDATE_INTERVAL       120000UL  // 2 minutes
+#define AI_EVOLVE_INTERVAL       1200000UL // 20 minutes (personality evolution)
 
 #endif // CONFIG_H
