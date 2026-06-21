@@ -71,14 +71,23 @@ void handleExportJson();
 void handleGetAccessibility();
 void handleSetAccessibility();
 
-// Phase 12.5: Backup & Restore
+// Phase 12.5 / 15.3: Backup & Restore
 void handleGetBackup();
 void handlePostRestore();
+void handleVerifyBackup();
 
 // Phase 13.3: Community Features
 void handleGetGallery();
 void handleGetLeaderboard();
 void handleShareProfile();
 void handleImportProfile();
+
+// Phase 15.4: Advanced Achievement endpoints
+void handleGetCategoryProgress();
+void handleGetAchievementRewards();
+
+// Phase 15.6: Community revision — pet snapshots, comparison
+void handleGetPetSnapshot();
+void handleComparePets();
 
 #endif // WEBHANDLERS_H

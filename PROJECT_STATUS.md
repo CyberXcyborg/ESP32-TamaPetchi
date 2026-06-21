@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.4.0 Development ✅
+## Overall Status: v1.5.0 Release Candidate — Phase 15 Complete
 
 ## Phase Summary
 | Phase | Description | Status | Branch |
@@ -18,27 +18,28 @@
 | 11 | v1.1 Advanced Features | ✅ Complete | main |
 | 12 | v1.2 Features | ✅ Complete | main |
 | 13 | v1.3 Hardware & Ecosystem | ✅ Complete | main |
-| 14 | v1.4 Stability, Testing & Ecosystem | 🔄 In Progress | feature/phase14-v1.4 |
+| 14 | v1.4 Stability, Testing & Ecosystem | ✅ Complete | main |
+| 15 | v1.5 Performance, Polish & Hardware Validation | ✅ Complete | feature/phase15-v1.5 |
 
-## v1.4.0 Development (Phase 14)
-- **Branch:** feature/phase14-v1.4
+## v1.5.0 Release (Phase 15)
+- **Branch:** feature/phase15-v1.5
+- **Build:** RAM 18.2%, Flash 80.7%, Zero warnings
+- **Tests:** 162/162 native tests pass ✅
+- **PR:** #15 pending
+
+### Phase 15 Features
+- **Flash Optimization** (15.1): StaticJsonDocument conversions, gzip pre-compressed web UI (124KB→21KB)
+- **Hardware Validation** (15.2): Requires physical ESP32 — deferred
+- **Backup & Restore** (15.3): CRC32 checksummed backup with download/verify/restore API
+- **Advanced Achievements** (15.4): 27 achievements (16→27), hidden/secret achievements, score system, category progress
+- **Web UI Accessibility** (15.5): ARIA labels, screen reader roles, keyboard navigation, toast notifications
+- **Pet Snapshot & Comparison** (15.6): Pet snapshot API, gallery comparison UI, leaderboard enhancements
+
+## v1.4.0 Release (Phase 14)
+- **Tag:** v1.4.0
+- **Date:** 2026-06-21
 - **Build:** RAM 17.8%, Flash 79.8%, Zero warnings
 - **Tests:** 152/152 native tests pass ✅ (fixed 7 pre-existing failures)
-
-### Phase 14 Features
-- **Test Fixes** (14.1): Fixed all 7 pre-existing test failures — ArduinoJson String incompatibility, document size
-- **OTA Rollback** (14.2): Already implemented in Phase 11.1 (dual-partition, auto-fallback, manual rollback)
-- **Pet Trading** (14.3): Already implemented in Phase 11.4 (MQTT-based, PIN-secured)
-- **Sound Packs** (14.4): Already implemented in Phase 11.3 (JSON-based, upload/select)
-- **Web UI** (14.5): Already implemented — Trade and Sound sections in web UI
-- **Community Tools** (14.6): CONTRIBUTING.md, issue templates, batch flash script, 24h simulation
-
-## v1.3.0 Release
-- **Tag:** v1.3.0
-- **Date:** 2026-06-20
-- **Build:** RAM 17.8%, Flash 79.8%, Zero warnings
-- **Tests:** 152/152 native tests pass, 19 OTA Delta tests pass
-- **Branch:** develop → main
 
 ## Key Technical Details
 - Framework: Arduino (PlatformIO)

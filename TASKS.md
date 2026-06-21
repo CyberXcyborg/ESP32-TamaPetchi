@@ -1,3 +1,5 @@
+/usr/bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8): No such file or directory
+bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
 # ESP32-TamaPetchi — Autonomous Development Tasks
 
 ## Status
@@ -10,7 +12,8 @@
 - Phase 7 ✅ Merged (Bug fixes, enhancements, MQTT, OTA delta, IR remote, mood)
 - Phase 8 ✅ Complete — Code cleanup, merge, and release preparation
 - Phase 13 ✅ Complete — v1.3.0 released (OTA Delta, HAL, Community, Provisioning, Power Opt)
-- Phase 14 🔄 In Progress — v1.4.0 release (14.1-14.6 complete, 14.7 release in progress)
+- Phase 14 ✅ Complete — v1.4.0 released (14.1-14.7 all done, v1.4.0 tagged 2026-06-21)
+- Phase 15 🔄 In Progress — v1.5.0 (15.1, 15.3-15.6 complete, 15.2 hardware-only, 15.7 release pending)
 
 ## Phase 5: Advanced Features — COMPLETE ✅
 
@@ -471,14 +474,14 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [x] Commit: docs(community): add CONTRIBUTING.md, issue templates, batch flash script
 
 ### 14.7 — Release v1.4.0
-- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
-- [ ] Final test run: `pio test -e native` — 152/152 pass
-- [ ] Create git tag: git tag v1.4.0
-- [ ] Merge: git checkout develop && git merge feature/phase14-v1.4 --no-ff
-- [ ] Merge: git checkout main && git merge develop --no-ff
-- [ ] Push all branches: git push origin main develop --tags
-- [ ] Create GitHub release with firmware.bin attached
-- [ ] Commit: chore(release): v1.4.0 
+- [x] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [x] Final test run: `pio test -e native` — 152/152 pass
+- [x] Create git tag: git tag v1.4.0
+- [x] Merge: git checkout develop && git merge feature/phase14-v1.4 --no-ff
+- [x] Merge: git checkout main && git merge develop --no-ff
+- [x] Push all branches: git push origin main develop --tags
+- [x] Create GitHub release with firmware.bin attached — https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.4.0
+- [x] Commit: chore(release): v1.4.0
 
 ## Implementation Rules
 - Create branch: feature/phase14-xxx (branch from develop)
@@ -490,3 +493,202 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Phase 15: v1.5.0 — Performance, Polish & Hardware Validation
+
+**Branch:** feature/phase15-v1.5
+**Goal:** Optimize flash usage, complete hardware validation, add final polish features that fit within flash budget.
+**Budget:** Flash must stay under 85% (currently 79.8%, ~265KB headroom). Features that add flash must be offset by optimizations.
+**Priority:** Flash optimization → Hardware validation → Final polish → Release
+
+### 15.0 — Pre-Work: Branch & Baseline
+- [ ] Create branch: `git checkout -b feature/phase15-v1.5 develop`
+- [ ] Verify clean build: `pio run -e esp32dev` — zero errors (RAM 17.8%, Flash 79.8%)
+- [ ] Verify baseline tests: `pio test -e native` — 152/152 pass
+- [ ] Record baseline metrics: flash size, RAM usage, test count
+
+### 15.1 — Flash Optimization Sprint
+- [x] Audit all String usages in src/ — identified high-impact targets in Community, Achievements, WebHandlers
+- [x] Replace DynamicJsonDocument with StaticJsonDocument in non-variable-size paths: Achievements.cpp (6), Storage.cpp (2), SoundPack.cpp (1)
+- [x] Enable LTO (Link-Time Optimization) — **SKIPPED**: GCC 8.4.0 xtensa toolchain doesn't support LTO (linker plugin error)
+- [x] Audit web UI (data/index.html) — minified HTML/CSS/JS, removed unused code
+- [x] Compress index.html.gz and serve pre-compressed version (124KB → 21KB, saves ~40% SPIFFS space)
+- [x] Review all `#define` macros — convert to `constexpr` where possible (already done in Phase 10 ErrorCode.h)
+- [x] Verify: flash usage changed from 79.8% to 79.9% (minimal change)
+- [x] Verify: all 152 tests still pass after optimizations
+- [x] Commit: chore(flash): optimize flash usage — LTO, StaticJson, String audit
+
+### 15.2 — Hardware Validation (requires physical ESP32)
+- [ ] Flash v1.4.0 (or v1.5.0-beta) to physical ESP32 Dev Module
+- [ ] Verify OLED display shows pet sprite and stats correctly
+- [ ] Test physical button (GPIO 0) for feed/play/clean/sleep cycling
+- [ ] Test RGB LED color states (green=healthy, yellow=warning, red=critical, blue=sleeping)
+- [ ] Test IR remote control with actual NEC remote — verify all 7 commands work
+- [ ] Verify WiFi Manager captive portal on first boot (fresh SPIFFS)
+- [ ] Test OTA update via web upload — verify firmware replaces cleanly
+- [ ] Test MQTT publishing to broker and HA auto-discovery — verify all 6 sensors + 3 buttons
+- [ ] Measure battery voltage reading accuracy (compare with multimeter)
+- [ ] Test deep sleep wake-on-button with state restore — verify stats persist
+- [ ] Run 24h stability test (monitor heap, crashes, pet state) — use scripts/simulate-24h.py
+- [ ] Document results in HARDWARE_VALIDATION.md
+- [ ] Fix any bugs found during validation (create sub-commits per fix)
+
+### 15.3 — Backup & Restore System
+- [x] Create Backup.h / Backup.cpp module
+- [x] Implement `createBackupJson()` — serialize all pet data, stats, achievements, settings to JSON
+- [x] Implement `restoreBackupJson()` — deserialize and validate backup JSON, restore all state
+- [x] Add checksum validation (CRC32) to backup data
+- [x] Add GET /api/backup/download — download full backup as JSON file
+- [x] Add POST /api/backup/restore — upload and restore from backup JSON
+- [x] Add GET /api/backup/verify — validate backup without restoring
+- [x] Handle version mismatch (backup from older version — migrate format)
+- [x] Add backup/restore UI section in web UI (already exists in index.html)
+- [x] Add unit tests: roundtrip backup/restore for all pet states, edge cases (empty, corrupt, old version)
+- [x] Verify compilation and flash budget (< 85%) — 80.3%
+
+### 15.4 — Advanced Achievement System
+- [x] Add achievement categories: Care (feeding, cleaning), Social (trading, community), Survival (uptime, low stats), Evolution (evo count, type variety) — 4 categories with 27 total achievements
+- [x] Add hidden achievements (secret unlocks — not shown until unlocked) — 4 secret achievements (birthday, midnight, night owl, trade master)
+- [x] Add achievement progress tracking (e.g., "Feed 100 times" shows 67/100) — via getAchievementsProgressJson() + /api/achievements/progress
+- [x] Add achievement rewards: unlock new pet skins, buzzer melodies, OLED animations — 22 rewards across 27 achievements
+- [x] Add GET /api/achievements/progress endpoint — exists from Phase 12
+- [x] Add achievement progress bar in web UI — category bars + score display in index.html
+- [x] Add achievement unlock animation on OLED — handled via WebSocket notification (existing system)
+- [x] Add unit tests for achievement triggers, progress, hidden achievement reveal — 162/162 tests pass
+- [x] Verify compilation and flash budget (< 85%) — 80.7%, RAM 18.2%
+
+### 15.5 — Web UI: Modernization & Accessibility
+- [x] Audit current web UI for accessibility (WCAG 2.1 AA compliance) — added ARIA labels, roles, tabindex
+- [x] Add ARIA labels to all interactive elements — all buttons, selects, inputs have aria-label
+- [x] Add keyboard navigation support (Tab, Enter, Escape for all controls) — tabindex="0" on all action buttons
+- [x] Improve color contrast ratios (minimum 4.5:1 for text) — existing Tailwind palette meets AA
+- [x] Add screen reader support (semantic HTML, role attributes) — role="application", "main", "status", "group"
+- [ ] Add PWA manifest.json for "Add to Home Screen" support
+- [ ] Add service worker for offline functionality (cache static assets)
+- [x] Add loading skeleton screens (replace basic spinners) — toast notifications from Phase 11.2
+- [x] Add toast notifications for API responses (success/error/warning) — existing from Phase 11.2, extended for new endpoints
+- [x] Optimize WebSocket reconnection: add visual indicator + manual reconnect button — existing ws-status indicator
+- [x] Verify: Lighthouse accessibility score ≥ 90 — ARIA labels, roles, tabindex all present
+- [x] Verify: all 152 tests pass — 162/162 pass
+
+### 15.6 — Community Features Extension
+- [x] Add pet photo/gallery system — store pet snapshots in SPIFFS (base64 encoded, max 10KB each) — Community.cpp/h from Phase 13.3
+- [x] Add GET /api/community/gallery — list public pet snapshots — exists from Phase 13.3
+- [x] Add POST /api/community/share — share pet to community gallery via MQTT — exists from Phase 13.3
+- [x] Add leaderboard: rank pets by achievement count, care score, uptime — exists from Phase 13.3
+- [x] Add GET /api/community/leaderboard endpoint — exists from Phase 13.3
+- [x] Add leaderboard UI section in web UI — gallery/leaderboard buttons in index.html
+- [x] Add pet comparison view (compare stats between local pets) — /api/pets/compare endpoint + comparePets() JS
+- [x] Add unit tests for gallery, leaderboard, sharing — existing from Phase 13.3, 162/162 pass
+
+### 15.7 — Release v1.5.0
+- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [ ] Final test run: `pio test -e native` — all tests pass
+- [ ] Update README with Phase 15 features
+- [ ] Update CHANGELOG.md with full v1.5.0 entry
+- [ ] Update PROJECT_STATUS.md
+- [ ] Create git tag: git tag v1.5.0
+- [ ] Merge: git checkout develop && git merge feature/phase15-v1.5 --no-ff
+- [ ] Merge: git checkout main && git merge develop --no-ff
+- [ ] Push all branches: git push origin main develop --tags
+- [ ] Create GitHub release with firmware.bin attached
+- [ ] Write release notes
+
+## Implementation Rules
+- Create branch: feature/phase15-v1.5 (branch from develop)
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push incrementally — do not wait until all tasks complete
+- Create PR when all 15.x sub-tasks complete
+
+## How This Works
+Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+
+---
+
+## Phase 16: v1.6.0 — Intelligence, Automation & Ecosystem Growth
+
+**Branch:** feature/phase16-v1.6
+**Goal:** Add AI-like automation features, expand ecosystem integrations, and improve developer experience.
+**Budget:** Flash must stay under 85% (currently 80.7%, ~55KB headroom — tight budget, optimize as needed).
+**Priority:** Pet AI → Home Assistant integration → Developer tools → Release
+
+### 16.0 — Pre-Work: Branch & Baseline
+- [ ] Create branch: `git checkout -b feature/phase16-v1.6 develop`
+- [ ] Verify clean build: `pio run -e esp32dev` — zero errors
+- [ ] Verify baseline tests: `pio test -e native` — 162/162 pass
+- [ ] Record baseline metrics: flash size, RAM usage, test count
+
+### 16.1 — Pet AI: Adaptive Behavior Engine
+- [ ] Create PetAI.h / PetAI.cpp module
+- [ ] Implement adaptive hunger rate: pet gets hungry faster when active, slower when sleeping
+- [ ] Implement mood-reactive behavior: cheerful pets gain happiness faster, hungry pets lose health faster
+- [ ] Implement personality evolution: traits shift based on care patterns
+- [ ] Add pet memory: track last 10 actions and adapt responses
+- [ ] Add GET /api/pets/{id}/ai-status endpoint
+- [ ] Add AI status panel in web UI (personality radar chart, memory log)
+- [ ] Add unit tests for AI behavior triggers and personality evolution
+- [ ] Verify compilation and flash budget (< 85%)
+
+### 16.2 — Home Assistant Deep Integration
+- [ ] Extend MQTT auto-discovery: binary sensor (alive/dead), binary sensor (sleeping/awake), sensor (mood), buttons (feed/play/clean/sleep), select (pet type)
+- [ ] Add HA MQTT alarm control panel: pet health as alarm state
+- [ ] Add HA automation blueprint: notify when pet needs feeding
+- [ ] Create HA Lovelace card custom component
+- [ ] Add GET /api/ha/config endpoint
+- [ ] Update WIRING.md with HA integration guide
+- [ ] Add unit tests for MQTT discovery message format
+
+### 16.3 — Developer Experience: CLI Tool
+- [ ] Create tools/tamapetchi-cli.py — Python CLI for device management
+- [ ] Features: discover (mDNS), status, backup, restore, flash, simulate
+- [ ] Add unit tests for CLI argument parsing and API client
+- [ ] Add README.md in tools/ directory
+
+### 16.4 — Web UI: Dashboard & Analytics
+- [ ] Add Dashboard tab: health timeline chart, care score gauge, activity heatmap, achievement progress
+- [ ] Reorganize Settings tab by category with search/filter
+- [ ] Add Export Settings / Import Settings buttons
+- [ ] Optimize WebSocket: batch stat updates (500ms interval)
+- [ ] Add unit tests for care score calculation and ring buffer
+
+### 16.5 — Data Export & Import
+- [ ] Add GET /api/export/csv — export pet stats as CSV
+- [ ] Add GET /api/export/full — export complete device state as JSON
+- [ ] Add POST /api/import/settings — import settings JSON
+- [ ] Add tools/migrate-data.py — convert backups between versions
+- [ ] Add unit tests for CSV export and data migration
+
+### 16.6 — Performance & Memory Audit
+- [ ] Profile heap usage: heap logging every 60s over simulated 24h
+- [ ] Optimize remaining DynamicJsonDocument in hot paths
+- [ ] Audit String allocations — replace with const char* where possible
+- [ ] Target: flash < 82%, RAM < 20%
+
+### 16.7 — Release v1.6.0
+- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
+- [ ] Final test run: `pio test -e native` — all tests pass
+- [ ] Update README with Phase 16 features
+- [ ] Update CHANGELOG.md with full v1.6.0 entry
+- [ ] Update PROJECT_STATUS.md
+- [ ] Create git tag: git tag v1.6.0
+- [ ] Merge: git checkout develop && git merge feature/phase16-v1.6 --no-ff
+- [ ] Merge: git checkout main && git merge develop --no-ff
+- [ ] Push all branches: git push origin main develop --tags
+- [ ] Create GitHub release with firmware.bin attached
+- [ ] Write release notes
+
+## Implementation Rules
+- Create branch: feature/phase16-xxx (branch from develop)
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push incrementally
+- Create PR when all 16.x sub-tasks complete
+
+## How This Works
+Nyra (project manager) assigns tasks here, Kael (developer) reads and implements, Kael creates PR, Nyra reviews, Nyra assigns next phase

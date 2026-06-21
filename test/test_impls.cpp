@@ -2,7 +2,9 @@
 // Strips hardware dependencies (Serial, tone, analogRead, etc.) for native unit testing
 #include "Pet.h"
 #include "Achievements.h"
+#include "Stats.h"
 #include "config.h"
+#include "ErrorCode.h"
 #include <ArduinoJson.h>
 
 // --- Helpers ---
@@ -860,25 +862,39 @@ void setAccessibilityFromJson(Pet &pet, const String &json) {
 
 const AchievementDef achievementDefs[ACHIEVEMENT_COUNT] = {
   // Care
-  { ACH_FED_10X,        "Feeding Fledgling",    CAT_CARE,       10,    "skin_green" },
-  { ACH_FED_100X,       "Master Feeder",        CAT_CARE,       100,   "skin_gold" },
-  { ACH_CLEANED_10X,    "Sparkle Clean",        CAT_CARE,       10,    "acc_brush" },
-  { ACH_HEALED_5X,      "Pet Medic",            CAT_CARE,       5,     "acc_medkit" },
-  { ACH_PLAYED_10X,     "Playful Pal",          CAT_CARE,       10,    "acc_ball" },
-  { ACH_PLAYED_100X,    "Fun Master",           CAT_CARE,       100,   "skin_rainbow" },
-  { ACH_NAMED_PET,      "Name Bearer",          CAT_CARE,       1,     "acc_nameplate" },
-  { ACH_SCHEDULED_FEED, "Auto-Caregiver",       CAT_CARE,       1,     "acc_clock" },
+  { ACH_FED_10X,        "Feeding Fledgling",    CAT_CARE,       10,    "skin_green", false },
+  { ACH_FED_100X,       "Master Feeder",        CAT_CARE,       100,   "skin_gold", false },
+  { ACH_CLEANED_10X,    "Sparkle Clean",        CAT_CARE,       10,    "acc_brush", false },
+  { ACH_HEALED_5X,      "Pet Medic",            CAT_CARE,       5,     "acc_medkit", false },
+  { ACH_PLAYED_10X,     "Playful Pal",          CAT_CARE,       10,    "acc_ball", false },
+  { ACH_PLAYED_100X,    "Fun Master",           CAT_CARE,       100,   "skin_rainbow", false },
+  { ACH_NAMED_PET,      "Name Bearer",          CAT_CARE,       1,     "acc_nameplate", false },
+  { ACH_SCHEDULED_FEED, "Auto-Caregiver",       CAT_CARE,       1,     "acc_clock", false },
   // Evolution
-  { ACH_REACHED_CHILD,  "Growing Up",           CAT_EVOLUTION,  1,     NULL },
-  { ACH_REACHED_ADULT,  "Coming of Age",        CAT_EVOLUTION,  1,     "acc_crown" },
-  { ACH_REACHED_ELDER,  "Elder Wisdom",         CAT_EVOLUTION,  1,     "skin_elder" },
-  { ACH_FULLY_EVOLVED,  "Full Evolution",       CAT_EVOLUTION,  1,     "acc_wings" },
+  { ACH_REACHED_CHILD,  "Growing Up",           CAT_EVOLUTION,  1,     NULL, false },
+  { ACH_REACHED_ADULT,  "Coming of Age",        CAT_EVOLUTION,  1,     "acc_crown", false },
+  { ACH_REACHED_ELDER,  "Elder Wisdom",         CAT_EVOLUTION,  1,     "skin_elder", false },
+  { ACH_FULLY_EVOLVED,  "Full Evolution",       CAT_EVOLUTION,  1,     "acc_wings", false },
   // Social
-  { ACH_TRADE_COMPLETED,"Trading Post",         CAT_SOCIAL,     1,     NULL },
-  { ACH_TRADE_RECEIVED, "Welcome Gift",         CAT_SOCIAL,     1,     NULL },
+  { ACH_TRADE_COMPLETED,"Trading Post",         CAT_SOCIAL,     1,     NULL, false },
+  { ACH_TRADE_RECEIVED, "Welcome Gift",         CAT_SOCIAL,     1,     NULL, false },
   // Exploration
-  { ACH_GAME_WON_1X,    "Game Winner",          CAT_EXPLORATION,1,     "acc_trophy" },
-  { ACH_GAME_WON_10X,   "Game Champion",        CAT_EXPLORATION,10,    "skin_champion" },
+  { ACH_GAME_WON_1X,    "Game Winner",          CAT_EXPLORATION,1,     "acc_trophy", false },
+  { ACH_GAME_WON_10X,   "Game Champion",        CAT_EXPLORATION,10,    "skin_champion", false },
+  { ACH_ALL_WEATHERS,   "Weather Watcher",      CAT_EXPLORATION,5,     "acc_compass", false },
+  { ACH_SURVIVED_24H,   "Day Survivor",         CAT_EXPLORATION,1,     "acc_sun", false },
+  { ACH_SURVIVED_7D,    "Week Warrior",         CAT_EXPLORATION,1,     "acc_medal", false },
+  // Survival (Phase 15.4)
+  { ACH_LOW_STATS_SURVIVAL, "Against All Odds", CAT_EXPLORATION,1,     "acc_phoenix", false },
+  { ACH_PERFECT_HEALTH_24H, "Iron Constitution",CAT_EXPLORATION,1,     "acc_shield", false },
+  { ACH_CLEAN_STREAK_7D, "Sparkle Week",       CAT_CARE,       7,     "acc_sparkle", false },
+  // Hidden/Secret Achievements (Phase 15.4)
+  { ACH_SECRET_BIRTHDAY,     "Birthday Surprise",  CAT_SOCIAL,     1,     "skin_party", true },
+  { ACH_SECRET_MIDNIGHT,     "Midnight Snacker",   CAT_SOCIAL,     1,     "acc_moon", true },
+  { ACH_SECRET_NIGHT_OWL,    "Night Owl",          CAT_SOCIAL,     10,    "acc_owl", true },
+  { ACH_SECRET_TRADE_MASTER, "Trade Master",       CAT_SOCIAL,     1,     "acc_globe", true },
+  // Bonus (Phase 15.4) — 27th achievement: Deep sleep 5x
+  { "deep_sleep_5x",     "Deep Sleeper",         CAT_CARE,       5,     "acc_pillow", false },
 };
 
 AchievementState achievementStates[ACHIEVEMENT_COUNT];
@@ -1026,4 +1042,236 @@ void checkAchievements(Pet &pet) {
   }
   if (pet.age >= 1440) recordAchievementProgress(ACH_SURVIVED_24H, 1);
   if (pet.age >= 10080) recordAchievementProgress(ACH_SURVIVED_7D, 1);
+}
+
+// ============================================================
+// Phase 15.3: Backup & Restore — Test-safe implementations
+// ============================================================
+// These mirror the production Backup.cpp logic without SPIFFS dependency
+
+static unsigned long crc32_table_bak[256];
+static bool crc32_table_bak_initialized = false;
+
+static void init_crc32_table_bak() {
+  if (crc32_table_bak_initialized) return;
+  for (unsigned long i = 0; i < 256; i++) {
+    unsigned long c = i;
+    for (int j = 0; j < 8; j++) {
+      if (c & 1)
+        c = 0xEDB88320UL ^ (c >> 1);
+      else
+        c >>= 1;
+    }
+    crc32_table_bak[i] = c;
+  }
+  crc32_table_bak_initialized = true;
+}
+
+static unsigned long crc32_bak(const char *data, size_t len) {
+  init_crc32_table_bak();
+  unsigned long crc = 0xFFFFFFFFUL;
+  for (size_t i = 0; i < len; i++) {
+    crc = crc32_table_bak[(crc ^ (unsigned char)data[i]) & 0xFF] ^ (crc >> 8);
+  }
+  return crc ^ 0xFFFFFFFFUL;
+}
+
+// Test-global stats (simulates APP_STATE.stats)
+static GameStats testStats = {0,0,0,0,0,0,0,0,0,0};
+
+unsigned long computeBackupChecksum(const Pet &pet) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d",
+    pet.name.c_str(),
+    pet.hunger, pet.happiness, pet.health, pet.energy, pet.cleanliness,
+    pet.age, pet.feedCount, pet.playCount, pet.generation, pet.stage);
+  return crc32_bak(buf, strlen(buf));
+}
+
+String createBackupJson(const Pet &pet) {
+  DynamicJsonDocument jsonDoc(8192);
+  jsonDoc["version"] = BACKUP_VERSION;
+  jsonDoc["timestamp"] = millis();
+
+  JsonObject petObj = jsonDoc.createNestedObject("pet");
+  petObj["name"] = pet.name.c_str();
+  petObj["type"] = (int)pet.type;
+  petObj["stage"] = (int)pet.stage;
+  petObj["generation"] = pet.generation;
+  petObj["birthDeviceId"] = pet.birthDeviceId.c_str();
+  petObj["hunger"] = pet.hunger;
+  petObj["happiness"] = pet.happiness;
+  petObj["health"] = pet.health;
+  petObj["energy"] = pet.energy;
+  petObj["cleanliness"] = pet.cleanliness;
+  petObj["age"] = pet.age;
+  petObj["isAlive"] = pet.isAlive;
+  petObj["state"] = pet.state.c_str();
+  petObj["isNight"] = pet.isNight;
+  petObj["virtualMinutes"] = pet.virtualMinutes;
+  petObj["soundEnabled"] = pet.soundEnabled;
+  petObj["feedCount"] = pet.feedCount;
+  petObj["playCount"] = pet.playCount;
+  petObj["timesCleaned"] = pet.timesCleaned;
+  petObj["timesHealed"] = pet.timesHealed;
+  petObj["hasBeenNamed"] = pet.hasBeenNamed;
+  petObj["elderAchieved"] = pet.elderAchieved;
+  petObj["highContrastMode"] = pet.highContrastMode;
+  petObj["fontSize"] = pet.fontSize;
+  petObj["reducedMotion"] = pet.reducedMotion;
+  petObj["soundVolume"] = pet.soundVolume;
+  petObj["scheduledFeedEnabled"] = pet.scheduledFeedEnabled;
+  petObj["scheduledFeedInterval"] = pet.scheduledFeedInterval;
+  petObj["scheduledFeedAmount"] = pet.scheduledFeedAmount;
+  petObj["mood"] = pet.mood;
+  petObj["personalityCheerful"] = pet.personalityCheerful;
+  petObj["personalityEnergetic"] = pet.personalityEnergetic;
+  petObj["personalityHungry"] = pet.personalityHungry;
+
+  JsonArray achArr = jsonDoc.createNestedArray("achievements");
+  for (int i = 0; i < ACHIEVEMENT_COUNT; i++) {
+    if (achievementStates[i].progress > 0 || achievementStates[i].unlocked) {
+      JsonObject obj = achArr.createNestedObject();
+      obj["id"] = achievementDefs[i].id;
+      obj["progress"] = achievementStates[i].progress;
+      obj["unlocked"] = achievementStates[i].unlocked;
+    }
+  }
+
+  JsonObject statsObj = jsonDoc.createNestedObject("stats");
+  statsObj["playTime"] = testStats.totalPlayTimeSec;
+  statsObj["feedCount"] = testStats.totalFeeds;
+  statsObj["playCount"] = testStats.totalPlays;
+  statsObj["sleepCount"] = testStats.totalSleeps;
+  statsObj["cleanCount"] = testStats.totalCleans;
+  statsObj["healCount"] = testStats.totalHeals;
+  statsObj["deathCount"] = testStats.deaths;
+  statsObj["evolutionCount"] = testStats.evolutions;
+
+  JsonObject settingsObj = jsonDoc.createNestedObject("settings");
+  settingsObj["soundEnabled"] = pet.soundEnabled;
+  settingsObj["language"] = "en";
+
+  jsonDoc["checksum"] = computeBackupChecksum(pet);
+
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
+}
+
+int verifyBackupJson(const String &json) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return ERR_INT_JSON_PARSE_FAIL;
+
+  const char *ver = jsonDoc["version"];
+  if (!ver) return ERR_BACKUP_VERSION_MISSING;
+
+  if (!jsonDoc["pet"]) return ERR_BACKUP_NO_PET;
+
+  unsigned long storedChecksum = jsonDoc["checksum"] | 0UL;
+  if (storedChecksum == 0) return ERR_BACKUP_NO_CHECKSUM;
+
+  Pet tempPet;
+  initPet(tempPet);
+  JsonObject petObj = jsonDoc["pet"];
+  tempPet.name = (const char*)(petObj["name"] | "");
+  tempPet.hunger = (int)(petObj["hunger"] | 50);
+  tempPet.happiness = (int)(petObj["happiness"] | 50);
+  tempPet.health = (int)(petObj["health"] | 50);
+  tempPet.energy = (int)(petObj["energy"] | 50);
+  tempPet.cleanliness = (int)(petObj["cleanliness"] | 50);
+  tempPet.age = (int)(petObj["age"] | 0);
+  tempPet.feedCount = (int)(petObj["feedCount"] | 0);
+  tempPet.playCount = (int)(petObj["playCount"] | 0);
+  tempPet.generation = (int)(petObj["generation"] | 1);
+  tempPet.stage = (PetStage)(int)(petObj["stage"] | 0);
+
+  unsigned long computedChecksum = computeBackupChecksum(tempPet);
+  if (computedChecksum != storedChecksum) return ERR_BACKUP_CHECKSUM_MISMATCH;
+
+  return ERR_OK;
+}
+
+int restoreBackupJson(const String &json, Pet &pet) {
+  int verifyResult = verifyBackupJson(json);
+  if (verifyResult != ERR_OK) return verifyResult;
+
+  // Verify already parsed, skip re-parsing for restore
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return ERR_INT_JSON_PARSE_FAIL;
+
+  JsonObject petObj = jsonDoc["pet"];
+  if (petObj) {
+    String name = (const char*)(petObj["name"] | "");
+    if (name.length() > 0 && name.length() <= 16) {
+      pet.name = name;
+      pet.hasBeenNamed = true;
+    }
+    pet.type = (PetType)(int)(petObj["type"] | 0);
+    pet.stage = (PetStage)(int)(petObj["stage"] | 0);
+    pet.generation = (int)(petObj["generation"] | 1);
+    pet.birthDeviceId = (const char*)(petObj["birthDeviceId"] | "");
+    pet.hunger = constrain((int)(petObj["hunger"] | 50), STAT_MIN, STAT_MAX);
+    pet.happiness = constrain((int)(petObj["happiness"] | 50), STAT_MIN, STAT_MAX);
+    pet.health = constrain((int)(petObj["health"] | 50), STAT_MIN, STAT_MAX);
+    pet.energy = constrain((int)(petObj["energy"] | 50), STAT_MIN, STAT_MAX);
+    pet.cleanliness = constrain((int)(petObj["cleanliness"] | 50), STAT_MIN, STAT_MAX);
+    pet.age = (int)(petObj["age"] | 0);
+    pet.isAlive = (bool)(petObj["isAlive"] | true);
+    pet.isNight = (bool)(petObj["isNight"] | false);
+    pet.virtualMinutes = (int)(petObj["virtualMinutes"] | 0);
+    pet.soundEnabled = (bool)(petObj["soundEnabled"] | true);
+    pet.feedCount = constrain((int)(petObj["feedCount"] | 0), 0, 99999);
+    pet.playCount = constrain((int)(petObj["playCount"] | 0), 0, 99999);
+    pet.timesCleaned = (int)(petObj["timesCleaned"] | 0);
+    pet.timesHealed = (int)(petObj["timesHealed"] | 0);
+    pet.hasBeenNamed = (bool)(petObj["hasBeenNamed"] | false);
+    pet.elderAchieved = (bool)(petObj["elderAchieved"] | false);
+    pet.highContrastMode = (bool)(petObj["highContrastMode"] | false);
+    pet.fontSize = constrain((int)(petObj["fontSize"] | 1), 0, 2);
+    pet.reducedMotion = (bool)(petObj["reducedMotion"] | false);
+    pet.soundVolume = constrain((int)(petObj["soundVolume"] | 80), 0, 100);
+    pet.scheduledFeedEnabled = (bool)(petObj["scheduledFeedEnabled"] | false);
+    pet.scheduledFeedInterval = constrain((int)(petObj["scheduledFeedInterval"] | 4), 1, 24);
+    pet.scheduledFeedAmount = constrain((int)(petObj["scheduledFeedAmount"] | 10), 5, 50);
+    pet.mood = constrain((int)(petObj["mood"] | 3), 0, 6);
+    pet.personalityCheerful = constrain((int)(petObj["personalityCheerful"] | 50), 0, 100);
+    pet.personalityEnergetic = constrain((int)(petObj["personalityEnergetic"] | 50), 0, 100);
+    pet.personalityHungry = constrain((int)(petObj["personalityHungry"] | 50), 0, 100);
+  }
+
+  JsonArray achArr = jsonDoc["achievements"];
+  if (achArr) {
+    for (JsonObject obj : achArr) {
+      const char *id = obj["id"];
+      int idx = findAchievementIndex(id);
+      if (idx >= 0) {
+        achievementStates[idx].progress = constrain((int)(obj["progress"] | 0), 0, 99999);
+        achievementStates[idx].unlocked = (bool)(obj["unlocked"] | false);
+        achievementStates[idx].tier = calculateTier(achievementStates[idx].progress, achievementDefs[idx].target);
+      }
+    }
+  }
+
+  return ERR_OK;
+}
+
+String getBackupVersion(const String &json) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return "";
+  const char *ver = jsonDoc["version"];
+  return ver ? String(ver) : "";
+}
+
+String migrateBackupJson(const String &json, const String &fromVersion) {
+  DynamicJsonDocument jsonDoc(8192);
+  DeserializationError err = deserializeJson(jsonDoc, json.c_str());
+  if (err) return "";
+  jsonDoc["version"] = BACKUP_VERSION;
+  String result;
+  serializeJson(jsonDoc, result);
+  return result;
 }

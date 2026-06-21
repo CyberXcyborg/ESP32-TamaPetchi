@@ -48,7 +48,7 @@ void test_record_progress_updates_tier(void);
 void test_record_progress_ignores_invalid_id(void);
 void test_record_progress_ignores_already_unlocked(void);
 void test_record_progress_sets_notified_false_on_new_tier(void);
-void test_achievement_count_is_16(void);
+void test_achievement_count_is_27(void);
 void test_achievement_have_valid_targets(void);
 void test_achievement_categories_valid(void);
 void test_achievements_progress_json_format(void);
@@ -107,20 +107,30 @@ void test_setAccessibilityFromJson_ignores_invalid_json(void);
 void test_setAccessibilityFromJson_full_settings(void);
 void test_setAccessibilityFromJson_partial_settings(void);
 
-// Forward declarations for Phase 12.5: Backup & Restore tests (test_backup.cpp)
+// Forward declarations for Phase 12.5 / 15.3: Backup & Restore tests (test_backup.cpp)
 void test_backup_json_contains_version(void);
 void test_backup_json_contains_pet_object(void);
 void test_backup_json_contains_checksum(void);
 void test_backup_json_contains_timestamp(void);
 void test_backup_json_contains_achievements_array(void);
+void test_backup_json_contains_stats_object(void);
+void test_backup_json_contains_settings_object(void);
+void test_backup_json_contains_core_stats(void);
 void test_backup_restore_roundtrip_pet_name(void);
 void test_backup_restore_roundtrip_accessibility(void);
 void test_backup_restore_roundtrip_achievements(void);
+void test_backup_restore_roundtrip_core_stats(void);
 void test_backup_checksum_changes_with_stats(void);
 void test_backup_checksum_same_for_identical_pets(void);
 void test_backup_empty_name(void);
 void test_backup_no_achievements_unlocked(void);
 void test_backup_generation_preserved(void);
+void test_backup_verify_valid_backup(void);
+void test_backup_verify_invalid_json(void);
+void test_backup_verify_missing_pet(void);
+void test_backup_verify_checksum_mismatch(void);
+void test_backup_restore_roundtrip_full_pet(void);
+void test_backup_version_string(void);
 
 void setUp(void) {
   // Called before each test
@@ -674,7 +684,7 @@ int run_pet_statemachine_tests() {
   RUN_TEST(test_record_progress_ignores_invalid_id);
   RUN_TEST(test_record_progress_ignores_already_unlocked);
   RUN_TEST(test_record_progress_sets_notified_false_on_new_tier);
-  RUN_TEST(test_achievement_count_is_16);
+  RUN_TEST(test_achievement_count_is_27);
   RUN_TEST(test_achievement_have_valid_targets);
   RUN_TEST(test_achievement_categories_valid);
   RUN_TEST(test_achievements_progress_json_format);
@@ -733,20 +743,30 @@ int run_pet_statemachine_tests() {
   RUN_TEST(test_setAccessibilityFromJson_full_settings);
   RUN_TEST(test_setAccessibilityFromJson_partial_settings);
 
-  // Phase 12.5: Backup & Restore tests (defined in test_backup.cpp)
+  // Phase 12.5 / 15.3: Backup & Restore tests (defined in test_backup.cpp)
   RUN_TEST(test_backup_json_contains_version);
   RUN_TEST(test_backup_json_contains_pet_object);
   RUN_TEST(test_backup_json_contains_checksum);
   RUN_TEST(test_backup_json_contains_timestamp);
   RUN_TEST(test_backup_json_contains_achievements_array);
+  RUN_TEST(test_backup_json_contains_stats_object);
+  RUN_TEST(test_backup_json_contains_settings_object);
+  RUN_TEST(test_backup_json_contains_core_stats);
   RUN_TEST(test_backup_restore_roundtrip_pet_name);
   RUN_TEST(test_backup_restore_roundtrip_accessibility);
   RUN_TEST(test_backup_restore_roundtrip_achievements);
+  RUN_TEST(test_backup_restore_roundtrip_core_stats);
   RUN_TEST(test_backup_checksum_changes_with_stats);
   RUN_TEST(test_backup_checksum_same_for_identical_pets);
   RUN_TEST(test_backup_empty_name);
   RUN_TEST(test_backup_no_achievements_unlocked);
   RUN_TEST(test_backup_generation_preserved);
+  RUN_TEST(test_backup_verify_valid_backup);
+  RUN_TEST(test_backup_verify_invalid_json);
+  RUN_TEST(test_backup_verify_missing_pet);
+  RUN_TEST(test_backup_verify_checksum_mismatch);
+  RUN_TEST(test_backup_restore_roundtrip_full_pet);
+  RUN_TEST(test_backup_version_string);
 
   UNITY_END();
   return 0;

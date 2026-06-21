@@ -170,7 +170,7 @@ String getSoundPackListJson() {
   SoundPackInfo packs[MAX_SOUNDPACKS];
   int count = getSoundPackList(packs, MAX_SOUNDPACKS);
 
-  DynamicJsonDocument doc(1024);
+  StaticJsonDocument<512> doc;
   JsonArray arr = doc.createNestedArray("packs");
 
   for (int i = 0; i < count; i++) {
