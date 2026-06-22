@@ -2,9 +2,15 @@
 
 ## Status
 - Phases 1-19 ✅ Complete — v2.0.0-alpha.1 released 2026-06-22
-- Current branch: develop
+- Phase 20 🔄 In Progress — Graphics & Input (v2.0 alpha.2)
+  - 20.1 ✅ Color Sprite System
+  - 20.2 ✅ Animation Engine
+  - 20.3 ✅ LVGL UI Framework
+  - 20.4 ⬜ Migrate v1.x Screens to LVGL
+  - 20.5 ⬜ Phase 20 Verification & Integration
+- Current branch: feature/phase20-graphics-input
 - Build: RAM ~26% estimated, Flash ~48% estimated, Zero warnings (code analysis)
-- Tests: 162/162 native tests pass ✅
+- Tests: 205/205 native tests pass ✅
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -215,3 +221,165 @@
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+---
+
+## Phase 20: v2.0 Graphics & Input — Sprite System, Animations, UI Framework
+
+**Branch:** feature/phase20-graphics-input
+**Goal:** Implement the v2.0 graphics pipeline: color sprite system, animation engine, LVGL UI framework, and migrate all v1.x screens to LVGL. This is Phase B from V2_ROADMAP.md (Weeks 4–6).
+**Reference:** V2_ROADMAP.md §6 Phase B, §3.4 Display Architecture, §3.5 Sprite System
+**Priority:** Sprite format → Animation engine → UI framework → Screen migration
+
+### 20.1 — Color Sprite System
+- [x] Design sprite file format for v2.0
+  - 4-bit palette (16 colors) per sprite, RLE compression for runs of same color
+  - Header: width, height, frame_count, palette[16], frame_offsets[]
+  - Target: ~8KB per animation set (64×64, 8 frames)
+  - Create sprite format spec in docs/SPRITE_FORMAT.md
+- [x] Create sprite conversion tool (Python CLI)
+  - Input: PNG with ≤16 colors → output: .spr binary file
+  - Auto-quantize PNGs with >16 colors using median-cut algorithm
+  - Validate output: decode and compare pixel-by-pixel
+  - Add to tools/png2spr.py
+- [x] Create initial sprite assets
+  - Baby pet: idle (8 frames), eat (6), sleep (4), happy (6) = 24 frames
+  - Child pet: idle (8), eat (6), play (8), sleep (4), sick (4) = 30 frames
+  - Adult pet: idle (8), eat (6), play (8), sleep (4), sick (4), evolve (12) = 42 frames
+  - Total: 96 frames × 64×64 × 4-bit = ~192KB in LittleFS
+- [x] Implement SpriteLoader (SpriteLoader.h / SpriteLoader.cpp)
+  - Load .spr files from LittleFS into PSRAM
+  - Cache decoded frame in PSRAM (64×64×2 bytes = 8KB per frame, 16bpp for LVGL)
+  - LRU cache: max 8 frames (~64KB PSRAM), evict oldest on overflow
+  - Public API: `SpriteLoader::load(const char* path)`, `getFrame(uint8_t frameIndex)`, `getDecodedFrame(uint8_t frameIndex, uint16_t* buffer, size_t bufferSize)`
+  - Handle errors: file not found, corrupt header, OOM — return nullptr with error logging
+- [x] Implement LVGL custom image decoder for .spr files
+  - Register with `lv_img_decoder_set_open_cb`, `lv_img_decoder_set_read_cb`, `lv_img_decoder_set_close_cb`
+  - Decode on-the-fly: read compressed data from LittleFS, decompress to PSRAM buffer
+  - Support lv_img_set_src(S:/sprites/baby_idle.spr#0) syntax (#frame_index)
+- [x] Write unit tests for SpriteLoader
+  - Test: load valid .spr file, verify frame dimensions and pixel data
+  - Test: load corrupt file, verify graceful error handling
+  - Test: LRU cache eviction (load 9 different frames, verify first is evicted)
+  - Test: load non-existent file, verify nullptr return
+  - Target: +12 tests (total: 174)
+
+### 20.2 — Animation Engine
+- [x] Implement AnimationPlayer (AnimationPlayer.h / AnimationPlayer.cpp)
+  - Load animation set (array of frame indices + timing per frame)
+  - Play/pause/stop/loop controls
+  - Frame callback: `std::function<void(uint8_t frameIndex, uint16_t* pixelData, size_t size)>`
+  - Timing: configurable FPS per animation (default 12 FPS for idle, 16 FPS for actions)
+  - Non-blocking: uses FreeRTOS timer or lv_timer, never blocks calling task
+  - Memory: holds current frame decoded + next frame pre-decoded (double-decode buffer)
+- [x] Define animation sets for all pet stages
+  - Baby: idle_loop, eat_once, sleep_loop, happy_once
+  - Child: idle_loop, eat_once, play_loop, sleep_loop, sick_loop
+  - Adult: idle_loop, eat_once, play_loop, sleep_loop, sick_loop, evolve_once
+  - Elder: idle_loop, eat_once, play_loop, sleep_loop, sick_loop
+  - Store as const data in animations.h (frame index arrays + timing)
+- [x] Integrate AnimationPlayer with LVGL
+  - Create lv_obj_t* for pet image, update img src on each frame tick
+  - Use lv_timer_create at animation FPS interval
+  - Smooth transitions: cross-fade between animations (200ms blend in PSRAM)
+  - Handle animation completion callback (for once animations → return to idle)
+- [x] Implement animation state machine
+  - States: IDLE → ACTION → IDLE (for eat, play, happy, evolve)
+  - States: IDLE → SLEEP (loop until woken)
+  - States: ANY → SICK (override, loop until cured)
+  - Transitions triggered by: user input, pet stat thresholds, game events
+  - Prevent invalid transitions (e.g., can't eat while sleeping)
+- [x] Write unit tests for AnimationPlayer
+  - Test: play animation, verify frame callback fires correct number of times
+  - Test: pause mid-animation, resume, verify correct frame continues
+  - Test: loop mode plays N loops then stops
+  - Test: animation completion callback fires for once animations
+  - Test: state machine rejects invalid transitions
+  - Target: +10 tests (total: 184)
+
+### 20.3 — LVGL UI Framework
+- [x] Design UI screen architecture
+  - Screen manager: push/pop/switch screens (stack-based navigation)
+  - Base screen class: `Screen(lv_obj_t* parent)` with `onEnter()`, `onExit()`, `onUpdate()` lifecycle
+  - Screens: MainPetScreen, MenuScreen, StatsScreen, GamesScreen, SettingsScreen, ShopScreen
+  - Screen transitions: slide left/right (300ms), fade (200ms)
+- [x] Implement ScreenManager (ScreenManager.h / ScreenManager.cpp)
+  - `pushScreen(Screen* screen)`, `popScreen()`, `switchScreen(Screen* screen)`
+  - LVGL screen load animations via `lv_scr_load_anim_t`
+  - Memory: screens created on-demand, destroyed on pop (or cache last 3)
+  - Handle back button/gesture: pop screen or show exit confirmation
+- [x] Implement MainPetScreen
+  - Full 240×240 display: pet sprite centered (64×64 at 88,88)
+  - Status bars: hunger (top-left), happiness (top-right), health (bottom-left), energy (bottom-right)
+  - Pet name label centered above sprite
+  - Mood emoji overlay (small icon near pet)
+  - Tap pet → trigger happy animation + stat boost
+  - Swipe up → open menu; swipe down → open stats; swipe left/right → cycle pets (multi-pet)
+- [x] Implement MenuScreen
+  - 4×2 grid of icon buttons: Feed, Play, Clean, Sleep, Games, Shop, Settings, Back
+  - Icons: 32×32 16-color sprites loaded from LittleFS
+  - Button press: highlight animation (scale 1.0→1.1→1.0, 150ms)
+  - Execute action, show result toast (lv_obj_t* toast, auto-dismiss 2s)
+- [x] Implement StatsScreen
+  - Pet stats as LVGL bar widgets (happiness, hunger, health, energy: 0–100%)
+  - Pet info: name, age, weight, generation, evolution stage
+  - Lineage tree (mini display: parent → self → children)
+  - Achievement badges (small icons, 8×8, scrollable list)
+  - Back button to return to main screen
+- [x] Write unit tests for ScreenManager
+  - Test: push screen, verify onEnter called
+  - Test: pop screen, verify onExit called
+  - Test: switch screen, verify old onExit + new onEnter
+  - Test: push 3 screens, pop all, verify correct order
+  - Target: +4 tests (total: 188)
+
+### 20.4 — Migrate v1.x Screens to LVGL
+- [ ] Migrate game screens to LVGL
+  - Memory game: 4×4 grid of lv_btn, flip animation using lv_obj_set_style_img_opa
+  - Reaction time game: lv_bar fills, tap when in green zone
+  - Tilt game (accelerometer): placeholder UI (accelerometer in Phase 21)
+  - Game selection menu: lv_list with game icons and high scores
+- [ ] Migrate settings screen to LVGL
+  - LVGL lv_list with toggle switches (lv_switch) for config options
+  - Sliders (lv_slider) for brightness, volume
+  - Language selector: dropdown (lv_dropdown) with i18n language list
+  - Factory reset: confirmation dialog (lv_msgbox)
+- [ ] Migrate OTA update screen to LVGL
+  - File picker for .bin upload (via web server integration)
+  - Progress bar (lv_bar) for upload/flash progress
+  - Status label: Uploading..., Flashing..., Success!, Failed: {reason}
+  - Auto-reboot countdown after successful OTA
+- [ ] Migrate web dashboard to serve LVGL-compatible assets
+  - Update web server to serve sprite PNG previews (generated from .spr)
+  - REST API: GET /api/sprites → list all loaded sprites with metadata
+  - REST API: GET /api/screen → current screen name and pet state JSON
+  - WebSocket: push screen state changes to connected web clients
+- [ ] Verify all migrated screens work correctly
+  - Navigate to each screen via touch/button
+  - Verify all interactions work (tap, swipe, back)
+  - Verify no memory leaks: heap check after 50 screen transitions
+  - Verify LVGL memory usage: lv_mem_monitor_t, target < 40KB LVGL internal
+
+### 20.5 — Phase 20 Verification & Integration
+- [ ] Run full test suite: target 188/188 tests pass
+  - All existing 162 tests still pass (no regressions)
+  - All 26 new tests pass
+- [ ] Measure v2.0 Phase 20 metrics
+  - Flash usage (target: < 65% on 8MB)
+  - SRAM usage (target: < 45% of 512KB)
+  - PSRAM usage (target: < 15% of 8MB — sprite cache + framebuffers + LVGL)
+  - Animation FPS: measure with lv_tick_get(), target ≥ 25 FPS sustained
+  - Screen transition time: target < 400ms
+- [ ] Create V2_PHASE20_METRICS.md with measurements
+- [ ] Update README.md with Phase 20 status
+- [ ] Update CHANGELOG.md with Phase 20 entry
+- [ ] Merge feature/phase20-graphics-input → develop
+- [ ] Tag: v2.0.0-alpha.2
+
+## Implementation Rules
+- Create branch: feature/phase20-graphics-input (branch from develop)
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push when all features done
+- Create PR when complete
