@@ -30,6 +30,7 @@
 #include "Community.h"   // Phase 13.3: Community features
 #include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning
 #include "PetAI.h"       // Phase 16.1: Pet AI
+#include "Plugin.h"      // Phase 17.4: Plugin System
 
 // OLED display (optional - enable with -DENABLE_OLED)
 #ifdef ENABLE_OLED
@@ -98,6 +99,9 @@ void setup() {
 
   // Phase 13.3: Initialize community features
   initCommunity();
+
+  // Phase 17.4: Initialize plugin system
+  initPluginManager();
 
   // Phase 13.4: Check provisioning state — if not provisioned, start AP mode
   if (!isProvisioned()) {
@@ -226,6 +230,9 @@ void loop() {
     statsTick(APP_STATE.stats, PET_UPDATE_INTERVAL);
     updateBatteryLevel(APP_STATE.pet);
     handlePowerManager(APP_STATE.pet, currentMillis);
+
+    // Phase 17.4: Trigger plugin tick events
+    triggerPluginEvent(PLUGIN_EVENT_ON_TICK);
 
 #ifdef ENABLE_OLED
     updateOLED(APP_STATE.pet);

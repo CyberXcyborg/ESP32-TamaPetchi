@@ -98,4 +98,20 @@ void handleGetPetAIMemory();
 void handleExportFull();
 void handleImportSettings();
 
+// Phase 17.2: Voice Control
+void handleGetVoiceStatus();
+void handlePostVoiceCommand();
+
+// Phase 17.3: Advanced Analytics
+void handleGetCarePatterns();
+void handleGetHealthPredictions();
+void handleGetCareReport();
+
+// Phase 17.4: Plugin System
+void handleGetPlugins();
+void handleEnablePlugin();
+void handleDisablePlugin();
+void handleUploadPlugin();
+void handleDeletePlugin();
+
 #endif // WEBHANDLERS_H
