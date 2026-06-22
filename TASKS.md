@@ -1,7 +1,7 @@
 # ESP32-TamaPetchi — Autonomous Development Tasks
 
 ## Status
-- Phases 1-17 ✅ Complete — v1.7.0 released 2026-06-22
+- Phases 1-18 ✅ Complete — v1.8.0 released 2026-06-22
 - Current branch: develop
 - Build: RAM 18.9%, Flash 83.6%, Zero warnings
 - Tests: 162/162 native tests pass ✅
@@ -99,11 +99,11 @@
 - [x] Update README.md with Phase 18 features and hardware validation results
 - [x] Update CHANGELOG.md with v1.8.0 entry
 - [x] Update PROJECT_STATUS.md
-- [ ] Create git tag: v1.8.0
-- [ ] Merge: develop → main
-- [ ] Push all branches: git push origin main develop --tags
-- [ ] Create GitHub release with firmware.bin attached
-- [ ] Write release notes: feature summary, hardware validation results, known issues, v2.0 preview
+- [x] Create git tag: v1.8.0
+- [x] Merge: develop → main
+- [x] Push all branches: git push origin main develop --tags
+- [x] Create GitHub release with firmware.bin attached
+- [x] Write release notes: feature summary, hardware validation results, known issues, v2.0 preview
 
 ## Implementation Rules
 - Create branch: feature/phase18-xxx (branch from develop)
