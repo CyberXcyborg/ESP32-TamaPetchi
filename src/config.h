@@ -57,6 +57,21 @@
 // --- Serial ---
 #define SERIAL_BAUD  115200
 
+// --- Debug Output Control ---
+// Define DISABLE_DEBUG to strip all debug output from production builds.
+// When DISABLE_DEBUG is not defined, DEBUG_PRINT/DEBUG_PRINTLN map to Serial.
+// Usage: DEBUG_PRINT("value="); DEBUG_PRINTLN(x);
+// #define DISABLE_DEBUG
+#ifdef DISABLE_DEBUG
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+  #define DEBUG_PRINTF(fmt, ...)
+#else
+  #define DEBUG_PRINT(x)    Serial.print(x)
+  #define DEBUG_PRINTLN(x)  Serial.println(x)
+  #define DEBUG_PRINTF(fmt, ...) Serial.printf(fmt, ##__VA_ARGS__)
+#endif
+
 // --- Buzzer ---
 #define BUZZER_PIN    25
 #define BUZZER_CHANNEL 0
@@ -160,11 +175,50 @@
 #define OTA_DELTA_MANIFEST_URL  ""
 
 // --- Phase 15.3: Backup & Restore ---
-#define BACKUP_VERSION    "1.6.0"
+#define BACKUP_VERSION    "1.8.0"
 
 // --- Phase 16.1: Pet AI ---
 // AI_UPDATE_INTERVAL: how often (ms) the AI engine recomputes modifiers
 #define AI_UPDATE_INTERVAL       120000UL  // 2 minutes
 #define AI_EVOLVE_INTERVAL       1200000UL // 20 minutes (personality evolution)
+
+// ============================================================
+// Phase 18: Compile-Time Assertions
+// ============================================================
+// Validate buffer sizes and array bounds at compile time.
+// These use the Arduino static_assert equivalent (C++11).
+
+// Ensure stat bounds are valid
+#if STAT_MAX <= STAT_MIN
+  #error "STAT_MAX must be greater than STAT_MIN"
+#endif
+
+// Ensure decay rates are non-negative
+#if HUNGER_DECAY_NORMAL < 0 || HAPPINESS_DECAY_NORMAL < 0 || ENERGY_DECAY_NORMAL < 0
+  #error "Decay rates must be non-negative"
+#endif
+
+// Ensure evolution thresholds are monotonically increasing
+#if BABY_MAX_MINUTES >= CHILD_MAX_MINUTES
+  #error "BABY_MAX_MINUTES must be less than CHILD_MAX_MINUTES"
+#endif
+#if CHILD_MAX_MINUTES >= ADULT_MAX_MINUTES
+  #error "CHILD_MAX_MINUTES must be less than ADULT_MAX_MINUTES"
+#endif
+
+// Ensure health thresholds are valid
+#if SICK_THRESHOLD >= STAT_MAX
+  #error "SICK_THRESHOLD must be less than STAT_MAX"
+#endif
+
+// Ensure multi-pet max is reasonable
+#if MAX_PETS < 1 || MAX_PETS > 10
+  #error "MAX_PETS must be between 1 and 10"
+#endif
+
+// Ensure notification buffer is reasonable
+#if MAX_NOTIFICATIONS < 1 || MAX_NOTIFICATIONS > 100
+  #error "MAX_NOTIFICATIONS must be between 1 and 100"
+#endif
 
 #endif // CONFIG_H

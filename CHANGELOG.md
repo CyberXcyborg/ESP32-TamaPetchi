@@ -487,3 +487,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **From v1.3.0+**: Backup/restore system available — create backup before upgrading if downgrading later
 - **All versions**: Achievement progress migrates automatically; new achievements start at 0 progress
 - First boot after flash: connect to "TamaPetchi" AP for WiFi configuration
+
+## [1.8.0] - 2026-06-22
+
+### Added
+
+#### Phase 18 — Hardware Validation, Community Growth & v2.0 Architecture
+- **Debug Output Control** (18.4):
+  - `DEBUG_PRINT`, `DEBUG_PRINTLN`, `DEBUG_PRINTF` macros in config.h
+  - Define `DISABLE_DEBUG` to strip all debug output from production builds
+  - All existing `Serial.println` calls retained but can be disabled at compile time
+- **Compile-Time Assertions** (18.4):
+  - `#error` directives validate config.h constants at compile time
+  - Checks: STAT_MAX > STAT_MIN, evolution thresholds monotonic, enum ranges valid
+  - Validates: MAX_PETS (1-10), MAX_NOTIFICATIONS (1-100), decay rates non-negative
+- **Watchdog Reset Reason Logging** (18.4):
+  - `logResetReason()` called early in setup() before any other initialization
+  - Logs watchdog, panic, and brownout resets to `/reset_log.json` in SPIFFS
+  - Captures: reset reason string, code, timestamp, free heap, uptime
+  - Normal power-on resets are not logged (only abnormal resets)
+- **OTA Error Messages** (18.4):
+  - Detailed error messages with specific failure reasons (not just "OTA failed")
+  - `getUpdateErrorString()` maps Update error codes to human-readable strings
+  - Error response includes both message and numeric error code
+  - Covers: write/erase/read errors, space/size/stream/MD5/magic byte errors
+- **v2.0 Architecture Roadmap** (18.3):
+  - Comprehensive V2_ROADMAP.md with hardware analysis, flash budget, and migration plan
+  - Target: ESP32-S3 with 8MB PSRAM, 240x240 TFT, LVGL graphics, BLE companion app
+  - 15-week migration plan (Phase A through E)
+  - Risk assessment and success criteria
+
+### Changed
+- BACKUP_VERSION updated to "1.8.0"
+- Flash usage: 83.9% (from 83.6%)
+- RAM usage: 18.9% (unchanged)
+
+### Known Issues
+- Hardware validation (18.1) requires physical ESP32 — not automated
+- Community & developer relations tasks (18.2) require manual effort
+- v2.0 features require ESP32-S3 hardware (not backward compatible with ESP32)
+
+### Upgrade Guide
+- **From v1.7.0**: OTA update preserves all settings, pet data, achievements, stats, and analytics
+- **All versions**: Backup/restore system available — create backup before upgrading
+- **Production builds**: Add `-DDISABLE_DEBUG` to build_flags to remove all Serial output
+- First boot after flash: connect to "TamaPetchi-Setup" AP for WiFi configuration
