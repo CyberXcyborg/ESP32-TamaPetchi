@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32 TamaPetchi - Enhanced Blob Pet</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#764ba2">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     <style>
@@ -443,6 +447,15 @@
       role="application" aria-label="ESP32 TamaPetchi Virtual Pet">
     <!-- Phase 11.2: Toast Notification Container -->
     <div id="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
+    <!-- Phase 17.1: PWA Install Button -->
+    <div id="pwa-install-bar" class="hidden bg-gradient-to-r from-green-500 to-teal-500 text-white p-3 text-center" style="margin: 0 16px;">
+        <div class="flex items-center justify-center gap-3">
+            <span class="text-sm">📱 Install TamaPetchi as an app!</span>
+            <button id="pwa-install-btn" class="bg-white text-green-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-green-50 transition">Install</button>
+            <button id="pwa-dismiss-btn" class="text-white text-sm hover:text-green-100">✕</button>
+        </div>
+    </div>
+
     <div class="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden" role="main">
         <!-- Header -->
         <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6 text-center">
@@ -2954,6 +2967,146 @@
             if (data.error && errorCodes[data.error]) return errorCodes[data.error];
             return data.message || 'An unknown error occurred';
         }
+
+        // ============================================
+        // Phase 17.1: PWA — Service Worker & Install
+        // ============================================
+
+        // Register service worker
+        let deferredPrompt;
+        let lastKnownPetData = null;
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('[PWA] SW registered:', reg.scope))
+                    .catch(err => console.log('[PWA] SW registration failed:', err));
+            });
+        }
+
+        // Cache pet data for offline display
+        function cachePetData() {
+            if (typeof petData !== 'undefined' && petData) {
+                lastKnownPetData = { ...petData, cachedAt: new Date().toISOString() };
+                try {
+                    localStorage.setItem('tamapetchi_lastStatus', JSON.stringify(lastKnownPetData));
+                } catch(e) {}
+            }
+        }
+        // Hook into existing updatePetData to cache
+        const origUpdate = updatePetData;
+        if (typeof origUpdate === 'function') {
+            updatePetData = function() {
+                origUpdate();
+                cachePetData();
+            };
+        }
+
+        // BeforeInstallPrompt — show install button
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const bar = document.getElementById('pwa-install-bar');
+            if (bar) bar.classList.remove('hidden');
+        });
+
+        // Install button click
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const result = await deferredPrompt.userChoice;
+                console.log('[PWA] Install choice:', result.outcome);
+                deferredPrompt = null;
+                document.getElementById('pwa-install-bar').classList.add('hidden');
+            });
+        }
+
+        // Dismiss install bar
+        const dismissBtn = document.getElementById('pwa-dismiss-btn');
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+                document.getElementById('pwa-install-bar').classList.add('hidden');
+            });
+        }
+
+        // App installed — hide bar permanently
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('pwa-install-bar').classList.add('hidden');
+            deferredPrompt = null;
+            console.log('[PWA] App installed');
+        });
+
+        // Offline detection
+        function showOfflineOverlay() {
+            const overlay = document.getElementById('offline-overlay');
+            if (overlay) {
+                // Try to show cached pet data
+                try {
+                    const cached = localStorage.getItem('tamapetchi_lastStatus');
+                    if (cached) {
+                        const data = JSON.parse(cached);
+                        const statusDiv = document.getElementById('offline-pet-status');
+                        const nameP = document.getElementById('offline-pet-name');
+                        if (statusDiv && nameP) {
+                            nameP.textContent = `${data.name || 'Your pet'} — Last seen: ${new Date(data.cachedAt).toLocaleTimeString()}`;
+                            statusDiv.classList.remove('hidden');
+                        }
+                    }
+                } catch(e) {}
+                overlay.classList.remove('hidden');
+            }
+        }
+
+        function hideOfflineOverlay() {
+            const overlay = document.getElementById('offline-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        }
+
+        window.addEventListener('online', hideOfflineOverlay);
+        window.addEventListener('offline', showOfflineOverlay);
+
+        // Show offline overlay if API calls fail (hook into existing fetch)
+        const origFetch = window.fetch;
+        window.fetch = function(...args) {
+            return origFetch.apply(this, args).catch(err => {
+                if (!navigator.onLine || err.name === 'TypeError') {
+                    showOfflineOverlay();
+                }
+                throw err;
+            });
+        };
+
+        // Push notification subscription (requires backend VAPID key)
+        async function subscribePush() {
+            if (!('Notification' in window) || Notification.permission === 'denied') return;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: null // Set VAPID key here when backend supports it
+                });
+                console.log('[PWA] Push subscribed:', sub.endpoint);
+                // Send subscription to server
+                await fetch('/api/notifications/subscribe', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(sub)
+                });
+            } catch(e) {
+                console.log('[PWA] Push subscription skipped:', e.message);
+            }
+        }
+
+        // Request notification permission on first interaction
+        document.addEventListener('click', () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission().then(p => {
+                    if (p === 'granted') subscribePush();
+                });
+            }
+        }, { once: true });
     </script>
 
     <!-- Phase 7.5: Mood & Scheduled Feeding Panel -->
@@ -2991,6 +3144,22 @@
                 <label>Every <input type="number" id="scheduled-feed-hours" value="4" min="1" max="24" class="w-12 text-center"> hours</label>
                 <label class="ml-2">Amount: <input type="number" id="scheduled-feed-amount" value="15" min="5" max="50" class="w-12 text-center"></label>
             </div>
+        </div>
+    </div>
+
+    <!-- Phase 17.1: Offline Page Overlay -->
+    <div id="offline-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-80 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center">
+            <div class="text-5xl mb-4">📡</div>
+            <h2 class="text-xl font-bold mb-2">Connection Lost</h2>
+            <p class="text-gray-600 mb-4">Your TamaPetchi device is unreachable. Please check your WiFi connection.</p>
+            <div id="offline-pet-status" class="bg-gray-100 rounded-lg p-3 mb-4 text-sm hidden">
+                <p class="font-bold">Last known status:</p>
+                <p id="offline-pet-name" class="text-gray-700"></p>
+            </div>
+            <button onclick="location.reload()" class="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-6 py-2 rounded-full font-bold hover:opacity-90 transition">
+                🔄 Reconnect
+            </button>
         </div>
     </div>
 </body>

@@ -118,10 +118,10 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 **Priority:** PWA → Voice control → Analytics → Plugin system → Mobile companion → Release
 
 ### 17.0 — Pre-Work: Branch & Baseline
-- [ ] Create branch: `git checkout -b feature/phase17-v1.7 develop` (after v1.6.0 merged)
-- [ ] Verify clean build: `pio run -e esp32dev` — zero errors
-- [ ] Verify baseline tests: `pio test -e native` — all pass
-- [ ] Record baseline metrics
+- [x] Create branch: `git checkout -b feature/phase17-v1.7 develop` (after v1.6.0 merged)
+- [x] Verify clean build: `pio run -e esp32dev` — zero errors
+- [x] Verify baseline tests: `pio test -e native` — all pass
+- [x] Record baseline metrics: RAM 18.3%, Flash 81.9%, 162/162 tests
 
 ### 17.1 — Progressive Web App (PWA)
 - [ ] Create manifest.json: app name, icons (192x192, 512x512), theme color, display: standalone
