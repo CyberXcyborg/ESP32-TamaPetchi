@@ -107,4 +107,11 @@ void handleGetCarePatterns();
 void handleGetHealthPredictions();
 void handleGetCareReport();
 
+// Phase 17.4: Plugin System
+void handleGetPlugins();
+void handleEnablePlugin();
+void handleDisablePlugin();
+void handleUploadPlugin();
+void handleDeletePlugin();
+
 #endif // WEBHANDLERS_H

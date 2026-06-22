@@ -21,6 +21,7 @@
 #include "PetAI.h"      // Phase 16.1: Pet AI
 #include "VoiceControl.h" // Phase 17.2: Voice Control
 #include "Analytics.h"    // Phase 17.3: Advanced Analytics
+#include "Plugin.h"       // Phase 17.4: Plugin System
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
 #endif
@@ -338,6 +339,13 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/analytics/predictions", HTTP_GET, handleGetHealthPredictions);
   server.on("/api/analytics/reports/weekly", HTTP_GET, handleGetCareReport);
   server.on("/api/analytics/reports/monthly", HTTP_GET, handleGetCareReport);
+
+  // Phase 17.4: Plugin System routes
+  server.on("/api/plugins", HTTP_GET, handleGetPlugins);
+  server.on("/api/plugins/upload", HTTP_POST, handleUploadPlugin);
+  server.on("/api/plugins/enable", HTTP_POST, handleEnablePlugin);
+  server.on("/api/plugins/disable", HTTP_POST, handleDisablePlugin);
+  server.on("/api/plugins/delete", HTTP_POST, handleDeletePlugin);
 }
 
 // ============================================================
@@ -1727,4 +1735,84 @@ void handleGetCareReport() {
   int periodDays = 7;  // default weekly
   if (path.indexOf("monthly") >= 0) periodDays = 30;
   g_server->send(200, "application/json", getCareReportJson(state.pet, state.stats, periodDays));
+}
+
+// ============================================================
+// Phase 17.4: Plugin System Handlers
+// ============================================================
+
+void handleGetPlugins() {
+  if (!g_server) return;
+  g_server->send(200, "application/json", getPluginsJson());
+}
+
+void handleUploadPlugin() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+  String body = g_server->arg("plain");
+  if (body.length() == 0 || body.length() > 8192) {
+    sendErrorResponse(ERR_PARAM_INVALID, "Invalid plugin data (max 8KB)");
+    return;
+  }
+  bool ok = uploadPlugin(body.c_str(), body.length());
+  if (ok) {
+    g_server->send(200, "application/json", "{\"success\":true,\"message\":\"Plugin uploaded\"}");
+  } else {
+    sendErrorResponse(ERR_PARAM_INVALID, "Plugin upload failed (duplicate name or max plugins reached)");
+  }
+}
+
+void handleEnablePlugin() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<128> doc;
+  if (deserializeJson(doc, body) != DeserializationError::Ok) {
+    sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid JSON");
+    return;
+  }
+  const char* name = doc["name"] | "";
+  if (enablePlugin(name)) {
+    g_server->send(200, "application/json", "{\"success\":true}");
+  } else {
+    sendErrorResponse(ERR_PARAM_INVALID, "Plugin not found");
+  }
+}
+
+void handleDisablePlugin() {
+  if (!g_server) return;
+  String body = g_server->arg("plain");
+  StaticJsonDocument<128> doc;
+  if (deserializeJson(doc, body) != DeserializationError::Ok) {
+    sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid JSON");
+    return;
+  }
+  const char* name = doc["name"] | "";
+  if (disablePlugin(name)) {
+    g_server->send(200, "application/json", "{\"success\":true}");
+  } else {
+    sendErrorResponse(ERR_PARAM_INVALID, "Plugin not found");
+  }
+}
+
+void handleDeletePlugin() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+  String body = g_server->arg("plain");
+  StaticJsonDocument<128> doc;
+  if (deserializeJson(doc, body) != DeserializationError::Ok) {
+    sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid JSON");
+    return;
+  }
+  const char* name = doc["name"] | "";
+  if (deletePlugin(name)) {
+    g_server->send(200, "application/json", "{\"success\":true}");
+  } else {
+    sendErrorResponse(ERR_PARAM_INVALID, "Plugin not found");
+  }
 }
