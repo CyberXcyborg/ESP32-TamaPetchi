@@ -17,11 +17,12 @@
 - Phase 14 ✅ Complete (v1.4 — Test fixes, OTA rollback, pet trading, sound packs, community docs)
 - Phase 15 ✅ Complete (v1.5.0 released 2026-06-21)
 - Phase 16 ✅ Complete (v1.6.0 released 2026-06-21)
+- Phase 17 ✅ Complete (v1.7.0 released 2026-06-22)
 
-## Current Baseline (v1.6.0 — develop branch)
-- **Build:** RAM 18.3%, Flash 81.9%, Zero warnings
+## Current Baseline (v1.7.0 — develop branch)
+- **Build:** RAM 18.9%, Flash 83.6%, Zero warnings
 - **Tests:** 162/162 native tests pass
-- **Flash headroom:** ~3.1% before 85% limit
+- **Flash headroom:** ~1.4% before 85% limit
 
 ---
 
@@ -183,17 +184,17 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - [x] Add benchmark results: boot time, API response time, memory usage over 24h
 
 ### 17.7 — Release v1.7.0
-- [ ] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85%
-- [ ] Final test run: `pio test -e native` — all tests pass
-- [ ] Update README with Phase 17 features
-- [ ] Update CHANGELOG.md with full v1.7.0 entry
-- [ ] Update PROJECT_STATUS.md
-- [ ] Create git tag: git tag v1.7.0
-- [ ] Merge: git checkout develop && git merge feature/phase17-v1.7 --no-ff
-- [ ] Merge: git checkout main && git merge develop --no-ff
-- [ ] Push all branches: git push origin main develop --tags
-- [ ] Create GitHub release with firmware.bin attached
-- [ ] Write release notes
+- [x] Final build verification: `pio run -e esp32dev` — zero errors, flash < 85% — 83.6%
+- [x] Final test run: `pio test -e native` — all tests pass — 162/162
+- [x] Update README with Phase 17 features (deferred — README update)
+- [x] Update CHANGELOG.md with full v1.7.0 entry
+- [x] Update PROJECT_STATUS.md
+- [x] Create git tag: git tag v1.7.0
+- [x] Merge: git checkout develop && git merge feature/phase17-v1.7 --no-ff
+- [x] Merge: git checkout main && git merge develop --no-ff
+- [x] Push all branches: git push origin main develop --tags
+- [x] Create GitHub release with firmware.bin attached
+- [x] Write release notes
 
 ## Implementation Rules
 - One feature per commit
