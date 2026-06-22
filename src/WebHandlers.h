@@ -98,4 +98,8 @@ void handleGetPetAIMemory();
 void handleExportFull();
 void handleImportSettings();
 
+// Phase 17.2: Voice Control
+void handleGetVoiceStatus();
+void handlePostVoiceCommand();
+
 #endif // WEBHANDLERS_H

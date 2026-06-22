@@ -19,6 +19,7 @@
 #include "Backup.h"      // Phase 15.3: Backup & Restore
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #include "PetAI.h"      // Phase 16.1: Pet AI
+#include "VoiceControl.h" // Phase 17.2: Voice Control
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
 #endif
@@ -326,6 +327,10 @@ void registerHandlers(WebServer &server, Pet &pet) {
 
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
+
+  // Phase 17.2: Voice Control routes
+  server.on("/api/voice/status", HTTP_GET, handleGetVoiceStatus);
+  server.on("/api/voice/command", HTTP_POST, handlePostVoiceCommand);
 }
 
 // ============================================================
@@ -1607,6 +1612,84 @@ void handleImportSettings() {
   StaticJsonDocument<256> resp;
   resp["success"] = true;
   resp["message"] = "Settings imported successfully";
+  String result;
+  serializeJson(resp, result);
+  g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 17.2: Voice Control Handlers
+// ============================================================
+
+void handleGetVoiceStatus() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", formatVoiceStatus(state.pet));
+}
+
+void handlePostVoiceCommand() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+  AppState& state = APP_STATE;
+  String body = g_server->arg("plain");
+
+  // Parse command from JSON body
+  StaticJsonDocument<256> doc;
+  if (deserializeJson(doc, body) != DeserializationError::Ok) {
+    // Try plain text command
+    VoiceCommand cmd = parseVoiceCommand(body.c_str());
+    if (cmd == VC_NONE || cmd == VC_UNKNOWN) {
+      sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid command");
+      return;
+    }
+    bool ok = executeVoiceCommand(cmd, state.pet);
+    if (ok) savePetData(state.pet);
+    g_server->send(200, "application/json",
+      String("{\"success\":") + (ok ? "true" : "false") +
+      ",\"command\":\"" + voiceCommandToString(cmd) + "\"}");
+    return;
+  }
+
+  // JSON command parsing
+  VoiceCommand cmd = VC_UNKNOWN;
+
+  // Check for "command" field (direct text)
+  if (doc["command"].is<const char*>()) {
+    cmd = parseVoiceCommand(doc["command"].as<const char*>());
+  }
+  // Check for "alexa" field (Alexa directive)
+  else if (doc["alexa"].is<const char*>()) {
+    cmd = parseAlexaDirective(doc["alexa"].as<const char*>());
+  }
+  // Check for "google" field (Google Home trait)
+  else if (doc["google"].is<const char*>()) {
+    const char* value = doc["value"] | "";
+    cmd = parseGoogleTrait(doc["google"].as<const char*>(), value);
+  }
+
+  if (cmd == VC_NONE || cmd == VC_UNKNOWN) {
+    sendErrorResponse(ERR_PARAM_INVALID, "Unknown voice command");
+    return;
+  }
+
+  // Status is read-only
+  if (cmd == VC_STATUS) {
+    g_server->send(200, "application/json", formatVoiceStatus(state.pet));
+    return;
+  }
+
+  bool ok = executeVoiceCommand(cmd, state.pet);
+  if (ok) savePetData(state.pet);
+
+  StaticJsonDocument<256> resp;
+  resp["success"] = ok;
+  resp["command"] = voiceCommandToString(cmd);
+  if (!ok) {
+    resp["message"] = "Command could not be executed (check pet state)";
+  }
   String result;
   serializeJson(resp, result);
   g_server->send(200, "application/json", result);
