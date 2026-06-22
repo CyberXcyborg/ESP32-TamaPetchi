@@ -102,4 +102,9 @@ void handleImportSettings();
 void handleGetVoiceStatus();
 void handlePostVoiceCommand();
 
+// Phase 17.3: Advanced Analytics
+void handleGetCarePatterns();
+void handleGetHealthPredictions();
+void handleGetCareReport();
+
 #endif // WEBHANDLERS_H

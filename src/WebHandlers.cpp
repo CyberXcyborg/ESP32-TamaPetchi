@@ -20,6 +20,7 @@
 #include "RGB_LED.h"    // Phase 10.4: for flashRGBRed()
 #include "PetAI.h"      // Phase 16.1: Pet AI
 #include "VoiceControl.h" // Phase 17.2: Voice Control
+#include "Analytics.h"    // Phase 17.3: Advanced Analytics
 #ifdef ENABLE_OLED
 #include "OLED.h"       // Phase 10.4: for showFactoryResetOLED()
 #endif
@@ -331,6 +332,12 @@ void registerHandlers(WebServer &server, Pet &pet) {
   // Phase 17.2: Voice Control routes
   server.on("/api/voice/status", HTTP_GET, handleGetVoiceStatus);
   server.on("/api/voice/command", HTTP_POST, handlePostVoiceCommand);
+
+  // Phase 17.3: Advanced Analytics routes
+  server.on("/api/analytics/care-patterns", HTTP_GET, handleGetCarePatterns);
+  server.on("/api/analytics/predictions", HTTP_GET, handleGetHealthPredictions);
+  server.on("/api/analytics/reports/weekly", HTTP_GET, handleGetCareReport);
+  server.on("/api/analytics/reports/monthly", HTTP_GET, handleGetCareReport);
 }
 
 // ============================================================
@@ -1693,4 +1700,31 @@ void handlePostVoiceCommand() {
   String result;
   serializeJson(resp, result);
   g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 17.3: Advanced Analytics Handlers
+// ============================================================
+
+void handleGetCarePatterns() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  unsigned long uptimeMin = millis() / 60000UL;
+  g_server->send(200, "application/json", getCarePatternsJson(state.stats, uptimeMin));
+}
+
+void handleGetHealthPredictions() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  g_server->send(200, "application/json", getHealthPredictionsJson(state.pet, state.stats));
+}
+
+void handleGetCareReport() {
+  if (!g_server) return;
+  AppState& state = APP_STATE;
+  // Determine period from URL path
+  String path = g_server->uri();
+  int periodDays = 7;  // default weekly
+  if (path.indexOf("monthly") >= 0) periodDays = 30;
+  g_server->send(200, "application/json", getCareReportJson(state.pet, state.stats, periodDays));
 }
