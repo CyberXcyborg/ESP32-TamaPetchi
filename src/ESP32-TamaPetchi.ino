@@ -55,8 +55,59 @@
 // Phase 6: Watchdog configuration
 #define WDT_TIMEOUT 10  // 10 seconds without feed → reset
 
+// Phase 18.4: Reset reason log file
+#define RESET_LOG_FILE "/reset_log.json"
+
 // Timing
 unsigned long lastUpdateTime = 0;
+
+// ============================================================
+// Phase 18.4: Watchdog Reset Reason Logging
+// Logs the reason for the last reset to SPIFFS for diagnostics.
+// Call early in setup() before anything else.
+// ============================================================
+void logResetReason() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  const char* reasonStr = "unknown";
+  bool isWatchdog = false;
+
+  switch (reason) {
+    case ESP_RST_POWERON:   reasonStr = "power_on"; break;
+    case ESP_RST_EXT:       reasonStr = "external_reset"; break;
+    case ESP_RST_SW:        reasonStr = "software_reset"; break;
+    case ESP_RST_PANIC:     reasonStr = "panic_exception"; isWatchdog = true; break;
+    case ESP_RST_INT_WDT:   reasonStr = "interrupt_watchdog"; isWatchdog = true; break;
+    case ESP_RST_TASK_WDT:  reasonStr = "task_watchdog"; isWatchdog = true; break;
+    case ESP_RST_WDT:       reasonStr = "other_watchdog"; isWatchdog = true; break;
+    case ESP_RST_DEEPSLEEP: reasonStr = "deep_sleep_wake"; break;
+    case ESP_RST_BROWNOUT:  reasonStr = "brownout"; break;
+    case ESP_RST_SDIO:      reasonStr = "sdio_reset"; break;
+    default:                reasonStr = "unknown"; break;
+  }
+
+  // Only log watchdog and panic resets (not normal power-on)
+  if (isWatchdog || reason == ESP_RST_PANIC || reason == ESP_RST_BROWNOUT) {
+    StaticJsonDocument<256> logDoc;
+    logDoc["reason"] = reasonStr;
+    logDoc["code"] = (int)reason;
+    logDoc["timestamp"] = millis();
+    logDoc["isWatchdog"] = isWatchdog;
+    logDoc["freeHeap"] = ESP.getFreeHeap();
+    logDoc["uptime"] = millis();
+
+    String logEntry;
+    serializeJson(logDoc, logEntry);
+
+    // Append to log file (create if doesn't exist)
+    File logFile = SPIFFS.open(RESET_LOG_FILE, "a");
+    if (logFile) {
+      logFile.println(logEntry);
+      logFile.close();
+    }
+
+    DEBUG_PRINTLN("[RESET] Abnormal reset detected: " + String(reasonStr));
+  }
+}
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -65,14 +116,17 @@ void setup() {
   esp_task_wdt_init(WDT_TIMEOUT, true); // panic=true → reset on timeout
   esp_task_wdt_add(NULL); // Add current task to WDT
 
-  // Initialize random seed
-  randomSeed(analogRead(0));
-
-  // Initialize SPIFFS
+  // Initialize SPIFFS (needed for reset log)
   if (!SPIFFS.begin(true)) {
     Serial.println("SPIFFS initialization failed!");
     return;
   }
+
+  // Phase 18.4: Log reset reason (after SPIFFS, before anything else)
+  logResetReason();
+
+  // Initialize random seed
+  randomSeed(analogRead(0));
 
   // Phase 5: Initialize power manager (ADC, wake-up)
   setupPowerManager();

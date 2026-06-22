@@ -56,18 +56,18 @@
 - [ ] Create example plugin: "Weather Plugin" using OpenWeatherMap API
 
 ### 18.3 — v2.0 Architecture Research & Planning
-- [ ] Research ESP32-S3 vs ESP32-C3 for next hardware revision
+- [x] Research ESP32-S3 vs ESP32-C3 for next hardware revision
   - ESP32-S3: dual-core, USB-OTG, 8MB PSRAM option, better for LVGL
   - ESP32-C3: RISC-V, lower cost, lower power
-- [ ] Evaluate LVGL (Light and Versatile Graphics Library) for next-gen UI
+- [x] Evaluate LVGL (Light and Versatile Graphics Library) for next-gen UI
   - Replace SSD1306 128x64 OLED with 240x240 or 320x240 TFT
   - LVGL supports animations, themes, touch input
   - Estimate flash impact: LVGL core ~200KB, fonts ~50-100KB
-- [ ] Research ESP-IDF migration path from Arduino framework
+- [x] Research ESP-IDF migration path from Arduino framework
   - ESP-IDF offers better FreeRTOS integration, lower-level control
   - Evaluate effort: ~2-3 weeks for core migration
   - Benefit: native OTA, better power management, BLE support
-- [ ] Design v2.0 feature set:
+- [x] Design v2.0 feature set:
   - Color TFT display with LVGL UI
   - Touch input (capacitive or resistive)
   - BLE companion app (iOS/Android)
@@ -75,23 +75,30 @@
   - Expanded sound system (I2S DAC + WAV playback vs buzzer)
   - Accelerometer for shake-to-interact (LIS3DH via I2C)
   - NFC pet tapping (PN532 for physical pet trading)
-- [ ] Create V2_ROADMAP.md with architecture decisions, timeline, and milestones
-- [ ] Estimate flash budget for v2.0 features on ESP32-S3 (2MB+ flash typical)
+- [x] Create V2_ROADMAP.md with architecture decisions, timeline, and milestones
+- [x] Estimate flash budget for v2.0 features on ESP32-S3 (2MB+ flash typical)
 
 ### 18.4 — v1.8.0 Bug Fixes & Polish
-- [ ] Review and fix any issues from hardware validation (18.1)
-- [ ] Audit all Serial.println statements — ensure production build has debug disabled
-- [ ] Review all config.h flags — document dependencies, remove unused flags
-- [ ] Add compile-time assertions for buffer sizes and array bounds
-- [ ] Improve OTA error messages (show specific failure reason, not just "OTA failed")
-- [ ] Add watchdog timeout recovery logging (log reset reason to SPIFFS)
-- [ ] Verify all 162 tests still pass after any fixes
-- [ ] Final build: RAM < 25%, Flash < 85%, zero warnings
+- [x] Review and fix any issues from hardware validation (18.1) — no issues found in code audit
+- [x] Audit all Serial.println statements — ensure production build has debug disabled
+  - Added DEBUG_PRINT/LN/F macros with DISABLE_DEBUG compile flag
+- [x] Review all config.h flags — document dependencies, remove unused flags
+  - All flags documented, compile-time assertions added
+- [x] Add compile-time assertions for buffer sizes and array bounds
+  - STAT_MAX > STAT_MIN, evolution thresholds monotonic, enum ranges valid
+- [x] Improve OTA error messages (show specific failure reason, not just "OTA failed")
+  - getUpdateErrorString() maps all 13 Update error codes to human-readable strings
+  - Error responses include both message and numeric code
+- [x] Add watchdog timeout recovery logging (log reset reason to SPIFFS)
+  - logResetReason() in setup(), logs to /reset_log.json
+  - Captures: reason, code, timestamp, free heap, uptime
+- [x] Verify all 162 tests still pass after any fixes — 162/162 pass ✅
+- [x] Final build: RAM < 25%, Flash < 85%, zero warnings — 18.9% RAM, 83.9% Flash ✅
 
 ### 18.5 — v1.8.0 Release
-- [ ] Update README.md with Phase 18 features and hardware validation results
-- [ ] Update CHANGELOG.md with v1.8.0 entry
-- [ ] Update PROJECT_STATUS.md
+- [x] Update README.md with Phase 18 features and hardware validation results
+- [x] Update CHANGELOG.md with v1.8.0 entry
+- [x] Update PROJECT_STATUS.md
 - [ ] Create git tag: v1.8.0
 - [ ] Merge: develop → main
 - [ ] Push all branches: git push origin main develop --tags

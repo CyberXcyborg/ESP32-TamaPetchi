@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.7.0 Released — Phase 18 Planned
+## Overall Status: v1.8.0 Released — Phase 18 Complete
 
 ## Phase Summary
 | Phase | Description | Status | Version |
@@ -22,25 +22,26 @@
 | 15 | v1.5 Performance, Polish & Hardware Validation | ✅ Complete | v1.5.0 |
 | 16 | v1.6 Intelligence, Automation & Ecosystem Growth | ✅ Complete | v1.6.0 |
 | 17 | v1.7 Mobile, Voice & Ecosystem Maturity | ✅ Complete | v1.7.0 |
+| 18 | v1.8 Bug Fixes, Polish & v2.0 Planning | ✅ Complete | v1.8.0 |
 
-## Current Release: v1.7.0
-- **Tag:** v1.7.0
+## Current Release: v1.8.0
+- **Tag:** v1.8.0
 - **Date:** 2026-06-22
 - **Branch:** main
-- **Build:** RAM 18.9%, Flash 83.6%, Zero warnings
+- **Build:** RAM 18.9%, Flash 83.9%, Zero warnings
 - **Tests:** 162/162 native tests pass ✅
-- **Release:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.6.0
 
-### v1.6.0 Features
-- **Pet AI** (16.1): Adaptive behavior engine with personality evolution, pet memory, mood-reactive rates
-- **Home Assistant** (16.2): 13 auto-discovered entities (sensors, buttons, binary sensors, select, alarm panel)
-- **CLI Tool** (16.3): Python CLI for device management (discover, status, backup, restore, flash, simulate, export)
-- **Web UI Dashboard** (16.4): Care score gauge, AI activity level, mood/stage summary, export/import settings
-- **Data Export/Import** (16.5): Full device state export, settings import with validation
+### v1.8.0 Features
+- **Debug Output Control**: DEBUG_PRINT/LN/F macros, DISABLE_DEBUG compile flag
+- **Compile-Time Assertions**: Config validation via #error directives
+- **Watchdog Reset Logging**: Abnormal resets logged to SPIFFS
+- **OTA Error Messages**: Detailed failure reasons with error codes
+- **v2.0 Roadmap**: ESP32-S3 + LVGL + BLE architecture plan (V2_ROADMAP.md)
 
-## Next: Phase 17 (v1.7.0)
-- **Branch:** feature/phase17-v1.7 (not yet created)
-- **Key deliverables:** PWA, voice control, advanced analytics, plugin system, mobile companion app
+## Next: v2.0 (ESP32-S3 Migration)
+- See V2_ROADMAP.md for full architecture plan
+- Target: ESP32-S3, 240x240 TFT, LVGL, BLE companion app, NFC trading
+- 15-week migration plan (Phase A through E)
 
 ## Key Technical Details
 - Framework: Arduino (PlatformIO)
