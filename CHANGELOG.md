@@ -1,3 +1,53 @@
+## [1.7.0] - 2026-06-22
+
+### Added
+
+#### Phase 17 — Mobile, Voice & Ecosystem Maturity
+- **Progressive Web App (PWA)** (17.1):
+  - Web app manifest with 192x192 and 512x512 icons
+  - Service worker with cache-first (static) and network-first (API) strategies
+  - "Install App" button with beforeinstallprompt event handling
+  - Offline page overlay with cached pet status display
+  - Push notification support via Web Push API
+  - LocalStorage caching of last known pet status
+- **Voice Control Integration** (17.2):
+  - Keyword-based voice command parser (feed/play/clean/sleep/wake/status/heal/reset)
+  - Alexa Smart Home directive parser
+  - Google Home trait parser
+  - `GET /api/voice/status` — pet status in voice-assistant-friendly format
+  - `POST /api/voice/command` — accept text, Alexa, or Google Home commands
+  - Speech-friendly status summary with health/hunger/happiness/energy levels
+- **Advanced Analytics & Insights** (17.3):
+  - Care pattern analysis: avg feed/play/sleep intervals, care score (0-100)
+  - Health predictions: time until hungry/tired/unhappy/dirty based on decay rates
+  - Weekly/monthly care reports with stats summary
+  - `GET /api/analytics/care-patterns` — care pattern JSON
+  - `GET /api/analytics/predictions` — health prediction JSON
+  - `GET /api/analytics/reports/weekly` — 7-day care report
+  - `GET /api/analytics/reports/monthly` — 30-day care report
+  - Analytics tab in web UI with predictions panel and report download
+- **Plugin System** (17.4):
+  - Plugin event types: ON_FEED, ON_PLAY, ON_SLEEP, ON_CLEAN, ON_HEAL, ON_TICK, ON_EVOLVE, ON_DEATH, ON_NAME_CHANGE
+  - Plugin persistence to SPIFFS (/plugins.json)
+  - Built-in plugins: HolidayEvents, WeatherMood
+  - `GET /api/plugins` — list loaded plugins
+  - `POST /api/plugins/upload` — upload plugin JSON (max 8KB)
+  - `POST /api/plugins/enable` / `/disable` / `/delete` — plugin management
+  - Plugin management section in web UI
+- **Mobile Companion App** (17.5):
+  - React Native companion app architecture documentation
+  - Device discovery via mDNS
+  - API client documentation for all endpoints
+- **Ecosystem Maturity** (17.6):
+  - Blog post series outline: "Building a Smart Tamagotchi with ESP32"
+  - Troubleshooting guide with common issues and FAQ
+  - Performance benchmarks
+
+### Build Metrics
+- Flash: 83.6% (1,096,417 / 1,310,720 bytes) — 1.4% headroom
+- RAM: 18.9% (62,072 / 327,680 bytes)
+- Tests: 162/162 pass
+
 ## [1.6.0] - 2026-06-21
 
 ### Added
