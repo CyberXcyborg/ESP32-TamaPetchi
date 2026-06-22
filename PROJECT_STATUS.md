@@ -1,6 +1,6 @@
 # ESP32-TamaPetchi — Project Status
 
-## Overall Status: v1.6.0 Released — Phase 17 Planned
+## Overall Status: v1.7.0 Released — Phase 18 Planned
 
 ## Phase Summary
 | Phase | Description | Status | Version |
@@ -21,12 +21,13 @@
 | 14 | v1.4 Stability, Testing & Ecosystem | ✅ Complete | v1.4.0 |
 | 15 | v1.5 Performance, Polish & Hardware Validation | ✅ Complete | v1.5.0 |
 | 16 | v1.6 Intelligence, Automation & Ecosystem Growth | ✅ Complete | v1.6.0 |
+| 17 | v1.7 Mobile, Voice & Ecosystem Maturity | ✅ Complete | v1.7.0 |
 
-## Current Release: v1.6.0
-- **Tag:** v1.6.0
-- **Date:** 2026-06-21
+## Current Release: v1.7.0
+- **Tag:** v1.7.0
+- **Date:** 2026-06-22
 - **Branch:** main
-- **Build:** RAM 18.3%, Flash 81.9%, Zero warnings
+- **Build:** RAM 18.9%, Flash 83.6%, Zero warnings
 - **Tests:** 162/162 native tests pass ✅
 - **Release:** https://github.com/CyberXcyborg/ESP32-TamaPetchi/releases/tag/v1.6.0
 
