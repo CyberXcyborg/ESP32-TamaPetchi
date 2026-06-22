@@ -111,6 +111,7 @@ int run_provisioning_tests();
 int run_power_tests();
 int run_ota_delta_tests();
 int run_spriteloader_tests();
+int run_animation_tests();
 
 int main() {
   printf("=== TamaPetchi Native Unit Tests ===\n\n");
@@ -125,6 +126,8 @@ int main() {
   run_ota_delta_tests();
   printf("\n");
   run_spriteloader_tests();
+  printf("\n");
+  run_animation_tests();
   printf("\n=== All native tests PASSED ===\n");
   return 0;
 }
