@@ -1,0 +1,19 @@
+# ESP32-TamaPetchi v2.0 — Custom Partition Table
+# Target: ESP32-S3 with 8MB Flash
+# 
+# Layout:
+#   Bootloader:  32 KB (ESP-IDF)
+#   Partitions:   4 KB
+#   NVS:         24 KB (settings)
+#   App0:       1.2 MB (OTA slot A)
+#   App1:       1.2 MB (OTA slot B)
+#   LittleFS:   2.0 MB (pet data, sprites, audio, plugins)
+#   Reserved:   3.37 MB (future use)
+
+# Name,   Type, SubType,  Offset,   Size,    Flags
+nvs,      data, nvs,      0x9000,   0x6000,
+otadata,  data, ota,      0xf000,   0x2000,
+app0,     app,  ota_0,    0x10000,  0x120000,
+app1,     app,  ota_1,    0x130000, 0x120000,
+spiffs,   data, spiffs,   0x250000, 0x200000,
+coredump, data, coredump, 0x450000, 0x100000,
