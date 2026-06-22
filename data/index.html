@@ -2969,6 +2969,110 @@
         }
 
         // ============================================
+        // Phase 17.3: Analytics & Predictions
+        // ============================================
+
+        function loadAnalytics() {
+            fetch('/api/analytics/care-patterns')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('analytics-care-score').textContent = data.careScore.toFixed(0) + '/100';
+                    document.getElementById('analytics-care-score-bar').style.width = data.careScore + '%';
+                    document.getElementById('pattern-feed').textContent = data.avgFeedIntervalMin >= 999 ? '--' : data.avgFeedIntervalMin.toFixed(0) + 'm';
+                    document.getElementById('pattern-play').textContent = data.avgPlayIntervalMin >= 999 ? '--' : data.avgPlayIntervalMin.toFixed(0) + 'm';
+                    document.getElementById('pattern-actions').textContent = data.totalActions;
+                })
+                .catch(e => console.log('Analytics patterns unavailable:', e));
+
+            fetch('/api/analytics/predictions')
+                .then(r => r.json())
+                .then(data => {
+                    const fmtMin = (m) => m >= 999 ? '∞' : (m < 60 ? m + 'm' : (m/60).toFixed(1) + 'h');
+                    document.getElementById('pred-hungry').textContent = fmtMin(data.minutesUntilHungry);
+                    document.getElementById('pred-tired').textContent = fmtMin(data.minutesUntilTired);
+                    document.getElementById('pred-unhappy').textContent = fmtMin(data.minutesUntilUnhappy);
+                    document.getElementById('pred-dirty').textContent = fmtMin(data.minutesUntilDirty);
+                    document.getElementById('pred-health-declining').textContent = data.healthDeclining ? '⚠️ Declining' : '✅ Stable';
+                })
+                .catch(e => console.log('Predictions unavailable:', e));
+        }
+
+        function downloadReport(period) {
+            fetch('/api/analytics/reports/' + period)
+                .then(r => r.json())
+                .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'tamapetchi_' + period + '_report.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                })
+                .catch(e => console.log('Report download failed:', e));
+        }
+
+        // Load analytics on page load and refresh periodically
+        if (typeof updatePetData === 'function') {
+            const origUpdate2 = updatePetData;
+            updatePetData = function() {
+                origUpdate2();
+                loadAnalytics();
+            };
+        }
+        setTimeout(loadAnalytics, 1000);
+
+        // ============================================
+        // Phase 17.4: Plugin Management UI
+        // ============================================
+
+        function loadPlugins() {
+            fetch('/api/plugins')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('plugins-list');
+                    if (!data.plugins || data.plugins.length === 0) {
+                        container.innerHTML = '<p class="text-gray-400">No plugins installed</p>';
+                        return;
+                    }
+                    let html = '';
+                    data.plugins.forEach(p => {
+                        const statusClass = p.enabled ? 'text-green-600' : 'text-gray-400';
+                        const statusIcon = p.enabled ? '✅' : '⬜';
+                        const btnAction = p.enabled ? 'disable' : 'enable';
+                        html += '<div class="flex items-center justify-between py-1 border-b border-gray-100">' +
+                            '<div>' +
+                            '<span class="' + statusClass + '">' + statusIcon + ' ' + p.name + '</span>' +
+                            '<span class="text-gray-400 ml-1">v' + p.version + '</span>' +
+                            '<p class="text-gray-400 text-xxs">' + p.description + '</p>' +
+                            '</div>' +
+                            '<button onclick="togglePlugin(\'' + p.name + '\',\'' + btnAction + '\')" class="bg-gray-100 px-2 py-0.5 rounded text-xxs hover:bg-gray-200">' +
+                            (p.enabled ? 'Disable' : 'Enable') +
+                            '</button></div>';
+                    });
+                    container.innerHTML = html;
+                })
+                .catch(e => {
+                    document.getElementById('plugins-list').innerHTML = '<p class="text-gray-400">Unable to load plugins</p>';
+                });
+        }
+
+        function togglePlugin(name, action) {
+            fetch('/api/plugins/' + action, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) loadPlugins();
+            })
+            .catch(e => console.log('Plugin toggle failed:', e));
+        }
+
+        setTimeout(loadPlugins, 1500);
+
+        // ============================================
         // Phase 17.1: PWA — Service Worker & Install
         // ============================================
 
@@ -3143,6 +3247,66 @@
             <div class="mt-2 text-sm">
                 <label>Every <input type="number" id="scheduled-feed-hours" value="4" min="1" max="24" class="w-12 text-center"> hours</label>
                 <label class="ml-2">Amount: <input type="number" id="scheduled-feed-amount" value="15" min="5" max="50" class="w-12 text-center"></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 17.3: Analytics & Predictions Panel -->
+    <div id="analytics-section" class="mx-4 mt-2">
+        <div class="pet-container p-4">
+            <h3 class="text-lg font-bold mb-2">📊 Analytics & Predictions</h3>
+
+            <!-- Care Score -->
+            <div class="mb-3">
+                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                    <span>Care Score</span>
+                    <span id="analytics-care-score">--</span>
+                </div>
+                <div class="stat-bar h-3">
+                    <div id="analytics-care-score-bar" class="stat-fill bg-green-400" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Predictions -->
+            <div class="text-xs text-gray-600 mb-2">
+                <p class="font-bold mb-1">⏱️ Predictions:</p>
+                <div class="grid grid-cols-2 gap-1">
+                    <span>🍽️ Hungry: <span id="pred-hungry">--</span></span>
+                    <span>😴 Tired: <span id="pred-tired">--</span></span>
+                    <span>😢 Unhappy: <span id="pred-unhappy">--</span></span>
+                    <span>🧹 Dirty: <span id="pred-dirty">--</span></span>
+                </div>
+            </div>
+
+            <!-- Care Patterns -->
+            <div class="text-xs text-gray-600 mb-2">
+                <p class="font-bold mb-1">📈 Care Patterns:</p>
+                <div class="grid grid-cols-2 gap-1">
+                    <span>🍽️ Feed every: <span id="pattern-feed">--</span></span>
+                    <span>🎮 Play every: <span id="pattern-play">--</span></span>
+                    <span>⚡ Total actions: <span id="pattern-actions">--</span></span>
+                    <span>📉 Health: <span id="pred-health-declining">--</span></span>
+                </div>
+            </div>
+
+            <!-- Report Download -->
+            <div class="flex gap-2 mt-2">
+                <button onclick="downloadReport('weekly')" class="flex-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold hover:bg-blue-200">
+                    📄 Weekly
+                </button>
+                <button onclick="downloadReport('monthly')" class="flex-1 bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold hover:bg-purple-200">
+                    📄 Monthly
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 17.4: Plugin Management Panel -->
+    <div id="plugins-section" class="mx-4 mt-2">
+        <div class="pet-container p-4">
+            <h3 class="text-lg font-bold mb-2">🧩 Plugins</h3>
+            <div id="plugins-list" class="text-xs text-gray-600">
+                <p class="text-gray-400">Loading plugins...</p>
             </div>
         </div>
     </div>
