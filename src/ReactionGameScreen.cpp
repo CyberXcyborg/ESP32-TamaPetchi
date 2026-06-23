@@ -8,7 +8,7 @@
 
 ReactionGameScreen::ReactionGameScreen()
     : Screen("ReactionGame"),
-      _score(0), _round(0),
+      _score(0), _currentRound(0),
       _game_active(false), _bar_filling(false),
       _bar_direction(1), _green_zone_low(35), _green_zone_high(65),
       _game_timer(nullptr) {
@@ -85,7 +85,7 @@ void ReactionGameScreen::create() {
 void ReactionGameScreen::onEnter() {
     if (!_game_active) {
         _score = 0;
-        _round = 0;
+        _currentRound = 0;
         _game_active = true;
         startRound();
     }
@@ -100,8 +100,8 @@ void ReactionGameScreen::onExit() {
 }
 
 void ReactionGameScreen::startRound() {
-    _round++;
-    if (_round > 5) {
+    _currentRound++;
+    if (_currentRound > 5) {
         endGame(true);
         return;
     }
@@ -227,7 +227,7 @@ void ReactionGameScreen::gameTimerCb(lv_timer_t *timer) {
     if (!self || !self->_bar_filling) return;
     
     int val = lv_bar_get_value(self->_bar_reaction);
-    int speed = 2 + self->_round;  // Gets faster each round
+    int speed = 2 + self->_currentRound;  // Gets faster each round
     
     val += self->_bar_direction * speed;
     

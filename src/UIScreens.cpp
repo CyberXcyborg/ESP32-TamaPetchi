@@ -53,7 +53,7 @@ void MainPetScreen::createPetSprite() {
     // Pet emoji/icon inside sprite
     lv_obj_t *emoji = lv_label_create(_pet_sprite);
     lv_label_set_text(emoji, LV_SYMBOL_HOME);  // Placeholder
-    lv_obj_set_style_text_font(emoji, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(emoji, &lv_font_montserrat_12, 0);
     lv_obj_center(emoji);
 }
 
@@ -543,7 +543,7 @@ void SettingsScreen::create() {
     lv_obj_set_style_pad_all(list, 4, 0);
     
     // Sound toggle
-    lv_obj_t *item_sound = lv_list_add_btn(list, LV_SYMBOL_VOLUME_MUTE, "Sound");
+    lv_obj_t *item_sound = lv_list_add_btn(list, LV_SYMBOL_AUDIO, "Sound");
     _sw_sound = lv_switch_create(item_sound);
     lv_obj_align(_sw_sound, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_obj_add_state(_sw_sound, LV_STATE_CHECKED);
@@ -652,25 +652,28 @@ void SettingsScreen::languageHandler(lv_event_t *e) {
 }
 
 void SettingsScreen::resetBtnHandler(lv_event_t *e) {
-    // Factory reset - show lv_msgbox confirmation
+    // Factory reset - show lv_msgbox confirmation (LVGL 9.x API)
     DEBUG_PRINTF("[UI] Factory reset requested\n");
-    
-    static const char *btns[] = {"Yes", "No", ""};
-    lv_obj_t *mbox = lv_msgbox_create(NULL, "Factory Reset",
-        "This will erase all pet data.\nContinue?",
-        btns, false);
+
+    lv_obj_t *mbox = lv_msgbox_create(NULL);
+    lv_msgbox_add_title(mbox, "Factory Reset");
+    lv_msgbox_add_text(mbox, "This will erase all pet data.\nContinue?");
+    lv_msgbox_add_footer_button(mbox, "Yes");
+    lv_msgbox_add_footer_button(mbox, "No");
     lv_obj_set_size(mbox, 200, 120);
     lv_obj_center(mbox);
-    
+
     // Add event callbacks for buttons
-    lv_obj_t *btns_obj = lv_msgbox_get_btns(mbox);
-    for (int i = 0; i < 2; i++) {
-        lv_obj_t *btn = lv_obj_get_child(btns_obj, i);
+    lv_obj_t *footer = lv_msgbox_get_footer(mbox);
+    uint32_t btn_count = lv_obj_get_child_count(footer);
+    for (uint32_t i = 0; i < btn_count && i < 2; i++) {
+        lv_obj_t *btn = lv_obj_get_child(footer, i);
         if (btn) {
             lv_obj_add_event_cb(btn, [](lv_event_t *ev) {
                 lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(ev);
                 lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(ev);
-                const char *txt = lv_label_get_text(lv_obj_get_child(btn, 0));
+                lv_obj_t *label = lv_obj_get_child(btn, 0);
+                const char *txt = label ? lv_label_get_text(label) : "";
                 if (strcmp(txt, "Yes") == 0) {
                     DEBUG_PRINTF("[UI] Factory reset confirmed\n");
                     // In real implementation: trigger factory reset

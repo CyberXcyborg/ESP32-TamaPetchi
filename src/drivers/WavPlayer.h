@@ -12,6 +12,7 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+#include <LittleFS.h>
 
 // WAV constants
 #define WAV_READ_BUFFER_SIZE    4096    // 4KB read buffer
@@ -71,6 +72,10 @@ public:
     // Check if playing
     bool isPlaying() const;
 
+    // Set/get volume (0-100)
+    void setVolume(uint8_t vol) { _volume = (vol > 100) ? 100 : vol; }
+    uint8_t getVolume() const { return _volume; }
+
     // Get last error
     WavError getLastError() const;
 
@@ -99,6 +104,7 @@ private:
     bool _playing;
     WavError _lastError;
     uint8_t* _readBuffer;
+    uint8_t _volume;
 };
 
 #endif // WAV_PLAYER_H

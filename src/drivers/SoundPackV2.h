@@ -39,7 +39,7 @@ public:
     bool begin();
 
     // Get list of available sound packs
-    int getPackList(char names[][SOUNDPACK_V2_NAME_LEN], int maxPacks);
+    int getPackList(char names[][SOUNDPACK_V2_NAME_LEN], int maxPacks) const;
 
     // Load a sound pack by directory name
     bool loadPack(const char* path);

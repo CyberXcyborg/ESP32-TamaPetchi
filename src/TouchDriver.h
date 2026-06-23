@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+#include <lvgl.h>
 
 class TouchDriver {
 public:

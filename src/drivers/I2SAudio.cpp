@@ -171,8 +171,8 @@ int I2SAudio::play(const int16_t* data, size_t samples) {
         }
     }
 
-    // Wait for DMA to complete (blocking for simplicity in v1)
-    i2s_wait_tx_done(I2S_NUM_0, portMAX_DELAY);
+    // i2s_write with portMAX_DELAY blocks until DMA completes,
+    // so no explicit wait needed for this simple blocking implementation.
 
     _playing = false;
     return I2S_OK;

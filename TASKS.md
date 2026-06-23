@@ -16,10 +16,10 @@
     - 21.6 ✅ Phase 21 Verification & Integration
   - Current branch: feature/phase22-ble-nfc
   ## Phase 22 🔄 In Progress — BLE & NFC (v2.0 alpha.4)
-    - 22.1 🔄 BLE GATT Server (BLEManager) — Code written, needs compile check
-    - 22.2 🔄 BLE Protocol (BLEProtocol) — Code written, needs compile check
-    - 22.3 🔄 NFC Manager (NFCManager) — Code written, needs compile check
-    - 22.4 🔄 BLE Discovery — Code written, needs compile check
+    - 22.1 🔄 BLE GATT Server (BLEManager) — Code written, Nyra review done, needs compile check
+    - 22.2 🔄 BLE Protocol (BLEProtocol) — Code written, Nyra review done, needs compile check
+    - 22.3 🔄 NFC Manager (NFCManager) — Code written, Nyra review done, needs compile check
+    - 22.4 🔄 BLE Discovery — Code written, Nyra review done, needs compile check
     - 22.5 ❌ Integration: BLE trading game (TBD)
     - 22.6 ❌ Phase 22 verification & PR (TBD)
   - Build: RAM ~35% estimated, Flash ~58% estimated, Zero warnings (code analysis)
@@ -100,14 +100,39 @@ Nyra (project manager) assigns tasks here → Kael (developer) reads and impleme
 - Comprehensive test coverage (22 tests, all modules)
 - platformio.ini correctly excludes ESP32 sources from native build
 
-### Next steps for Kael:
-1. Run pio test to verify all 262 tests pass (240 existing + 22 new)
-2. Fix any compile errors found
-3. Implement Phase 22.5: BLE trading game (integrate BLE + NFC + pet system)
-4. Implement Phase 22.6: Integration verification and create PR
-5. Update TASKS.md with progress after each sub-task
+### Nyra's Phase 22 Re-Review (2026-06-23 — post code commit)
 
-### Build verification needed:
+Code is now written and files are present (uncommitted). Full review completed.
+
+### Issues found (updated):
+1. **BLEManager::update() is empty** — Both ESP32 and native. Needs timeout/reconnect logic in 22.5.
+2. **BLEProtocol::serializePetState() hardcoded** — Does not read from AppState_v2 pet data. Must integrate.
+3. **NFCManager::writeTag() ESP32 path** — Writes textRecord placeholder, NOT actual trade data. The real trade path uses writeNDEF (correct), but writeTag is dead code that will confuse maintainers. Should remove or implement properly.
+4. **Command handlers stubbed** — All return ACK without calling pet functions. Deferred to 22.5. Acceptable.
+5. **NFC checksum fragility** — `serializeTradePayload`/`deserializeTradePayload` use `sizeof(NFCTradePayload) - 2` for checksum range. This is compiler-padding-dependent. Recommend explicit field-by-field checksum.
+6. **BLE_NFC_Native.cpp duplication** — ~300 lines of duplicated stub logic from main .cpp. Acceptable for native test isolation but must be kept in sync.
+
+### Positive observations (confirmed):
+- Clean ESP32 vs native stub separation (#if defined(UNIT_TEST) || !defined(CHIP_ESP32_S3))
+- Ring buffer command queue well-implemented, no overflow gaps
+- NFC trade payload has magic + checksum validation
+- 22 comprehensive unit tests covering all modules
+- platformio.ini correctly excludes ESP32 sources from native build
+- test/Arduino.h equals() addition is correct and needed
+- stubs.cpp runner properly calls run_phase22_tests()
+
+### Next steps for Kael (PRIORITY ORDER):
+1. **Commit the Phase 22 code** — All files are uncommitted. Run: git add + git commit
+2. **Run `pio test native`** — Verify all 262 tests pass (240 existing + 22 new)
+3. **Run `pio run` for ESP32** — Compile check for embedded build
+4. **Fix NFCManager::writeTag()** — Remove textRecord placeholder or implement properly
+5. **Address NFC checksum fragility** — Use explicit field iteration instead of struct sizeof
+6. **Implement Phase 22.5** — BLE trading game (integrate BLE + NFC + pet system, replace hardcoded values)
+7. **Implement Phase 22.6** — Integration verification and create PR
+8. Update TASKS.md with progress after each sub-task
+
+### Build verification checklist:
 - [ ] pio test native (must pass 262/262)
 - [ ] pio run ESP32 (compile check)
-- [ ] Review BLEProtocol pet state integration with actual AppState_v2
+- [ ] NFCManager::writeTag() cleaned up
+- [ ] NFC checksum made robust against padding

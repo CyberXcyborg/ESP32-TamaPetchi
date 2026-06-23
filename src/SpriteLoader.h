@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+#include <LittleFS.h>
 
 // .spr file header (30 bytes)
 struct SprHeader {
