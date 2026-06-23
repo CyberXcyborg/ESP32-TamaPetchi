@@ -119,7 +119,7 @@ private:
 };
 
 // ============================================================
-// Games Screen — Game selection menu
+// Games Screen — Game selection menu (v2.0)
 // ============================================================
 class GamesScreen : public Screen {
 public:
@@ -128,13 +128,14 @@ public:
     void create() override;
     void onEnter() override;
     
-    typedef std::function<void(const char*)> GameSelectCallback;
+    typedef std::function<void(int)> GameSelectCallback;
     void setGameSelectCallback(GameSelectCallback cb) { _game_cb = cb; }
 
 private:
     GameSelectCallback _game_cb;
+    lv_obj_t *_list;
     
-    static void gameBtnHandler(lv_event_t *e);
+    static void listHandler(lv_event_t *e);
 };
 
 // ============================================================
@@ -159,6 +160,7 @@ private:
     
     static void switchHandler(lv_event_t *e);
     static void sliderHandler(lv_event_t *e);
+    static void languageHandler(lv_event_t *e);
     static void resetBtnHandler(lv_event_t *e);
 };
 

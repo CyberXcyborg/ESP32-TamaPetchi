@@ -83,17 +83,7 @@ private:
 // Animation State Machine
 // ============================================================
 
-enum AnimActionType {
-    ACTION_NONE = 0,
-    ACTION_FEED,
-    ACTION_PLAY,
-    ACTION_CLEAN,
-    ACTION_SLEEP,
-    ACTION_WAKE,
-    ACTION_HEAL,
-    ACTION_HAPPY,
-    ACTION_EVOLVE
-};
+// AnimActionType is defined in AnimTypes.h
 
 class AnimStateMachine {
 public:
@@ -107,6 +97,7 @@ public:
     // Get current action
     AnimActionType getCurrentAction() const { return _current_action; }
     const char* getCurrentActionName() const;
+    const char* getActionName(AnimActionType action) const;
     
     // Get the animation definition for current action
     const AnimDefinition* getCurrentAnim(uint8_t pet_stage) const;

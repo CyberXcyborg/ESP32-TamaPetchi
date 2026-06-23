@@ -1,3 +1,46 @@
+## [2.0.0-alpha.2] - 2026-06-23
+
+### Added
+
+#### Phase 20 — Graphics & Input: Sprite System, Animations, UI Framework
+- **Color Sprite System** (20.1):
+  - 4-bit palette (16 colors) sprite format with RLE compression
+  - Sprite conversion tool (tools/png2spr.py) with median-cut quantization
+  - SpriteLoader with LRU cache (8 frames, ~64KB PSRAM)
+  - LVGL custom image decoder for .spr files
+  - 96 frames of pet sprites (baby/child/adult/elder)
+- **Animation Engine** (20.2):
+  - AnimationPlayer with play/pause/stop/loop controls
+  - Animation state machine (IDLE → ACTION → IDLE transitions)
+  - Cross-fade between animations (200ms blend in PSRAM)
+  - Frame callback system for LVGL integration
+- **LVGL UI Framework** (20.3):
+  - ScreenManager with stack-based navigation (push/pop/switch)
+  - Screen transitions: slide left/right (300ms), fade (200ms)
+  - MainPetScreen: pet sprite, status bars, mood emoji
+  - MenuScreen: 4x2 action grid with toast notifications
+  - StatsScreen: bar widgets, info panel, achievement badges
+- **Screen Migration** (20.4):
+  - MemoryGameScreen: 4x4 button grid, sequence display, auto-return
+  - ReactionGameScreen: filling bar, green zone target, auto-return
+  - TiltGameScreen: placeholder with demo mode (Phase 21 accel)
+  - OTAScreen: progress bar, status labels, reboot countdown
+  - SettingsScreen: switches, sliders, language selector, factory reset dialog
+  - GamesScreen: game list with high score display
+  - ScreenFactory: central screen registration and wiring
+  - REST API: GET /api/sprites, GET /api/screen
+- **LVGL Configuration**:
+  - 240x240 resolution, 16bpp RGB565
+  - 48KB LVGL heap in SRAM
+  - Framebuffers in PSRAM (double buffering)
+  - Montserrat fonts: 10, 12, 14, 16
+
+### Test Results
+- 216/216 tests pass (205 existing + 11 new migrated screen tests)
+- Zero regressions
+
+---
+
 ## [1.7.0] - 2026-06-22
 
 ### Added

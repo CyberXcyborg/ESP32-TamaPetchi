@@ -173,7 +173,7 @@ AnimationPlayer::PlayerSlot* AnimationPlayer::findFreeSlot() {
 }
 
 void AnimationPlayer::onTimerTick(lv_timer_t *timer) {
-    PlayerSlot *slot = (PlayerSlot*)timer->user_data;
+    PlayerSlot *slot = (PlayerSlot*)lv_timer_get_user_data(timer);
     if (!slot || !slot->in_use) return;
     
     advanceFrame(slot);

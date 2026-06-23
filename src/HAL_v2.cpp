@@ -17,7 +17,7 @@ bool HAL_V2::begin() {
     SPI.begin(TFT_PIN_SCLK, -1, TFT_PIN_MOSI, -1);
     
     // Initialize I2C (for touch, accelerometer, NFC)
-    Wire.begin(OLED_SDA, OLED_SCL);  // Reuse OLED pins for I2C
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
     
     _initialized = true;
     return true;

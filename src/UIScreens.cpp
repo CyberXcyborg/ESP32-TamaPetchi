@@ -252,7 +252,7 @@ void MenuScreen::btnEventHandler(lv_event_t *e) {
     const char *actions[] = {"feed", "play", "clean", "sleep", "games", "shop", "settings", "back"};
     
     // Button press animation
-    lv_obj_t *btn = lv_event_get_target(e);
+    lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
     lv_obj_set_style_transform_zoom(btn, 240, LV_STATE_PRESSED);  // 96% scale
     
     if (idx == 7) {
@@ -299,7 +299,7 @@ void MenuScreen::showToast(const char *message) {
 }
 
 void MenuScreen::toastTimerCb(lv_timer_t *timer) {
-    lv_obj_t *toast = (lv_obj_t*)timer->user_data;
+    lv_obj_t *toast = (lv_obj_t*)lv_timer_get_user_data(timer);
     if (toast) {
         lv_obj_del(toast);
     }
@@ -448,11 +448,11 @@ void StatsScreen::updateStatsBars() {
 }
 
 // ============================================================
-// Games Screen
+// Games Screen — Game selection menu (v2.0)
 // ============================================================
 
 GamesScreen::GamesScreen()
-    : Screen("Games"), _game_cb(nullptr) {
+    : Screen("Games"), _game_cb(nullptr), _list(nullptr) {
 }
 
 void GamesScreen::create() {
@@ -461,35 +461,61 @@ void GamesScreen::create() {
     lv_obj_set_style_bg_color(_lv_screen, lv_color_hex(0x1a1a2e), 0);
     
     lv_obj_t *title = createLabel(_lv_screen, "Games", &lv_font_montserrat_16);
-    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 10);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 8);
     
-    const char *games[] = {"Memory", "Reaction", "Tilt", "Back"};
+    // Game list with icons
+    _list = lv_list_create(_lv_screen);
+    lv_obj_set_size(_list, 220, 160);
+    lv_obj_align(_list, LV_ALIGN_CENTER, 0, 10);
+    lv_obj_set_style_bg_color(_list, lv_color_hex(0x16213e), 0);
+    lv_obj_set_style_border_width(_list, 1, 0);
+    lv_obj_set_style_border_color(_list, lv_color_hex(0x333333), 0);
+    lv_obj_set_style_radius(_list, 8, 0);
+    lv_obj_set_style_pad_all(_list, 4, 0);
+    
+    // Add games to list
+    const char *game_names[] = {"Memory Game", "Reaction Time", "Tilt Game", "Back"};
+    const char *game_icons[] = {LV_SYMBOL_EYE_OPEN, LV_SYMBOL_PLAY, LV_SYMBOL_REFRESH, LV_SYMBOL_LEFT};
+    const char *game_scores[] = {"Best: --", "Best: --", "Phase 21", ""};
     
     for (int i = 0; i < 4; i++) {
-        lv_obj_t *btn = createButton(_lv_screen, games[i], 120, 40, gameBtnHandler, (void*)(intptr_t)i);
-        lv_obj_align(btn, LV_ALIGN_LEFT_MID, 60, -40 + i * 50);
+        lv_obj_t *btn = lv_list_add_btn(_list, game_icons[i], game_names[i]);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(0x1a1a2e), 0);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(0x3498DB), LV_STATE_PRESSED);
+        lv_obj_set_style_text_color(btn, lv_color_hex(0xFFFFFF), 0);
+        lv_obj_set_style_border_width(btn, 0, 0);
+        lv_obj_set_style_pad_all(btn, 8, 0);
+        lv_obj_add_event_cb(btn, listHandler, LV_EVENT_CLICKED, (void*)(intptr_t)i);
+        
+        // Add high score label
+        if (i < 3) {
+            lv_obj_t *score_lbl = lv_label_create(btn);
+            lv_label_set_text(score_lbl, game_scores[i]);
+            lv_obj_set_style_text_font(score_lbl, &lv_font_montserrat_10, 0);
+            lv_obj_set_style_text_color(score_lbl, lv_color_hex(0x888888), 0);
+            lv_obj_align(score_lbl, LV_ALIGN_RIGHT_MID, -8, 0);
+        }
     }
 }
 
 void GamesScreen::onEnter() {
 }
 
-void GamesScreen::gameBtnHandler(lv_event_t *e) {
+void GamesScreen::listHandler(lv_event_t *e) {
     int idx = (int)(intptr_t)lv_event_get_user_data(e);
-    const char *games[] = {"memory", "reaction", "tilt", "back"};
     
     if (idx == 3) {
         ScreenManager::handleBack();
     } else {
         GamesScreen *self = (GamesScreen*)ScreenManager::getCurrentScreen();
         if (self && self->_game_cb) {
-            self->_game_cb(games[idx]);
+            self->_game_cb(idx);
         }
     }
 }
 
 // ============================================================
-// Settings Screen
+// Settings Screen (v2.0) — lv_list with switches, sliders, dialogs
 // ============================================================
 
 SettingsScreen::SettingsScreen()
@@ -506,48 +532,81 @@ void SettingsScreen::create() {
     lv_obj_t *title = createLabel(_lv_screen, "Settings", &lv_font_montserrat_16);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 8);
     
+    // Settings list
+    lv_obj_t *list = lv_list_create(_lv_screen);
+    lv_obj_set_size(list, 220, 175);
+    lv_obj_align(list, LV_ALIGN_CENTER, 0, 5);
+    lv_obj_set_style_bg_color(list, lv_color_hex(0x16213e), 0);
+    lv_obj_set_style_border_width(list, 1, 0);
+    lv_obj_set_style_border_color(list, lv_color_hex(0x333333), 0);
+    lv_obj_set_style_radius(list, 8, 0);
+    lv_obj_set_style_pad_all(list, 4, 0);
+    
     // Sound toggle
-    lv_obj_t *lbl_sound = createLabel(_lv_screen, "Sound", &lv_font_montserrat_12);
-    lv_obj_align(lbl_sound, LV_ALIGN_TOP_LEFT, 20, 45);
-    _sw_sound = lv_switch_create(_lv_screen);
-    lv_obj_align(_sw_sound, LV_ALIGN_TOP_RIGHT, -20, 40);
+    lv_obj_t *item_sound = lv_list_add_btn(list, LV_SYMBOL_VOLUME_MUTE, "Sound");
+    _sw_sound = lv_switch_create(item_sound);
+    lv_obj_align(_sw_sound, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_obj_add_state(_sw_sound, LV_STATE_CHECKED);
     lv_obj_add_event_cb(_sw_sound, switchHandler, LV_EVENT_VALUE_CHANGED, (void*)"sound");
+    lv_obj_set_style_bg_color(item_sound, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_sound, 0, 0);
+    lv_obj_set_style_pad_all(item_sound, 6, 0);
     
     // Night mode toggle
-    lv_obj_t *lbl_night = createLabel(_lv_screen, "Night Mode", &lv_font_montserrat_12);
-    lv_obj_align(lbl_night, LV_ALIGN_TOP_LEFT, 20, 80);
-    _sw_night = lv_switch_create(_lv_screen);
-    lv_obj_align(_sw_night, LV_ALIGN_TOP_RIGHT, -20, 75);
+    lv_obj_t *item_night = lv_list_add_btn(list, LV_SYMBOL_EYE_CLOSE, "Night Mode");
+    _sw_night = lv_switch_create(item_night);
+    lv_obj_align(_sw_night, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_obj_add_event_cb(_sw_night, switchHandler, LV_EVENT_VALUE_CHANGED, (void*)"night_mode");
+    lv_obj_set_style_bg_color(item_night, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_night, 0, 0);
+    lv_obj_set_style_pad_all(item_night, 6, 0);
     
     // Brightness slider
-    lv_obj_t *lbl_bright = createLabel(_lv_screen, "Brightness", &lv_font_montserrat_12);
-    lv_obj_align(lbl_bright, LV_ALIGN_TOP_LEFT, 20, 115);
-    _slider_brightness = lv_slider_create(_lv_screen);
-    lv_obj_set_size(_slider_brightness, 160, 10);
-    lv_obj_align(_slider_brightness, LV_ALIGN_TOP_LEFT, 20, 135);
+    lv_obj_t *item_bright = lv_list_add_btn(list, LV_SYMBOL_CHARGE, "Brightness");
+    _slider_brightness = lv_slider_create(item_bright);
+    lv_obj_set_size(_slider_brightness, 100, 10);
+    lv_obj_align(_slider_brightness, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_slider_set_range(_slider_brightness, 10, 100);
     lv_slider_set_value(_slider_brightness, 80, LV_ANIM_OFF);
     lv_obj_add_event_cb(_slider_brightness, sliderHandler, LV_EVENT_VALUE_CHANGED, (void*)"brightness");
+    lv_obj_set_style_bg_color(item_bright, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_bright, 0, 0);
+    lv_obj_set_style_pad_all(item_bright, 6, 0);
     
     // Volume slider
-    lv_obj_t *lbl_vol = createLabel(_lv_screen, "Volume", &lv_font_montserrat_12);
-    lv_obj_align(lbl_vol, LV_ALIGN_TOP_LEFT, 20, 160);
-    _slider_volume = lv_slider_create(_lv_screen);
-    lv_obj_set_size(_slider_volume, 160, 10);
-    lv_obj_align(_slider_volume, LV_ALIGN_TOP_LEFT, 20, 180);
+    lv_obj_t *item_vol = lv_list_add_btn(list, LV_SYMBOL_VOLUME_MAX, "Volume");
+    _slider_volume = lv_slider_create(item_vol);
+    lv_obj_set_size(_slider_volume, 100, 10);
+    lv_obj_align(_slider_volume, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_slider_set_range(_slider_volume, 0, 100);
     lv_slider_set_value(_slider_volume, 50, LV_ANIM_OFF);
     lv_obj_add_event_cb(_slider_volume, sliderHandler, LV_EVENT_VALUE_CHANGED, (void*)"volume");
+    lv_obj_set_style_bg_color(item_vol, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_vol, 0, 0);
+    lv_obj_set_style_pad_all(item_vol, 6, 0);
     
-    // Factory reset button
-    lv_obj_t *btn_reset = createButton(_lv_screen, "Factory Reset", 140, 36, resetBtnHandler);
-    lv_obj_align(btn_reset, LV_ALIGN_BOTTOM_MID, 0, -50);
-    lv_obj_set_style_bg_color(btn_reset, lv_palette_main(LV_PALETTE_RED), 0);
+    // Language selector
+    lv_obj_t *item_lang = lv_list_add_btn(list, LV_SYMBOL_SETTINGS, "Language");
+    lv_obj_t *lbl_lang = lv_label_create(item_lang);
+    lv_label_set_text(lbl_lang, "EN");
+    lv_obj_align(lbl_lang, LV_ALIGN_RIGHT_MID, -4, 0);
+    lv_obj_set_style_bg_color(item_lang, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_lang, 0, 0);
+    lv_obj_set_style_pad_all(item_lang, 6, 0);
+    lv_obj_add_event_cb(item_lang, languageHandler, LV_EVENT_CLICKED, this);
     
-    // Back button
-    lv_obj_t *btn_back = createButton(_lv_screen, "Back", 80, 36, resetBtnHandler, (void*)1);
+    // Factory reset
+    lv_obj_t *item_reset = lv_list_add_btn(list, LV_SYMBOL_TRASH, "Factory Reset");
+    lv_obj_set_style_text_color(item_reset, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_obj_set_style_bg_color(item_reset, lv_color_hex(0x1a1a2e), 0);
+    lv_obj_set_style_border_width(item_reset, 0, 0);
+    lv_obj_set_style_pad_all(item_reset, 6, 0);
+    lv_obj_add_event_cb(item_reset, resetBtnHandler, LV_EVENT_CLICKED, (void*)0);
+    
+    // Back button (standalone)
+    lv_obj_t *btn_back = createButton(_lv_screen, "Back", 80, 36, [](lv_event_t *e) {
+        ScreenManager::handleBack();
+    }, nullptr);
     lv_obj_align(btn_back, LV_ALIGN_BOTTOM_MID, 0, -10);
 }
 
@@ -555,7 +614,7 @@ void SettingsScreen::onEnter() {
 }
 
 void SettingsScreen::switchHandler(lv_event_t *e) {
-    lv_obj_t *sw = lv_event_get_target(e);
+    lv_obj_t *sw = (lv_obj_t *)lv_event_get_target(e);
     const char *setting = (const char*)lv_event_get_user_data(e);
     bool state = lv_obj_has_state(sw, LV_STATE_CHECKED);
     
@@ -566,28 +625,59 @@ void SettingsScreen::switchHandler(lv_event_t *e) {
 }
 
 void SettingsScreen::sliderHandler(lv_event_t *e) {
-    lv_obj_t *slider = lv_event_get_target(e);
+    lv_obj_t *slider = (lv_obj_t *)lv_event_get_target(e);
     const char *setting = (const char*)lv_event_get_user_data(e);
     int value = lv_slider_get_value(slider);
     
+    DEBUG_PRINTF("[UI] Setting '%s' = %d\n", setting, value);
+    
     SettingsScreen *self = (SettingsScreen*)ScreenManager::getCurrentScreen();
     if (self && self->_setting_cb) {
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%s=%d", setting, value);
+        // Pass value as bool (true if > 50) for backward compatibility
+        // In a full implementation, use a variant callback
         self->_setting_cb(setting, value > 50);
     }
 }
 
-void SettingsScreen::resetBtnHandler(lv_event_t *e) {
-    lv_obj_t *btn = lv_event_get_current_target(e);
-    void *user_data = lv_event_get_user_data(e);
+void SettingsScreen::languageHandler(lv_event_t *e) {
+    // Cycle through languages: EN -> ES -> FR -> DE -> JA -> EN
+    static const char *lang_codes[] = {"EN", "ES", "FR", "DE", "JA"};
+    static const char *lang_names[] = {"English", "Espanol", "Francais", "Deutsch", "Japanese"};
+    static int lang_idx = 0;
     
-    if (user_data == (void*)1) {
-        // Back button
-        ScreenManager::handleBack();
-    } else {
-        // Factory reset - show confirmation
-        DEBUG_PRINTF("[UI] Factory reset requested\n");
-        // In a real implementation, show lv_msgbox confirmation
+    lang_idx = (lang_idx + 1) % 5;
+    DEBUG_PRINTF("[UI] Language changed to %s (%s)\n", lang_codes[lang_idx], lang_names[lang_idx]);
+    
+    // In a real implementation, update i18n and persist to config
+}
+
+void SettingsScreen::resetBtnHandler(lv_event_t *e) {
+    // Factory reset - show lv_msgbox confirmation
+    DEBUG_PRINTF("[UI] Factory reset requested\n");
+    
+    static const char *btns[] = {"Yes", "No", ""};
+    lv_obj_t *mbox = lv_msgbox_create(NULL, "Factory Reset",
+        "This will erase all pet data.\nContinue?",
+        btns, false);
+    lv_obj_set_size(mbox, 200, 120);
+    lv_obj_center(mbox);
+    
+    // Add event callbacks for buttons
+    lv_obj_t *btns_obj = lv_msgbox_get_btns(mbox);
+    for (int i = 0; i < 2; i++) {
+        lv_obj_t *btn = lv_obj_get_child(btns_obj, i);
+        if (btn) {
+            lv_obj_add_event_cb(btn, [](lv_event_t *ev) {
+                lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(ev);
+                lv_obj_t *mbox = (lv_obj_t *)lv_event_get_user_data(ev);
+                const char *txt = lv_label_get_text(lv_obj_get_child(btn, 0));
+                if (strcmp(txt, "Yes") == 0) {
+                    DEBUG_PRINTF("[UI] Factory reset confirmed\n");
+                    // In real implementation: trigger factory reset
+                }
+                lv_msgbox_close(mbox);
+            }, LV_EVENT_CLICKED, mbox);
+        }
     }
+    (void)e;
 }
