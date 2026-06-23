@@ -1,5 +1,5 @@
 // ============================================================
-// DisplayDriver.h — LVGL Display Driver for ST7789
+// DisplayDriver.h — LVGL Display Driver for ST7789 (LVGL 9.x)
 // ============================================================
 
 #ifndef DISPLAY_DRIVER_H
@@ -7,6 +7,7 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+#include <lvgl.h>
 
 class DisplayDriver {
 public:
@@ -15,8 +16,8 @@ public:
     static void backlightOn();
     static void backlightOff();
     
-    // LVGL callbacks
-    static void lvFlushCb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p);
+    // LVGL 9.x flush callback
+    static void lvFlushCb(lv_disp_t *disp, const lv_area_t *area, uint8_t *px_map);
     
     // Getters
     static uint16_t getWidth() { return TFT_WIDTH; }
@@ -24,8 +25,6 @@ public:
     static lv_disp_t* getDisplay() { return _disp; }
     
 private:
-    static lv_disp_draw_buf_t _draw_buf;
-    static lv_disp_drv_t _disp_drv;
     static lv_disp_t *_disp;
     static lv_color_t *_buf1;
     static lv_color_t *_buf2;

@@ -64,6 +64,23 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🎨 **Pre-compressed Web UI**: Gzip-compressed SPIFFS assets (124KB → 21KB)
 - 💾 **CRC32 Backup Verification**: Checksum-protected backup/restore with validation endpoint
 - ♿ **Enhanced Accessibility**: Screen reader support, WCAG 2.1 AA compliance, semantic HTML roles
+- 🎨 **LVGL Color UI** (v2.0): 240x240 TFT display with LVGL graphics library, color sprites, animations
+- 🖼️ **Color Sprite System**: 4-bit palette (16 colors) with RLE compression, 96 animation frames
+- 🎬 **Animation Engine**: Play/pause/stop/loop, state machine, cross-fade transitions
+- 📱 **Touch Input**: XPT2046 resistive touch with LVGL indev driver
+- 🎮 **LVGL Game Screens**: Memory game (4x4 grid), Reaction time game, Tilt game (placeholder)
+- ⚙️ **LVGL Settings**: Toggle switches, sliders, language selector, factory reset dialog
+- 🔄 **LVGL OTA Screen**: Progress bar, status labels, reboot countdown
+- 📊 **Screen Manager**: Stack-based navigation with slide/fade transitions
+- 🌐 **v2.0 REST API**: /api/sprites, /api/screen for LVGL-compatible web dashboard
+
+## v2.0 Development Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 19 | ESP-IDF migration, LVGL display, touch input, LittleFS | ✅ v2.0.0-alpha.1 |
+| 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
+| 21 | Accelerometer, BLE companion app, multi-pet, sound upgrade | ⬜ Planned |
 
 
 ## Why This Hits Different
@@ -242,7 +259,9 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 || GET | `/api/provisioning/deviceid` | Get unique device ID |
 || GET | `/api/ota/delta/status` | Get OTA delta status |
 || POST | `/api/ota/delta/check` | Check manifest for available delta |
-|| POST | `/api/ota/delta` | Upload and apply delta patch |
+||| POST | `/api/ota/delta` | Upload and apply delta patch |
+| GET | `/api/sprites` | List all loaded sprites with metadata |
+| GET | `/api/screen` | Get current screen name and pet state JSON |
 
 ### WebSocket
 Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:
@@ -303,7 +322,7 @@ Quick start:
 
 - **Batch Flash**: `python3 scripts/flash-batch.py --all` — flash multiple ESP32 devices
 - **24h Simulation**: `python3 scripts/simulate-24h.py` — run health checks and metrics
-- **Unit Tests**: `pio test -e native` — 152 tests covering pet logic, API, achievements, backup/restore
+- **Unit Tests**: `pio test -e native` — 216 tests covering pet logic, API, achievements, backup/restore, sprites, animations, screen management
 
 ## Support the Project
 

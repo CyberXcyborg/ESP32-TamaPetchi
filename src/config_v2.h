@@ -145,6 +145,10 @@
 #define BUTTON_CLEAN_PIN     -1    // Not connected
 #define BUTTON_SLEEP_PIN     -1    // Not connected
 
+// --- I2C (for touch, accelerometer, NFC) ---
+#define I2C_SDA_PIN         21
+#define I2C_SCL_PIN         22
+
 // --- Battery ADC ---
 #define BATTERY_ADC_PIN      1     // GPIO1 (ADC1_CH0 on ESP32-S3)
 #define BATTERY_VOLTAGE_MAX  4.2f

@@ -1,17 +1,14 @@
 // ============================================================
-// DisplayDriver.cpp — LVGL Display Driver Implementation
+// DisplayDriver.cpp — LVGL Display Driver Implementation (LVGL 9.x)
 // Uses TFT_eSPI for ST7789 SPI display
 // ============================================================
 
 #include "DisplayDriver.h"
 #include <TFT_eSPI.h>
-#include <lvgl.h>
 #include <esp_heap_caps.h>
 
 static TFT_eSPI tft = TFT_eSPI();
 
-lv_disp_draw_buf_t DisplayDriver::_draw_buf;
-lv_disp_drv_t DisplayDriver::_disp_drv;
 lv_disp_t *DisplayDriver::_disp = NULL;
 lv_color_t *DisplayDriver::_buf1 = NULL;
 lv_color_t *DisplayDriver::_buf2 = NULL;
@@ -49,40 +46,35 @@ bool DisplayDriver::begin() {
     
     DEBUG_PRINTF("[Display] Buffers: %d pixels each\n", buf_size);
     
-    // Initialize LVGL display buffer
-    lv_disp_draw_buf_init(&_draw_buf, _buf1, _buf2, buf_size);
-    
-    // Initialize LVGL display driver
-    lv_disp_drv_init(&_disp_drv);
-    _disp_drv.hor_res = TFT_WIDTH;
-    _disp_drv.ver_res = TFT_HEIGHT;
-    _disp_drv.flush_cb = lvFlushCb;
-    _disp_drv.draw_buf = &_draw_buf;
-    _disp_drv.full_refresh = 0;
-    _disp_drv.sw_rotate = 0;
-    
-    _disp = lv_disp_drv_register(&_disp_drv);
-    
-    if (_disp) {
-        _ready = true;
-        DEBUG_PRINTLN("[Display] LVGL display initialized successfully");
-    } else {
-        DEBUG_PRINTLN("[Display] ERROR: LVGL display registration failed!");
+    // LVGL 9.x display creation and configuration
+    _disp = lv_display_create(TFT_WIDTH, TFT_HEIGHT);
+    if (!_disp) {
+        DEBUG_PRINTLN("[Display] ERROR: lv_display_create failed!");
+        return false;
     }
+    
+    // Set display buffers (partial render mode)
+    lv_display_set_buffers(_disp, _buf1, _buf2, buf_size * sizeof(lv_color_t), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    
+    // Set flush callback
+    lv_display_set_flush_cb(_disp, lvFlushCb);
+    
+    _ready = true;
+    DEBUG_PRINTLN("[Display] LVGL 9.x display initialized successfully");
     
     return _ready;
 }
 
-void DisplayDriver::lvFlushCb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p) {
+void DisplayDriver::lvFlushCb(lv_disp_t *disp, const lv_area_t *area, uint8_t *px_map) {
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
     
     tft.startWrite();
     tft.setAddrWindow(area->x1, area->y1, w, h);
-    tft.pushColors((uint16_t *)&color_p->full, w * h, true);
+    tft.pushColors((uint16_t *)px_map, w * h, true);
     tft.endWrite();
     
-    lv_disp_flush_ready(drv);
+    lv_display_flush_ready(disp);
 }
 
 void DisplayDriver::setBrightness(uint8_t level) {
