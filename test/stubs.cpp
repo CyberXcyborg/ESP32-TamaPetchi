@@ -114,6 +114,7 @@ int run_spriteloader_tests();
 int run_animation_tests();
 int run_screenmanager_tests();
 int run_migrated_screen_tests();
+int run_phase21_tests();
 
 int main() {
   printf("=== TamaPetchi Native Unit Tests ===\n\n");
@@ -134,6 +135,8 @@ int main() {
   run_screenmanager_tests();
   printf("\n");
   run_migrated_screen_tests();
+  printf("\n");
+  run_phase21_tests();
   printf("\n=== All native tests PASSED ===\n");
   return 0;
 }
