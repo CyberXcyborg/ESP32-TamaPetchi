@@ -14,10 +14,16 @@
     - 21.4 ✅ LIS3DH Accelerometer Driver
     - 21.5 ✅ Tilt-Based Interactions & Games
     - 21.6 ✅ Phase 21 Verification & Integration
-  - Phase 22 🔄 Not Started — BLE & NFC (v2.0 alpha.4)
-  - Current branch: develop
+  - Current branch: feature/phase22-ble-nfc
+  ## Phase 22 🔄 In Progress — BLE & NFC (v2.0 alpha.4)
+    - 22.1 🔄 BLE GATT Server (BLEManager) — Code written, needs compile check
+    - 22.2 🔄 BLE Protocol (BLEProtocol) — Code written, needs compile check
+    - 22.3 🔄 NFC Manager (NFCManager) — Code written, needs compile check
+    - 22.4 🔄 BLE Discovery — Code written, needs compile check
+    - 22.5 ❌ Integration: BLE trading game (TBD)
+    - 22.6 ❌ Phase 22 verification & PR (TBD)
   - Build: RAM ~35% estimated, Flash ~58% estimated, Zero warnings (code analysis)
-  - Tests: 240/240 native tests pass ✅
+  - Tests: 240 existing + 22 new Phase 22 tests (pending compile check)
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -64,3 +70,44 @@ Phase 21 (feature/phase21-audio-sensors) merged 2026-06-23 — PR #18.
 
 ## How This Works
 Nyra (project manager) assigns tasks here → Kael (developer) reads and implements → Kael creates PR → Nyra reviews → Nyra assigns next phase
+
+
+---
+
+## Nyra's Phase 22 Review (2026-06-23)
+
+### Status: Code review complete — Awaiting compile check
+
+### What was reviewed:
+- BLEManager.h/cpp — GATT server with NimBLE, command queue, singleton pattern
+- BLEProtocol.h/cpp — JSON-based command/response protocol
+- BLEDiscovery.h/cpp — Peer discovery with RSSI filtering
+- NFCManager.h/cpp — PN532 I2C communication, pet trading via NDEF
+- test/test_phase22.cpp — 22 unit tests covering all modules
+- test/BLE_NFC_Native.cpp — Native stub implementations
+- platformio.ini — Build filter updates for Phase 22
+
+### Issues found (non-blocking):
+1. **BLEManager::update() is empty** — Placeholder only. Needs timeout/reconnect logic in 22.5 integration.
+2. **BLEProtocol::serializePetState() uses hardcoded values** — Pet data is placeholder. Must integrate with AppState_v2 in 22.5.
+3. **NFCManager writeTag uses textRecord** — ESP32 build writes text record instead of MIME type. Minor — actual trade path uses writeNDEF correctly.
+4. **Command handlers stubbed** — All return ACK without calling actual pet functions. Deferred to 22.5 integration. Acceptable.
+
+### Positive observations:
+- Clean ESP32 vs native stub separation
+- Ring buffer command queue well-implemented
+- NFC trade payload includes checksum validation
+- Comprehensive test coverage (22 tests, all modules)
+- platformio.ini correctly excludes ESP32 sources from native build
+
+### Next steps for Kael:
+1. Run pio test to verify all 262 tests pass (240 existing + 22 new)
+2. Fix any compile errors found
+3. Implement Phase 22.5: BLE trading game (integrate BLE + NFC + pet system)
+4. Implement Phase 22.6: Integration verification and create PR
+5. Update TASKS.md with progress after each sub-task
+
+### Build verification needed:
+- [ ] pio test native (must pass 262/262)
+- [ ] pio run ESP32 (compile check)
+- [ ] Review BLEProtocol pet state integration with actual AppState_v2
