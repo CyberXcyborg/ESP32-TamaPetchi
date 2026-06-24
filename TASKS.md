@@ -14,8 +14,7 @@
     - 21.4 ✅ LIS3DH Accelerometer Driver
     - 21.5 ✅ Tilt-Based Interactions & Games
     - 21.6 ✅ Phase 21 Verification & Integration
-  - Current branch: feature/phase22-ble-nfc
-  ## Phase 22 ✅ Complete — BLE & NFC (v2.0 alpha.4)
+    ## Phase 22 ✅ Complete — BLE & NFC (v2.0 alpha.4)
     - 22.1 ✅ BLE GATT Server (BLEManager) — NimBLE v2.x, command queue, singleton
     - 22.2 ✅ BLE Protocol (BLEProtocol) — JSON command/response protocol
     - 22.3 ✅ NFC Manager (NFCManager) — PN532 I2C, NDEF, field-by-field checksum
@@ -24,6 +23,7 @@
     - 22.6 ✅ Phase 22 verification & PR — All 216 native tests pass
   - Build: RAM ~38% estimated, Flash ~62% estimated
   - Tests: 216/216 native tests pass ✅ (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
+  - PR #19 merged to develop → tagged v2.0.0-alpha.4 (2026-06-24)
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -46,6 +46,7 @@
 | 19 | v2.0 Foundation — ESP32-S3 build system, LVGL display, core port, touch input | v2.0.0-alpha.1 |
 | 20 | Graphics & Input — Color sprites, animation engine, LVGL UI, screen migration | v2.0.0-alpha.2 |
 | 21 | Audio & Sensors — I2S audio, WAV decoder, LIS3DH accelerometer, tilt games | v2.0.0-alpha.3 |
+| 22 | BLE & NFC — GATT server, protocol, discovery, NFC manager, BLE trade game | v2.0.0-alpha.4 |
 
 ---
 
