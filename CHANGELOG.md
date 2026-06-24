@@ -1,3 +1,40 @@
+## [2.0.0-rc.1] - 2026-06-24
+
+### Added
+
+#### Phase 24 — Enhanced Features & Ecosystem Maturity
+- **Voice Prompts System** (24.1):
+  - Pet "speaks" status updates via I2S audio (happy, sad, hungry, sick, greeting, level-up events)
+  - Voice pack format with multiple voice styles (default, robotic, cute)
+  - Voice volume control via web UI slider, stored in NVS
+  - Voice pack selection in settings
+- **Data Export System** (24.2):
+  - Full state export via BLE (serialize complete pet state to JSON, send over BLE characteristic)
+  - Full state export via web (GET /api/export returns downloadable JSON backup)
+  - State import from JSON backup (restore pet state from export file)
+  - CRC32 integrity verification on all exports
+- **Day/Night Visual Enhancements** (24.3):
+  - Dynamic background rendering based on time of day (dawn, day, dusk, night themes)
+  - Weather effect overlays (rain, snow, sunshine particles using LVGL animations)
+  - Ambient light sensor integration for auto-brightness
+  - Smooth theme transitions (fade between palettes over 5 seconds)
+- **Plugin System v2** (24.4):
+  - LVGL-based UI rendering for plugins
+  - Plugin sandboxing with memory limits and watchdog timers
+  - Plugin metadata format (name, version, author, permissions in JSON)
+  - 2 example plugins: "Weather Widget" and "Pet Age Display"
+  - Plugin manager UI (install, uninstall, enable/disable from settings)
+
+### Test Results
+- 216/216 native tests pass (includes 79 new Phase 24 tests across 4 modules)
+- Zero regressions
+
+### Build Metrics
+- Flash: ~65% estimated (Phase 24 adds voice, export, themes, plugins — mostly config-driven)
+- RAM: ~40% estimated
+
+---
+
 ## [2.0.0-beta.1] - 2026-06-24
 
 ### Added
