@@ -24,6 +24,7 @@
   - Build: RAM ~38% estimated, Flash ~62% estimated
   - Tests: 216/216 native tests pass ✅ (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
   - PR #19 merged to develop → tagged v2.0.0-alpha.4 (2026-06-24)
+- Phase 23 🔄 Assigned — Power Management & OTA v2 (v2.0.0-beta.1)
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -178,3 +179,75 @@ Fix: Replace with field-by-field initialization
 5. ⚠️ Run pio run -e esp32dev - Pre-existing v1.x/v2.0 coexistence errors (PetStage enum conflict in Pet.h vs Pet_v2.h). Native tests verify all new code.
 6. ✅ Implement Phase 22.6 - Integration verification, update TASKS.md, create PR
 7. ✅ Phase 22 complete - Ready for Phase 23 (Power Management and OTA v2)
+
+---
+
+## Phase 23: Power Management & OTA v2 (v2.0.0-beta.1)
+
+**Branch:** feature/phase23-power-ota
+**Goal:** Optimize power consumption, implement battery-aware behavior, OTA v2 with A/B partitions, and prepare for beta release.
+**Target:** v2.0.0-beta.1
+
+### Tasks
+
+#### 23.1: Power Management Integration
+- [ ] Integrate PowerManager with main loop (light sleep between frames when idle)
+- [ ] Implement wake-on-button, wake-on-timer, and wake-on-BLE
+- [ ] Add battery level monitoring via ADC (LiPo voltage divider)
+- [ ] Implement battery-aware behavior (reduce brightness, slow animations on low battery)
+- [ ] Add state preservation across light sleep (pet state, game state to RTC memory)
+- [ ] Create test/test_phase23.cpp with power management unit tests
+
+#### 23.2: OTA v2 — A/B Partition Support
+- [ ] Implement OTAUpdater with A/B partition support (ESP-IDF native)
+- [ ] Add OTA rollback on failed boot (auto-revert to previous working firmware)
+- [ ] Implement OTA signature verification (Ed25519 or simple hash)
+- [ ] Add OTA progress UI (LVGL progress bar with status text)
+- [ ] Create test/test_ota_v2.cpp with OTA unit tests (mock partition operations)
+
+#### 23.3: Battery & Charge Management
+- [ ] Implement battery fuel gauge (voltage to percentage mapping for LiPo)
+- [ ] Add charge state detection (charging via TP4056 GPIO read)
+- [ ] Implement charge-aware behavior (faster animations when charging, power-save when discharging)
+- [ ] Add battery stats to web dashboard (current percentage, estimated hours remaining)
+- [ ] Create test/test_battery.cpp with battery estimation tests
+
+#### 23.4: System Integration & Polish
+- [ ] Integrate all Phase 22 modules into main loop (BLE, NFC, Audio, Sensors, Graphics)
+- [ ] Fix any cross-module conflicts (SPI bus sharing between display and NFC)
+- [ ] Implement watchdog timer (task watchdog for render loop and app loop)
+- [ ] Add crash recovery (save state on crash, restore on boot)
+- [ ] Performance profiling — verify 30 FPS on LVGL with all systems active
+- [ ] Memory audit — verify RAM less than 50%, Flash less than 80% on ESP32-S3
+
+#### 23.5: Test Suite & Release Prep
+- [ ] Run full native test suite — all tests must pass
+- [ ] Create test/test_phase23_5.cpp for integration tests
+- [ ] Update platformio.ini with Phase 23 build flags
+- [ ] Update README.md with v2.0 hardware requirements and pinout
+- [ ] Create CHANGELOG.md entry for v2.0.0-beta.1
+- [ ] Tag v2.0.0-beta.1 after all tests pass
+
+#### 23.6: Phase 23 Verification & PR
+- [ ] Run pio test native — all tests pass
+- [ ] Run pio run -e esp32dev — compiles cleanly
+- [ ] Update TASKS.md with Phase 23 progress
+- [ ] Create PR: feature/phase23-power-ota to develop
+- [ ] Merge and tag v2.0.0-beta.1
+
+### Build Verification Checklist
+- [ ] pio test native — all tests pass
+- [ ] pio run -e esp32dev — compiles cleanly
+- [ ] Power management integrates with main loop without breaking existing features
+- [ ] OTA v2 rollback works (mock test)
+- [ ] Battery estimation accurate within 10%
+- [ ] 30 FPS maintained with all systems active
+- [ ] RAM usage less than 50%, Flash usage less than 80%
+
+### Implementation Rules
+- Branch from develop: feature/phase23-power-ota
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push when all features done
+- Create PR when complete
