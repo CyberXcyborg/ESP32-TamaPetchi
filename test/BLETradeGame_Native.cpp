@@ -31,6 +31,25 @@ PetEngine::PetEngine() {
     _data.generation = 0;
 }
 
+void PetEngine::init() {
+    _data.name = "Tama";
+    _data.hunger = 80;
+    _data.happiness = 70;
+    _data.energy = 90;
+    _data.cleanliness = 85;
+    _data.health = 100;
+    _data.age_minutes = 0;
+    _data.birth_timestamp = 0;
+    _data.stage = PET_STAGE_BABY;
+    _data.state = PET_STATE_IDLE;
+    _data.generation = 1;
+}
+
+void PetEngine::update() {
+    if (_data.hunger > 0) _data.hunger--;
+    if (_data.happiness > 0) _data.happiness--;
+}
+
 BLETradeGame::BLETradeGame()
     : _initialized(false)
 {

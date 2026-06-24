@@ -117,6 +117,7 @@ int run_migrated_screen_tests();
 int run_phase21_tests();
 int run_phase22_tests();
 int run_phase22_5_tests();
+int run_phase23_tests();
 
 int main() {
   printf("=== TamaPetchi Native Unit Tests ===\\n\\n");
@@ -152,6 +153,11 @@ int main() {
   printf("About to call run_phase22_5_tests...\\n");
   fflush(stdout);
   run_phase22_5_tests();
+  printf("\\n=== PHASE 22.5 DONE ===\\n");
+  fflush(stdout);
+  printf("About to call run_phase23_tests...\\n");
+  fflush(stdout);
+  run_phase23_tests();
   printf("\\n=== ALL DONE ===\\n");
   fflush(stdout);
   printf("\\n=== All native tests PASSED ===\\n");
