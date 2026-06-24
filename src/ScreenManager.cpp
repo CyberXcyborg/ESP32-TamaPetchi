@@ -3,6 +3,7 @@
 // ============================================================
 
 #include "ScreenManager.h"
+#include "config_v2.h"
 
 // Static members
 ScreenManager::ScreenStackEntry ScreenManager::_stack[SCREEN_MANAGER_MAX_SCREENS];

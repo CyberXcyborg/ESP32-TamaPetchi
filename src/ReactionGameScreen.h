@@ -29,7 +29,7 @@ private:
     
     // Game state
     int _score;
-    int _round;
+    int _currentRound;
     bool _game_active;
     bool _bar_filling;
     int _bar_direction;            // 1 = filling, -1 = emptying

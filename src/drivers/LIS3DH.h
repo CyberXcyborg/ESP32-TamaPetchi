@@ -118,7 +118,7 @@ public:
     bool begin(uint8_t address = LIS3DH_ADDR_LOW);
     
     // Shutdown
-    end();
+    void end();
 
     // Read raw XYZ values (raw ADC counts)
     bool read(int16_t& x, int16_t& y, int16_t& z);

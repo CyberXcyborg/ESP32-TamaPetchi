@@ -71,7 +71,7 @@ bool SoundPackManager::begin() {
     return true;
 }
 
-int SoundPackManager::getPackList(char names[][SOUNDPACK_V2_NAME_LEN], int maxPacks) {
+int SoundPackManager::getPackList(char names[][SOUNDPACK_V2_NAME_LEN], int maxPacks) const {
     int count = 0;
 
     File dir = LittleFS.open(SOUNDPACK_V2_DIR);

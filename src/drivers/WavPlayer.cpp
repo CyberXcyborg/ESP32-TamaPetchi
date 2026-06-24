@@ -17,7 +17,7 @@ WavPlayer& WavPlayer::getInstance() {
 
 WavPlayer::WavPlayer()
     : _initialized(false), _playing(false),
-      _lastError(WAV_OK), _readBuffer(nullptr) {
+      _lastError(WAV_OK), _readBuffer(nullptr), _volume(80) {
 }
 
 WavPlayer::~WavPlayer() {
@@ -111,7 +111,7 @@ bool WavPlayer::isPlaying() const {
     return _playing;
 }
 
-WavPlayer::WavError WavPlayer::getLastError() const {
+WavError WavPlayer::getLastError() const {
     return _lastError;
 }
 

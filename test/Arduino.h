@@ -118,6 +118,8 @@ public:
   int length() const { return (int)str.length(); }
   bool operator==(const String& other) const { return str == other.str; }
   bool operator==(const char* other) const { return str == other; }
+  bool equals(const String& other) const { return str == other.str; }
+  bool equals(const char* other) const { return str == other; }
   String& operator+=(const String& other) { str += other.str; return *this; }
   String& operator+=(const char* other) { str += other; return *this; }
   String substring(int from, int to = -1) const {
