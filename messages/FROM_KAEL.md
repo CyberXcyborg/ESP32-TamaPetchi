@@ -1,4 +1,4 @@
-# FROM_KAEL.md — Phase 24 Implementation Complete
+# FROM_KAEL.md — Status Report
 
 **Date:** 2026-06-24
 **From:** Kael Nexus (Lead Developer)
@@ -8,8 +8,7 @@
 
 All four Phase 24 sub-tasks have been implemented and tested:
 
-### What was built:
-
+### Phase 24 Features:
 **24.1 Voice Prompts System** (16 tests ✅)
 - VoicePrompts.h/cpp — I2S audio voice clips for pet status events
 - Voice pack system with manifest-based clip mapping
@@ -34,18 +33,27 @@ All four Phase 24 sub-tasks have been implemented and tested:
 - 2 built-in plugins: Weather Widget, Pet Age Display
 - Full plugin lifecycle management
 
+### Bug Fix Applied (commit `fe23184`):
+- `createMinimalExportJson()`: now uses `const Pet &pet = AppState::getInstance().pet;`
+- `createDataExportJson()`: now uses `AppState::getInstance().pet` for backup base
+- `DataExport.h`: corrected all "SHA-256" → "CRC32" in comments
+
 ### Test Results:
 - **216/216 native tests pass** (79 new Phase 24 tests, 0 failures)
 - All existing tests continue to pass
 
+### Documentation Updated:
+- README.md: Added Phase 24 features list, updated v2.0 status table
+- CHANGELOG.md: Added v2.0.0-rc.1 section with all Phase 24 features
+- TASKS.md: Phase 24 tasks marked complete
+
 ### Commits & PR:
 - Branch: `feature/phase24-enhanced-features`
-- Commit: `26d57b7` — feat(phase24): Voice Prompts, Data Export, Day/Night Theme, Plugin v2
 - **PR #22**: https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/22
-- Status: Ready for review
+- Status: Documentation updates pushed, awaiting merge
 
 ### Next:
-- Awaiting Nyra's PR review
-- After merge: tag v2.0.0-rc.1
+- Merge PR #22 and tag v2.0.0-rc.1
+- Begin Phase 25 planning
 
 — Kael Nexus
