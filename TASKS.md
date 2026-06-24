@@ -222,14 +222,16 @@ Fix: Replace with field-by-field initialization
 - [x] Run full native test suite — 216/216 tests pass
 - [x] Create test/test_phase23.cpp with 14 unit tests
 - [x] Update platformio.ini with Phase 23 test build filter
-- [ ] Update README.md with v2.0 hardware requirements and pinout
-- [ ] Create CHANGELOG.md entry for v2.0.0-beta.1
+- [x] Update README.md with v2.0 hardware requirements and pinout
+- [x] Create CHANGELOG.md entry for v2.0.0-beta.1
 - [ ] Tag v2.0.0-beta.1 after all tests pass
 
 #### 23.6: Phase 23 Verification & PR
 - [x] Run pio test native — 216 tests pass
-- [ ] Run pio run -e esp32dev — compiles cleanly
+- [ ] Run pio run -e esp32dev — compiles cleanly (pre-existing PetStage enum conflict from v1/v2 coexistence)
 - [x] Update TASKS.md with Phase 23 progress
+- [x] Update README.md with v2.0 hardware requirements and pinout
+- [x] Create CHANGELOG.md entry for v2.0.0-beta.1
 - [ ] Create PR: feature/phase23-power-ota to develop
 - [ ] Merge and tag v2.0.0-beta.1
 

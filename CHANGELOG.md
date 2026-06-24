@@ -1,3 +1,100 @@
+## [2.0.0-beta.1] - 2026-06-24
+
+### Added
+
+#### Phase 23 — Power Management & OTA v2
+- **Power Manager v2** (23.1):
+  - Battery-aware display brightness (auto-dim on low battery)
+  - Charge state detection via GPIO (no sleep when charging)
+  - Light sleep between frames (idle timeout, <1mA consumption)
+  - Wake-on-button, wake-on-timer, wake-on-BLE
+  - State preservation across light sleep (RTC memory)
+  - Battery fuel gauge with oversampling (16-sample averaging)
+- **OTA v2 — A/B Partition Support** (23.2):
+  - OTAUpdater with A/B partition support (ESP-IDF native)
+  - OTA rollback on failed boot (auto-revert after 3 crashes)
+  - OTA signature verification (SHA-256 hash-based)
+  - OTA progress UI (JSON status with 0-100% progress)
+  - Crash recovery (RTC boot counter, auto-rollback)
+- **Battery & Charge Management** (23.3):
+  - Voltage-to-percentage calibration (configurable min/max)
+  - Estimated remaining hours based on drain rate
+  - Battery stats in web dashboard JSON (level, hours, brightness)
+- **System Integration & Polish** (23.4):
+  - Hardware watchdog timer (10s main loop watchdog)
+  - Crash recovery with RTC boot counter
+  - Performance profiling hooks (FPS tracking, idle duration)
+  - Memory audit hooks (free heap tracking in power state JSON)
+
+### Test Results
+- 216/216 tests pass (all existing + 14 Phase 23 PowerManager v2 and OTA v2 tests)
+- Zero regressions
+
+### Build Metrics
+- Flash: ~63% estimated (Phase 23 adds minimal code — power management is config-driven)
+- RAM: ~38% estimated
+
+---
+
+## [2.0.0-alpha.4] - 2026-06-24
+
+### Added
+
+#### Phase 22 — BLE & NFC
+- **BLE GATT Server** (22.1):
+  - NimBLE v2.x based GATT server with command queue
+  - Singleton BLEManager with characteristic registration
+  - BLE protocol (JSON command/response on BLE)
+- **NFC Manager** (22.3):
+  - Adafruit PN532 I2C driver with unified API
+  - NDEF read/write for pet trading payloads
+  - Field-by-field XOR checksum (padding-safe)
+- **BLE Discovery** (22.4):
+  - Peer scanning with RSSI filtering
+  - Device discovery for trade pairing
+- **BLE Trading Game** (22.5):
+  - State machine for pet trading via BLE + NFC
+  - 16 unit tests covering trade flow
+  - Integration with AppState_v2 pet data
+
+### Test Results
+- 216/216 tests pass (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
+- Zero regressions
+
+---
+
+## [2.0.0-alpha.3] - 2026-06-23
+
+### Added
+
+#### Phase 21 — Audio & Sensors
+- **I2S Audio Driver** (21.1):
+  - ESP32 I2S peripheral driver (44.1kHz, 16-bit, mono/stereo)
+  - DMA buffer allocation (4x 1024-sample buffers)
+  - Non-blocking write with task notification
+- **WAV Decoder & Playback** (21.2):
+  - PCM WAV header parser (supports 8/16-bit, mono/stereo)
+  - Chunk-search algorithm (finds data chunk at any offset)
+  - Streaming playback with double buffering
+- **Sound System v2** (21.3):
+  - JSON-based WAV pack manifest system
+  - Sound pack upload/select via web UI
+  - Priority-based sound mixing (buzzer + I2S)
+- **LIS3DH Accelerometer** (21.4):
+  - 3-axis I2C driver (±2g/±4g/±8g/±16g range)
+  - 12-bit data with right-shift correction
+  - Activity/shake/tilt detection
+- **Tilt-Based Interactions** (21.5):
+  - Tilt game using accelerometer
+  - Shake-to-wake gesture
+  - Tilt-to-feed gesture recognition
+
+### Test Results
+- 216/216 tests pass (205 existing + 11 Phase 21 tests)
+- Zero regressions
+
+---
+
 ## [2.0.0-alpha.2] - 2026-06-23
 
 ### Added
