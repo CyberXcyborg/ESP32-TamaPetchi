@@ -38,6 +38,7 @@ bool BLETradeGame::begin() {
   memset(&_session, 0, sizeof(_session));
   _session.state = BLE_TRADE_IDLE;
   _initialized = true;
+  _lastError = "";
   Serial.println("[BLETrade] Trading game initialized");
   return true;
 }
