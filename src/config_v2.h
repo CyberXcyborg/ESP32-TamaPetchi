@@ -153,6 +153,27 @@
 #define BATTERY_ADC_PIN      1     // GPIO1 (ADC1_CH0 on ESP32-S3)
 #define BATTERY_VOLTAGE_MAX  4.2f
 #define BATTERY_VOLTAGE_MIN  3.3f
+#define LOW_BATTERY_THRESHOLD   20     // Battery percentage
+#define CRITICAL_BATTERY_THRESHOLD 5    // Critical shutdown threshold
+#define CHARGE_DETECT_PIN   -1     // GPIO for charge detection (TP4056), -1 = not connected
+#define BATTERY_FILTER_SAMPLES 10    // ADC oversampling for noise reduction
+
+// --- Power Management (Phase 23) ---
+#define SLEEP_CHECK_INTERVAL    60000  // Check sleep conditions every 60s
+#define IDLE_TIMEOUT_MS         300000 // Enter light sleep after 5min idle
+#define DISPLAY_DIM_BATTERY     30     // Dim display to N% on low battery
+#define DISPLAY_OFF_BATTERY     10     // Turn off display on critical battery
+#define MAX_SLEEP_DURATION_MS   3600000 // Max light sleep: 1 hour
+#define WAKEUP_BLE_TIMEOUT_MS   30000  // BLE wakeup advertising duration
+
+// --- Watchdog Timer ---
+#define WATCHDOG_TIMEOUT_MS     10000  // 10s watchdog for main loop
+#define RENDER_WATCHDOG_MS      5000   // 5s watchdog for LVGL render
+
+// --- OTA v2 ---
+#define OTA_SIGNATURE_KEY       "TamaPetchi_v2_ed25519"  // Simple signature check key
+#define OTA_MAX_PROGRESS        100
+#define OTA_ROLLBACK_TIMEOUT_MS 30000  // 30s before auto-rollback on failed boot
 
 // ============================================================
 // v2.0 Compile-Time Assertions

@@ -80,7 +80,40 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 |-------|-------------|--------|
 | 19 | ESP-IDF migration, LVGL display, touch input, LittleFS | ✅ v2.0.0-alpha.1 |
 | 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
-| 21 | Accelerometer, BLE companion app, multi-pet, sound upgrade | ⬜ Planned |
+| 21 | I2S audio, WAV decoder, LIS3DH accelerometer, tilt games, sound packs | ✅ v2.0.0-alpha.3 |
+| 22 | BLE GATT server, NFC manager, BLE protocol, trade game | ✅ v2.0.0-alpha.4 |
+| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | 🔶 v2.0.0-beta.1 (in progress) |
+
+### v2.0 Hardware Requirements (ESP32-S3)
+- **MCU**: ESP32-S3-WROOM-1 (dual-core, PSRAM recommended)
+- **Display**: 240x240 ST7789 TFT (SPI)
+- **Touch**: FT6336U capacitive touch (I2C)
+- **Audio**: I2S DAC (GPIO 25/26/26) + speaker
+- **Accelerometer**: LIS3DH (I2C, addr 0x18)
+- **NFC**: Adafruit PN532 (I2C, addr 0x24)
+- **BLE**: Built-in (NimBLE stack)
+- **Battery**: LiPo 3.7V → voltage divider → GPIO 14 (ADC)
+- **Buttons**: GPIO 0 (boot), GPIO 47/48 (user buttons)
+
+### v2.0 Pinout
+| Function | GPIO | Notes |
+|----------|------|-------|
+| TFT MOSI | 11 | SPI data |
+| TFT SCK | 12 | SPI clock |
+| TFT CS | 10 | Chip select |
+| TFT DC | 9 | Data/command |
+| TFT RST | 13 | Reset |
+| Touch SDA | 4 | I2C data |
+| Touch SCL | 5 | I2C clock |
+| I2S BCLK | 25 | Audio bit clock |
+| I2S LRC | 26 | Audio LR clock |
+| I2S DIN | 27 | Audio data out |
+| LIS3DH INT1 | 38 | Accelerometer interrupt |
+| PN532 IRQ | 39 | NFC interrupt |
+| Battery ADC | 14 | Voltage divider (100K/100K) |
+| Button 1 | 47 | User button |
+| Button 2 | 48 | User button |
+| RGB LED | 48 | WS2812 (shared with Button 2) |
 
 
 ## Why This Hits Different
