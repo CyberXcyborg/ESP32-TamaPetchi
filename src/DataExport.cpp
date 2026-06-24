@@ -16,7 +16,7 @@ static uint32_t lastExportTimestamp = 0;
 static String lastExportError;
 
 // ============================================================
-// CRC32 checksum calculation (simplified SHA-256 alternative)
+// CRC32 checksum calculation
 // Uses CRC32 for speed; sufficient for integrity checking
 // ============================================================
 static uint32_t crc32_bytes(const uint8_t *data, size_t len) {
@@ -50,8 +50,8 @@ String createDataExportJson() {
         initDataExport();
     }
 
-    // Use existing backup system as base, then extend
-    String baseBackup = createBackupJson(Pet());
+    // Use existing backup system as base with real pet data, then extend
+    String baseBackup = createBackupJson(AppState::getInstance().pet);
     
     // Parse and enhance with additional data
     DynamicJsonDocument doc(3072);
@@ -108,12 +108,12 @@ String createDataExportJson() {
 }
 
 String createMinimalExportJson() {
-    // Minimal export for BLE (small payload)
+    // Minimal export for BLE (small payload) — uses real pet data from AppState
     DynamicJsonDocument doc(512);
     doc["v"] = DATA_EXPORT_VERSION;
     doc["t"] = millis();
-    
-    Pet pet;
+
+    const Pet &pet = AppState::getInstance().pet;
     doc["pn"] = pet.name;
     doc["ps"] = pet.stage;
     doc["ph"] = pet.happiness;

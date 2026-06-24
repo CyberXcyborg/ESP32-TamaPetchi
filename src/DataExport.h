@@ -7,7 +7,7 @@
 // ============================================================
 // Phase 24.2: Data Export System
 // Full state export via BLE and web (JSON backup).
-// Includes SHA-256 checksum for integrity verification.
+// Includes CRC32 checksum for integrity verification.
 // ============================================================
 
 #define DATA_EXPORT_VERSION "2.0.0"
@@ -66,7 +66,7 @@ String getExportFileListJson();
 // Delete an export file from storage
 bool deleteExportFile(const String &filename);
 
-// Calculate SHA-256-like checksum (simplified for embedded)
+// Calculate CRC32 checksum for export integrity
 uint32_t calculateExportChecksum(const String &json);
 
 // Register data export API routes
