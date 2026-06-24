@@ -73,6 +73,10 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🔄 **LVGL OTA Screen**: Progress bar, status labels, reboot countdown
 - 📊 **Screen Manager**: Stack-based navigation with slide/fade transitions
 - 🌐 **v2.0 REST API**: /api/sprites, /api/screen for LVGL-compatible web dashboard
+- 🎙️ **Voice Prompts** (v2.0): Pet speaks status updates via I2S audio (happy, sad, hungry, greeting, level-up)
+- 📤 **Data Export** (v2.0): Full state export via BLE or web UI with CRC32 integrity verification
+- 🌅 **Day/Night Visual Themes** (v2.0): Dynamic backgrounds with smooth transitions, weather overlays (rain, snow, sunshine)
+- 🔌 **Plugin System v2** (v2.0): Sandboxed plugins with watchdog timers, LVGL-based UI rendering
 
 ## v2.0 Development Status
 
@@ -82,7 +86,8 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 | 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
 | 21 | I2S audio, WAV decoder, LIS3DH accelerometer, tilt games, sound packs | ✅ v2.0.0-alpha.3 |
 | 22 | BLE GATT server, NFC manager, BLE protocol, trade game | ✅ v2.0.0-alpha.4 |
-| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | 🔶 v2.0.0-beta.1 (in progress) |
+| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | ✅ v2.0.0-beta.1 |
+| 24 | Voice Prompts, Data Export, Day/Night Themes, Plugin System v2 | 🔶 v2.0.0-rc.1 (in progress) |
 
 ### v2.0 Hardware Requirements (ESP32-S3)
 - **MCU**: ESP32-S3-WROOM-1 (dual-core, PSRAM recommended)
