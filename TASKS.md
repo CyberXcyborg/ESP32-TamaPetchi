@@ -25,6 +25,7 @@
   - Tests: 216/216 native tests pass ✅ (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
   - PR #19 merged to develop → tagged v2.0.0-alpha.4 (2026-06-24)
 - Phase 23 ✅ Complete — Power Management & OTA v2 (v2.0.0-beta.1, merged 2026-06-24)
+- Phase 24 🔄 Assigned — Enhanced Features & Ecosystem Maturity (v2.0.0-rc.1)
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -247,6 +248,80 @@ Fix: Replace with field-by-field initialization
 
 ### Implementation Rules
 - Branch from develop: feature/phase23-power-ota
+- One feature per commit
+- Test compilation after each feature
+- Update TASKS.md with progress after each sub-task
+- Push when all features done
+- Create PR when complete
+
+---
+
+## Phase 24: Enhanced Features & Ecosystem Maturity (v2.0.0-rc.1)
+
+**Branch:** feature/phase24-enhanced-features
+**Goal:** Implement remaining enhanced features from the v2.0 roadmap — voice prompts, data export, day/night visual enhancements, and plugin system v2. Prepare for release candidate.
+**Target:** v2.0.0-rc.1
+**Prerequisites:** Phase 23 complete (Power Management & OTA v2)
+
+### Tasks
+
+#### 24.1: Voice Prompts System
+- [ ] Implement pet voice prompts via I2S audio (pet "speaks" status updates, greetings, notifications)
+- [ ] Create voice pack format (WAV clips mapped to events: happy, sad, hungry, sick, greeting, level-up)
+- [ ] Add voice playback to SoundPack system (extend existing WAV playback for voice clips)
+- [ ] Implement voice volume control (web UI slider, stored in NVS)
+- [ ] Add voice pack selection in settings (multiple voice packs: default, robotic, cute)
+- [ ] Create test/test_voice_prompts.cpp with unit tests (8+ tests)
+
+#### 24.2: Data Export System
+- [ ] Implement full state export via BLE (serialize complete pet state to JSON, send over BLE characteristic)
+- [ ] Implement full state export via web (GET /api/export returns downloadable JSON backup)
+- [ ] Implement state import from JSON backup (restore pet state from export file)
+- [ ] Add export integrity verification (SHA-256 checksum on export file)
+- [ ] Create test/test_data_export.cpp with unit tests (6+ tests)
+
+#### 24.3: Day/Night Visual Enhancements
+- [ ] Implement dynamic background rendering based on time of day (dawn, day, dusk, night themes)
+- [ ] Add weather effect overlays (rain, snow, sunshine particles using LVGL animations)
+- [ ] Implement ambient light sensor integration (auto-brightness based on environment)
+- [ ] Create smooth theme transitions (fade between day/night palettes over 5 seconds)
+- [ ] Add weather API integration (optional, use OpenWeatherMap if WiFi available)
+- [ ] Create test/test_day_night.cpp with unit tests (5+ tests)
+
+#### 24.4: Plugin System v2
+- [ ] Extend Plugin system with LVGL-based UI rendering for plugins
+- [ ] Implement plugin sandboxing (memory limits, watchdog for plugin execution)
+- [ ] Add plugin metadata format (name, version, author, permissions in JSON)
+- [ ] Create 2 example plugins: "Weather Widget" and "Pet Age Display"
+- [ ] Implement plugin manager UI (install, uninstall, enable/disable from settings)
+- [ ] Create test/test_plugin_v2.cpp with unit tests (6+ tests)
+
+#### 24.5: Integration Testing & Release Prep
+- [ ] Run full native test suite — target 250+ tests
+- [ ] Run pio run -e esp32dev — verify clean compile
+- [ ] Verify all Phase 24 features integrate without conflicts
+- [ ] Update README.md with Phase 24 features
+- [ ] Update CHANGELOG.md with v2.0.0-rc.1 section
+- [ ] Verify RAM < 50%, Flash < 80% on ESP32 build
+
+#### 24.6: Phase 24 Verification & PR
+- [ ] Run pio test native — all tests pass
+- [ ] Run pio run -e esp32dev — compiles cleanly
+- [ ] Update TASKS.md with Phase 24 progress
+- [ ] Create PR: feature/phase24-enhanced-features to develop
+- [ ] Merge and tag v2.0.0-rc.1
+
+### Build Verification Checklist
+- [ ] pio test native — all tests pass (target 250+)
+- [ ] pio run -e esp32dev — compiles cleanly
+- [ ] Voice prompts play correctly via I2S
+- [ ] Data export/import round-trip works
+- [ ] Day/Night transitions are smooth
+- [ ] Plugins are sandboxed and don't crash main loop
+- [ ] RAM usage < 50%, Flash usage < 80%
+
+### Implementation Rules
+- Branch from develop: feature/phase24-enhanced-features
 - One feature per commit
 - Test compilation after each feature
 - Update TASKS.md with progress after each sub-task
