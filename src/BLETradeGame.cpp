@@ -262,7 +262,8 @@ bool BLETradeGame::sendTradeOffer() {
   BLEManager &ble = BLEManager::getInstance();
 
   // Get local pet name
-  const PetData &pet = PetEngine().getData();
+  PetEngine engine;
+  const PetData &pet = engine.getData();
   strncpy(_session.localPetName, pet.name.c_str(), sizeof(_session.localPetName) - 1);
 
   // Generate trade PIN
@@ -388,7 +389,8 @@ bool BLETradeGame::buildTradePayload(NFCTradePayload &payload) {
   payload.version = 1;
 
   // Pet data from engine
-  const PetData &pet = PetEngine().getData();
+  PetEngine engine;
+  const PetData &pet = engine.getData();
   strncpy(payload.petName, pet.name.c_str(), sizeof(payload.petName) - 1);
   payload.petType = 0;  // BLOB (default)
   payload.petStage = pet.stage;
@@ -491,10 +493,20 @@ void BLETradeGame::completeTrade() {
 }
 
 uint8_t BLETradeGame::calculateChecksum(const NFCTradePayload &payload) {
+  // Field-by-field checksum to avoid compiler padding issues
   uint8_t checksum = 0;
-  const uint8_t *p = (const uint8_t *)&payload;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    checksum ^= p[i];
-  }
+  const uint8_t *magic = (const uint8_t *)payload.magic;
+  for (size_t i = 0; i < sizeof(payload.magic); i++) checksum ^= magic[i];
+  checksum ^= payload.version;
+  const uint8_t *name = (const uint8_t *)payload.petName;
+  for (size_t i = 0; i < sizeof(payload.petName); i++) checksum ^= name[i];
+  checksum ^= payload.petType;
+  checksum ^= payload.petStage;
+  checksum ^= (uint8_t)(payload.petAge & 0xFF);
+  checksum ^= (uint8_t)((payload.petAge >> 8) & 0xFF);
+  checksum ^= payload.hunger;
+  checksum ^= payload.happiness;
+  checksum ^= payload.health;
+  checksum ^= payload.energy;
   return checksum;
 }

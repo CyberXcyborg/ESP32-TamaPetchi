@@ -406,12 +406,21 @@ bool NFCManager::deserializeTradePayload(const uint8_t *data, uint16_t len, NFCT
   memcpy(&payload, data, sizeof(NFCTradePayload));
   if (strncmp(payload.magic, "TAMA", 4) != 0) return false;
 
-  // Verify checksum
+  // Verify checksum (field-by-field to avoid padding issues)
   uint8_t calcChecksum = 0;
-  const uint8_t *p = (const uint8_t *)&payload;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    calcChecksum ^= p[i];
-  }
+  const uint8_t *magic = (const uint8_t *)payload.magic;
+  for (size_t i = 0; i < sizeof(payload.magic); i++) calcChecksum ^= magic[i];
+  calcChecksum ^= payload.version;
+  const uint8_t *name = (const uint8_t *)payload.petName;
+  for (size_t i = 0; i < sizeof(payload.petName); i++) calcChecksum ^= name[i];
+  calcChecksum ^= payload.petType;
+  calcChecksum ^= payload.petStage;
+  calcChecksum ^= (uint8_t)(payload.petAge & 0xFF);
+  calcChecksum ^= (uint8_t)((payload.petAge >> 8) & 0xFF);
+  calcChecksum ^= payload.hunger;
+  calcChecksum ^= payload.happiness;
+  calcChecksum ^= payload.health;
+  calcChecksum ^= payload.energy;
   return calcChecksum == payload.checksum;
 }
 

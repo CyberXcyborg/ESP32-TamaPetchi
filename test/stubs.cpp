@@ -137,12 +137,23 @@ int main() {
   run_screenmanager_tests();
   printf("\\n");
   run_migrated_screen_tests();
-  printf("\\n");
+  printf("\\n=== MIGRATED SCREENS DONE ===\\n");
+  fflush(stdout);
+  printf("About to call run_phase21_tests...\\n");
+  fflush(stdout);
   run_phase21_tests();
-  printf("\\n");
+  printf("\\n=== PHASE 21 DONE ===\\n");
+  fflush(stdout);
+  printf("About to call run_phase22_tests...\\n");
+  fflush(stdout);
   run_phase22_tests();
-  printf("\\n");
+  printf("\\n=== PHASE 22 DONE ===\\n");
+  fflush(stdout);
+  printf("About to call run_phase22_5_tests...\\n");
+  fflush(stdout);
   run_phase22_5_tests();
+  printf("\\n=== ALL DONE ===\\n");
+  fflush(stdout);
   printf("\\n=== All native tests PASSED ===\\n");
   return 0;
 }

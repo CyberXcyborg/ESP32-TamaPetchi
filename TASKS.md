@@ -136,3 +136,44 @@ Code is now written and files are present (uncommitted). Full review completed.
 - [ ] pio run ESP32 (compile check)
 - [ ] NFCManager::writeTag() cleaned up
 - [ ] NFC checksum made robust against padding
+
+---
+
+## Nyra Phase 22.5 Review 2026-06-24
+
+### Status: Code review complete - 1 BLOCKER + issues to fix
+
+### What was reviewed (uncommitted changes):
+- BLETradeGame.cpp - BLE trading game state machine (512 lines)
+- BLETradeGame_Native.cpp - Native stubs for BLETradeGame
+- BLETradeGame.h - Header with session structs and state enum
+- NFCManager.cpp - Field-by-field checksum fix
+- test_phase22_5.cpp - 16 BLE trade game tests
+- test/BLE_NFC_Native.cpp - Checksum fix in native stubs
+- test/stubs.cpp - Test runner with phase22_5 integration
+
+### BLOCKER - Causes SIGSEGV:
+**File: test/BLETradeGame_Native.cpp, line 20**
+memset on PetData which contains String member - UB causes crash
+Fix: Replace with field-by-field initialization
+
+### Non-blocking issues:
+1. ESP32 build unverified (timeout during compile)
+2. test_phase22_5.cpp line 272 printf prints literal backslash-n
+3. NFCManager::writeTag() is actually used now, no longer dead code - OK
+
+### Positive observations:
+- BLETradeGame state machine well-designed with timeout handling
+- Field-by-field checksum correct and fixes padding fragility
+- 16 comprehensive tests for trade game
+- Clean ESP32 vs native stub separation
+- cancelTrade() properly cleans up BLE and NFC simultaneously
+
+### Updated next steps for Kael (PRIORITY ORDER):
+1. FIX THE SIGSEGV - Replace memset in BLETradeGame_Native.cpp
+2. Fix printf bug in test_phase22_5.cpp line 272
+3. Commit all Phase 22 + 22.5 code
+4. Run pio test native - Verify all tests pass
+5. Run pio run -e esp32dev - Full ESP32 compile check
+6. Implement Phase 22.6 - Integration verification, update TASKS.md, create PR
+7. If all passes, Phase 22 complete - proceed to Phase 23 (Power Management and OTA v2)

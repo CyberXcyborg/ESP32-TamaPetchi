@@ -73,11 +73,22 @@ static void test_trade_payload_process() {
   payload.health = 90;
   payload.energy = 60;
 
-  // Calculate checksum
+  // Calculate checksum (field-by-field to avoid struct padding issues)
   payload.checksum = 0;
-  const uint8_t *p = (const uint8_t *)&payload;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    payload.checksum ^= p[i];
+  {
+    const uint8_t *magic = (const uint8_t *)payload.magic;
+    for (size_t i = 0; i < sizeof(payload.magic); i++) payload.checksum ^= magic[i];
+    payload.checksum ^= payload.version;
+    const uint8_t *name = (const uint8_t *)payload.petName;
+    for (size_t i = 0; i < sizeof(payload.petName); i++) payload.checksum ^= name[i];
+    payload.checksum ^= payload.petType;
+    payload.checksum ^= payload.petStage;
+    payload.checksum ^= (uint8_t)(payload.petAge & 0xFF);
+    payload.checksum ^= (uint8_t)((payload.petAge >> 8) & 0xFF);
+    payload.checksum ^= payload.hunger;
+    payload.checksum ^= payload.happiness;
+    payload.checksum ^= payload.health;
+    payload.checksum ^= payload.energy;
   }
 
   bool ok = game.processReceivedPayload(payload);

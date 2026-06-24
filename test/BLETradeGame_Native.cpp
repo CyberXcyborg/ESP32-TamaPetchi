@@ -6,8 +6,30 @@
 #include "BLETradeGame.h"
 #include "BLEDiscovery.h"
 #include "NFCManager.h"
+#include "Pet_v2.h"
 #include <cstring>
 #include <cstdio>
+
+// ============================================================
+// PetEngine Native Stub
+// Required because BLETradeGame calls PetEngine().getData()
+// but Pet_v2.cpp is not compiled in native builds (it pulls in
+// too many ESP32-specific dependencies via config_v2.h).
+// ============================================================
+PetEngine::PetEngine() {
+    // Field-by-field initialization — PetData has String members, memset is UB
+    _data.name = "StubPet";
+    _data.hunger = 50;
+    _data.happiness = 60;
+    _data.energy = 70;
+    _data.cleanliness = 80;
+    _data.health = 90;
+    _data.age_minutes = 0;
+    _data.birth_timestamp = 0;
+    _data.stage = PET_STAGE_BABY;
+    _data.state = PET_STATE_IDLE;
+    _data.generation = 0;
+}
 
 BLETradeGame::BLETradeGame()
     : _initialized(false)
@@ -123,7 +145,8 @@ bool BLETradeGame::sendTradeOffer() {
     return false;
   }
 
-  const PetData &pet = PetEngine().getData();
+  PetEngine engine;
+  const PetData &pet = engine.getData();
   strncpy(_session.localPetName, pet.name.c_str(), sizeof(_session.localPetName) - 1);
 
   uint32_t pin = (millis() % 9000) + 1000;
@@ -222,7 +245,9 @@ bool BLETradeGame::buildTradePayload(NFCTradePayload &payload) {
   strncpy(payload.magic, "TAMA", 4);
   payload.version = 1;
 
-  const PetData &pet = PetEngine().getData();
+  // Use a local PetEngine to avoid dangling reference from temporary
+  PetEngine engine;
+  const PetData &pet = engine.getData();
   strncpy(payload.petName, pet.name.c_str(), sizeof(payload.petName) - 1);
   payload.petType = 0;
   payload.petStage = pet.stage;
@@ -299,10 +324,21 @@ void BLETradeGame::completeTrade() {
 }
 
 uint8_t BLETradeGame::calculateChecksum(const NFCTradePayload &payload) {
+  // Field-by-field checksum to avoid compiler padding issues
   uint8_t checksum = 0;
-  const uint8_t *p = (const uint8_t *)&payload;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    checksum ^= p[i];
-  }
+  const uint8_t *magic = (const uint8_t *)payload.magic;
+  for (size_t i = 0; i < sizeof(payload.magic); i++) checksum ^= magic[i];
+  checksum ^= payload.version;
+  const uint8_t *name = (const uint8_t *)payload.petName;
+  for (size_t i = 0; i < sizeof(payload.petName); i++) checksum ^= name[i];
+  checksum ^= payload.petType;
+  checksum ^= payload.petStage;
+  checksum ^= (uint8_t)(payload.petAge & 0xFF);
+  checksum ^= (uint8_t)((payload.petAge >> 8) & 0xFF);
+  checksum ^= payload.hunger;
+  checksum ^= payload.happiness;
+  checksum ^= payload.health;
+  checksum ^= payload.energy;
+  // Note: checksum field itself is NOT included
   return checksum;
 }

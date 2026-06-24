@@ -101,8 +101,14 @@ static void test_ble_protocol_error_response() {
 }
 
 static void test_ble_protocol_notification() {
+  printf("[DEBUG] Getting BLEProtocol instance\\n");
+  fflush(stdout);
   BLEProtocol &proto = BLEProtocol::getInstance();
+  printf("[DEBUG] Creating notification\\n");
+  fflush(stdout);
   String resp = proto.createNotification("trade", "peer_device");
+  printf("[DEBUG] Notification created, checking\\n");
+  fflush(stdout);
 
   assert(resp.indexOf("\"t\":7") >= 0);  // NOTIFICATION type
   assert(resp.indexOf("trade") >= 0);
@@ -115,9 +121,16 @@ static void test_ble_protocol_command_feed() {
   BLECommand cmd = {};
   cmd.type = BLE_CMD_FEED;
   String resp = proto.processCommand(cmd);
-  assert(resp.indexOf("Fed pet") >= 0);
+  int idx = resp.indexOf("Fed pet");
+  printf("[DEBUG] indexOf returned %d\n", idx);
+  fflush(stdout);
+  if (idx < 0) {
+    printf("[DEBUG] FAILED: 'Fed pet' not found in response\n");
+  }
+  assert(idx >= 0);
 
   printf("  [PASS] test_ble_protocol_command_feed\n");
+  fflush(stdout);
 }
 
 static void test_ble_protocol_command_play() {
@@ -125,12 +138,22 @@ static void test_ble_protocol_command_play() {
   BLECommand cmd = {};
   cmd.type = BLE_CMD_PLAY;
   String resp = proto.processCommand(cmd);
-  assert(resp.indexOf("Played") >= 0);
-
+  printf("[DEBUG] resp.length()=%d\n", resp.length());
+  fflush(stdout);
+  const char* cstr = resp.c_str();
+  printf("[DEBUG] cstr=%s\n", cstr);
+  fflush(stdout);
+  int idx = resp.indexOf("Played");
+  printf("[DEBUG] indexOf returned %d\n", idx);
+  fflush(stdout);
+  assert(idx >= 0);
   printf("  [PASS] test_ble_protocol_command_play\n");
+  fflush(stdout);
 }
 
 static void test_ble_protocol_command_get_state() {
+  printf("[DEBUG] In get_state test\n");
+  fflush(stdout);
   BLEProtocol &proto = BLEProtocol::getInstance();
   BLECommand cmd = {};
   cmd.type = BLE_CMD_GET_STATE;
@@ -193,7 +216,11 @@ static void test_ble_discovery_init() {
 }
 
 static void test_ble_discovery_scan() {
+  printf("[DEBUG] In test_ble_discovery_scan\n");
+  fflush(stdout);
   BLEDiscovery &disc = BLEDiscovery::getInstance();
+  printf("[DEBUG] Got discovery instance\n");
+  fflush(stdout);
 
   disc.clearResults();
   assert(disc.getPeerCount() == 0);
@@ -204,6 +231,7 @@ static void test_ble_discovery_scan() {
   disc.update();
 
   printf("  [PASS] test_ble_discovery_scan\n");
+  fflush(stdout);
 }
 
 static void test_ble_discovery_rssi_threshold() {
@@ -275,6 +303,24 @@ static void test_nfc_tag_write_stub() {
   printf("  [PASS] test_nfc_tag_write_stub\n");
 }
 
+static uint8_t calcPayloadChecksum(const NFCTradePayload &payload) {
+  uint8_t checksum = 0;
+  const uint8_t *magic = (const uint8_t *)payload.magic;
+  for (size_t i = 0; i < sizeof(payload.magic); i++) checksum ^= magic[i];
+  checksum ^= payload.version;
+  const uint8_t *name = (const uint8_t *)payload.petName;
+  for (size_t i = 0; i < sizeof(payload.petName); i++) checksum ^= name[i];
+  checksum ^= payload.petType;
+  checksum ^= payload.petStage;
+  checksum ^= (uint8_t)(payload.petAge & 0xFF);
+  checksum ^= (uint8_t)((payload.petAge >> 8) & 0xFF);
+  checksum ^= payload.hunger;
+  checksum ^= payload.happiness;
+  checksum ^= payload.health;
+  checksum ^= payload.energy;
+  return checksum;
+}
+
 static void test_nfc_trade_payload_serialize() {
   NFCTradePayload payload = {};
   strncpy(payload.magic, "TAMA", 4);
@@ -288,12 +334,8 @@ static void test_nfc_trade_payload_serialize() {
   payload.health = 90;
   payload.energy = 70;
 
-  // Calculate checksum (exclude checksum byte and trailing padding)
-  payload.checksum = 0;
-  const uint8_t *p = (const uint8_t *)&payload;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    payload.checksum ^= p[i];
-  }
+  // Calculate checksum (field-by-field to avoid struct padding issues)
+  payload.checksum = calcPayloadChecksum(payload);
 
   uint8_t buffer[64];
   uint16_t len = sizeof(buffer);
@@ -317,12 +359,8 @@ static void test_nfc_trade_payload_deserialize() {
   original.health = 90;
   original.energy = 70;
 
-  // Calculate checksum (exclude checksum byte and padding)
-  original.checksum = 0;
-  const uint8_t *p = (const uint8_t *)&original;
-  for (size_t i = 0; i < sizeof(NFCTradePayload) - 2; i++) {
-    original.checksum ^= p[i];
-  }
+  // Calculate checksum (field-by-field to avoid struct padding issues)
+  original.checksum = calcPayloadChecksum(original);
 
   uint8_t buffer[64];
   uint16_t len = sizeof(buffer);
@@ -399,20 +437,44 @@ int run_phase22_tests() {
   printf("\\n--- Phase 22: BLE & NFC Tests ---\\n");
 
   // BLE Manager tests
+  printf("[DEBUG] Calling test_ble_manager_init\\n");
+  fflush(stdout);
   test_ble_manager_init();
+  printf("[DEBUG] Calling test_ble_advertising\\n");
+  fflush(stdout);
   test_ble_advertising();
+  printf("[DEBUG] Calling test_ble_mtu\\n");
+  fflush(stdout);
   test_ble_mtu();
+  printf("[DEBUG] Calling test_ble_device_address\\n");
+  fflush(stdout);
   test_ble_device_address();
+  printf("[DEBUG] Calling test_ble_notify_stubs\\n");
+  fflush(stdout);
   test_ble_notify_stubs();
 
   // BLE Protocol tests
+  printf("[DEBUG] Calling test_ble_protocol_init\\n");
+  fflush(stdout);
   test_ble_protocol_init();
+  printf("[DEBUG] Calling test_ble_protocol_ack_response\\n");
+  fflush(stdout);
   test_ble_protocol_ack_response();
+  printf("[DEBUG] Calling test_ble_protocol_error_response\\n");
+  fflush(stdout);
   test_ble_protocol_error_response();
   test_ble_protocol_notification();
+  printf("[DEBUG] Calling test_ble_protocol_command_feed\n");
+  fflush(stdout);
   test_ble_protocol_command_feed();
+  printf("[DEBUG] Calling test_ble_protocol_command_play\n");
+  fflush(stdout);
   test_ble_protocol_command_play();
+  printf("[DEBUG] Calling test_ble_protocol_command_get_state\n");
+  fflush(stdout);
   test_ble_protocol_command_get_state();
+  printf("[DEBUG] Calling test_ble_protocol_command_unknown\n");
+  fflush(stdout);
   test_ble_protocol_command_unknown();
   test_ble_protocol_trade_offer_parse();
   test_ble_protocol_set_name_parse();
