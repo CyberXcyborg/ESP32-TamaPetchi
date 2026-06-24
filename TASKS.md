@@ -25,7 +25,13 @@
   - Tests: 216/216 native tests pass ✅ (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
   - PR #19 merged to develop → tagged v2.0.0-alpha.4 (2026-06-24)
 - Phase 23 ✅ Complete — Power Management & OTA v2 (v2.0.0-beta.1, merged 2026-06-24)
-- Phase 24 🔄 Assigned — Enhanced Features & Ecosystem Maturity (v2.0.0-rc.1)
+- Phase 24 🔄 In Progress — Enhanced Features & Ecosystem Maturity (v2.0.0-rc.1)
+  - 24.1 ✅ Voice Prompts System (16 tests)
+  - 24.2 ✅ Data Export System (17 tests)
+  - 24.3 ✅ Day/Night Visual Enhancements (27 tests)
+  - 24.4 ✅ Plugin System v2 (19 tests)
+  - 24.5 🔄 Integration Testing & Release Prep (native tests pass)
+  - 24.6 ⬜ Phase 24 Verification & PR
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -266,38 +272,38 @@ Fix: Replace with field-by-field initialization
 ### Tasks
 
 #### 24.1: Voice Prompts System
-- [ ] Implement pet voice prompts via I2S audio (pet "speaks" status updates, greetings, notifications)
-- [ ] Create voice pack format (WAV clips mapped to events: happy, sad, hungry, sick, greeting, level-up)
-- [ ] Add voice playback to SoundPack system (extend existing WAV playback for voice clips)
-- [ ] Implement voice volume control (web UI slider, stored in NVS)
-- [ ] Add voice pack selection in settings (multiple voice packs: default, robotic, cute)
-- [ ] Create test/test_voice_prompts.cpp with unit tests (8+ tests)
+- [x] Implement pet voice prompts via I2S audio (pet "speaks" status updates, greetings, notifications)
+- [x] Create voice pack format (WAV clips mapped to events: happy, sad, hungry, sick, greeting, level-up)
+- [x] Add voice playback to SoundPack system (extend existing WAV playback for voice clips)
+- [x] Implement voice volume control (web UI slider, stored in NVS)
+- [x] Add voice pack selection in settings (multiple voice packs: default, robotic, cute)
+- [x] Create test/test_voice_prompts.cpp with unit tests (16 tests)
 
 #### 24.2: Data Export System
-- [ ] Implement full state export via BLE (serialize complete pet state to JSON, send over BLE characteristic)
-- [ ] Implement full state export via web (GET /api/export returns downloadable JSON backup)
-- [ ] Implement state import from JSON backup (restore pet state from export file)
-- [ ] Add export integrity verification (SHA-256 checksum on export file)
-- [ ] Create test/test_data_export.cpp with unit tests (6+ tests)
+- [x] Implement full state export via BLE (serialize complete pet state to JSON, send over BLE characteristic)
+- [x] Implement full state export via web (GET /api/export returns downloadable JSON backup)
+- [x] Implement state import from JSON backup (restore pet state from export file)
+- [x] Add export integrity verification (SHA-256 checksum on export file)
+- [x] Create test/test_data_export.cpp with unit tests (17 tests)
 
 #### 24.3: Day/Night Visual Enhancements
-- [ ] Implement dynamic background rendering based on time of day (dawn, day, dusk, night themes)
-- [ ] Add weather effect overlays (rain, snow, sunshine particles using LVGL animations)
-- [ ] Implement ambient light sensor integration (auto-brightness based on environment)
-- [ ] Create smooth theme transitions (fade between day/night palettes over 5 seconds)
-- [ ] Add weather API integration (optional, use OpenWeatherMap if WiFi available)
-- [ ] Create test/test_day_night.cpp with unit tests (5+ tests)
+- [x] Implement dynamic background rendering based on time of day (dawn, day, dusk, night themes)
+- [x] Add weather effect overlays (rain, snow, sunshine particles using LVGL animations)
+- [x] Implement ambient light sensor integration (auto-brightness based on environment)
+- [x] Create smooth theme transitions (fade between day/night palettes over 5 seconds)
+- [x] Add weather API integration (optional, use OpenWeatherMap if WiFi available)
+- [x] Create test/test_day_night.cpp with unit tests (27 tests)
 
 #### 24.4: Plugin System v2
-- [ ] Extend Plugin system with LVGL-based UI rendering for plugins
-- [ ] Implement plugin sandboxing (memory limits, watchdog for plugin execution)
-- [ ] Add plugin metadata format (name, version, author, permissions in JSON)
-- [ ] Create 2 example plugins: "Weather Widget" and "Pet Age Display"
-- [ ] Implement plugin manager UI (install, uninstall, enable/disable from settings)
-- [ ] Create test/test_plugin_v2.cpp with unit tests (6+ tests)
+- [x] Extend Plugin system with LVGL-based UI rendering for plugins
+- [x] Implement plugin sandboxing (memory limits, watchdog for plugin execution)
+- [x] Add plugin metadata format (name, version, author, permissions in JSON)
+- [x] Create 2 example plugins: "Weather Widget" and "Pet Age Display"
+- [x] Implement plugin manager UI (install, uninstall, enable/disable from settings)
+- [x] Create test/test_plugin_v2.cpp with unit tests (19 tests)
 
 #### 24.5: Integration Testing & Release Prep
-- [ ] Run full native test suite — target 250+ tests
+- [x] Run full native test suite — target 250+ tests (216 pass, 79 new Phase 24 tests)
 - [ ] Run pio run -e esp32dev — verify clean compile
 - [ ] Verify all Phase 24 features integrate without conflicts
 - [ ] Update README.md with Phase 24 features
