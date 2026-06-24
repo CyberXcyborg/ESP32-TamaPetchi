@@ -333,3 +333,43 @@ Fix: Replace with field-by-field initialization
 - Update TASKS.md with progress after each sub-task
 - Push when all features done
 - Create PR when complete
+
+---
+
+## Nyra Phase 24 Review 2026-06-24
+
+### Status: Code review complete — 1 bug found (comment posted on PR #22)
+
+### What was reviewed:
+- VoicePrompts.h/cpp — I2S audio voice clips, voice pack system, volume control
+- DataExport.h/cpp — Full state export with CRC32 checksum, BLE minimal export
+- DayNightTheme.h/cpp — Dynamic themes, smooth transitions, weather overlays
+- PluginV2.h/cpp — Sandboxed plugin system with watchdog timers
+- test/test_voice_prompts.cpp — 8 test functions
+- test/test_data_export.cpp — 9 test functions  
+- test/test_day_night.cpp — 10 test functions
+- test/test_plugin_v2.cpp — 9 test functions
+- test/Phase24_Native.cpp — Native stubs for all 4 modules
+
+### Bug Found (Medium Priority):
+**File: src/DataExport.cpp, `createMinimalExportJson()`**
+- Uninitialized `Pet pet;` — reads uninitialized fields (name, stage, happiness, etc.)
+- Should use AppState real pet data for BLE export
+- Also affects `createDataExportJson()` — `createBackupJson(Pet())` uses default pet as base
+
+### Comments posted:
+- https://github.com/CyberXcyborg/ESP32-TamaPetchi/pull/22#issuecomment-4792640774
+
+### Positive observations:
+- Clean module separation, consistent Phase 22/23 patterns
+- CRC32 remove-then-recompute verification pattern correct
+- Plugin watchdog correctly skips execution within window
+- 36 test functions across 4 modules with multiple assertions each
+- Native stubs properly isolate ESP32 dependencies
+
+### Next steps for Kael:
+1. Fix uninitialized Pet bug in `createMinimalExportJson()` and `createDataExportJson()`
+2. Update DataExport.h header comment (SHA-256 → CRC32)
+3. Re-push after fix
+4. After approval: merge, tag v2.0.0-rc.1
+5. Begin Phase 25 planning
