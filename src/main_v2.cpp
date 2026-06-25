@@ -16,6 +16,8 @@
 #include "TouchDriver.h"
 #include "HAL_v2.h"
 
+using namespace PetV2;
+
 // ============================================================
 // Globals
 // ============================================================
@@ -23,6 +25,7 @@
 static PetEngine pet;
 static uint32_t last_pet_update = 0;
 static uint32_t last_ui_update = 0;
+static unsigned long lastPetSaveTime = 0;
 
 // LVGL UI elements
 static lv_obj_t *screen_main = NULL;
@@ -222,8 +225,12 @@ void loop() {
         ui_update_stats();
         last_pet_update = now;
         
-        // Save pet state
-        StorageV2::write(PET_DATA_FILE, pet.toJson());
+        // Save pet state (throttled to MIN_SAVE_INTERVAL to reduce flash wear)
+        unsigned long nowSave = millis();
+        if (nowSave - lastPetSaveTime >= MIN_SAVE_INTERVAL || lastPetSaveTime == 0) {
+            StorageV2::write(PET_DATA_FILE, pet.toJson());
+            lastPetSaveTime = nowSave;
+        }
         
         DEBUG_PRINTF("[Pet] H=%d Hp=%d E=%d HP=%d Stage=%d\n",
                      pet.getData().hunger, pet.getData().happiness,

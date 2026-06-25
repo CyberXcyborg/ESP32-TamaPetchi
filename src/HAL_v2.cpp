@@ -10,8 +10,20 @@
 
 bool HAL_V2::_initialized = false;
 
+#ifdef ESP32
+SemaphoreHandle_t HAL_V2::_spiMutex = NULL;
+#endif
+
 bool HAL_V2::begin() {
     if (_initialized) return true;
+    
+    // Create SPI mutex
+    #ifdef ESP32
+    _spiMutex = xSemaphoreCreateMutex();
+    if (_spiMutex == NULL) {
+        return false;
+    }
+    #endif
     
     // Initialize SPI
     SPI.begin(TFT_PIN_SCLK, -1, TFT_PIN_MOSI, -1);
@@ -44,6 +56,15 @@ void HAL_V2::spiBegin() {
 }
 
 uint8_t HAL_V2::spiTransfer(uint8_t data) {
+    #ifdef ESP32
+    if (_spiMutex != NULL) {
+        if (xSemaphoreTake(_spiMutex, portMAX_DELAY) == pdTRUE) {
+            uint8_t result = SPI.transfer(data);
+            xSemaphoreGive(_spiMutex);
+            return result;
+        }
+    }
+    #endif
     return SPI.transfer(data);
 }
 

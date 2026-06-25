@@ -48,6 +48,9 @@ public:
     
 private:
     static bool _initialized;
+    #ifdef ESP32
+    static SemaphoreHandle_t _spiMutex;
+    #endif
 };
 
 #endif // HAL_V2_H

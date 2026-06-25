@@ -8,6 +8,8 @@
 #include "ScreenManager.h"
 #include "Pet_v2.h"
 
+using namespace PetV2;
+
 class MemoryGameScreen : public Screen {
 public:
     MemoryGameScreen();

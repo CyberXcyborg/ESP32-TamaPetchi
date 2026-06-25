@@ -19,6 +19,7 @@
 // ESP32: Include actual pet system
 #include "Pet.h"
 #include <ArduinoJson.h>
+using namespace PetV2;
 extern Pet g_pet;
 #endif
 

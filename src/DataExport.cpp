@@ -5,6 +5,8 @@
 #include "Pet_v2.h"
 #include <ArduinoJson.h>
 
+using namespace PetV2;
+
 // ============================================================
 // Module-level state
 // ============================================================
@@ -114,17 +116,18 @@ String createDataExportJson() {
 }
 
 String createMinimalExportJson() {
-    // Minimal export for BLE (small payload) — uses real pet data from AppState
+    // Minimal export for BLE (small payload) — uses real pet data from AppState (v2 PetEngine)
     DynamicJsonDocument doc(512);
     doc["v"] = DATA_EXPORT_VERSION;
     doc["t"] = millis();
 
-    const Pet &pet = AppState::getInstance().pet;
-    doc["pn"] = pet.name;
-    doc["ps"] = pet.stage;
-    doc["ph"] = pet.happiness;
-    doc["pg"] = pet.generation;
-    doc["pa"] = pet.age;
+    const PetEngine &pet = AppState::getInstance().pet;
+    const PetData &petData = pet.getData();
+    doc["pn"] = petData.name;
+    doc["ps"] = petData.stage;
+    doc["ph"] = petData.happiness;
+    doc["pg"] = petData.generation;
+    doc["pa"] = petData.age_minutes;
 
     String output;
     serializeJson(doc, output);

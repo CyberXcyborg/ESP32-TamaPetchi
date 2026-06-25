@@ -7,6 +7,7 @@
 #include "BLEDiscovery.h"
 #include "NFCManager.h"
 #include "Pet_v2.h"
+using namespace PetV2;
 #include <cstring>
 #include <cstdio>
 
