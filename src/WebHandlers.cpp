@@ -327,6 +327,12 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/export/full", HTTP_GET, handleExportFull);
   server.on("/api/import/settings", HTTP_POST, handleImportSettings);
 
+  // Phase 24.2: Data Export API routes
+  server.on("/api/export/create", HTTP_GET, handleExportCreate);
+  server.on("/api/export/list", HTTP_GET, handleExportList);
+  server.on("/api/export/download", HTTP_GET, handleExportDownload);
+  server.on("/api/export/delete", HTTP_POST, handleExportDelete);
+
   // Phase 13.4: Provisioning routes
   registerProvisioningRoutes();
 
@@ -1634,6 +1640,100 @@ void handleImportSettings() {
   String result;
   serializeJson(resp, result);
   g_server->send(200, "application/json", result);
+}
+
+// ============================================================
+// Phase 24.2: Data Export API Handlers
+// ============================================================
+
+void handleExportCreate() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+
+  // Create a new export file
+  String json = handleExportRequest();
+  if (json.length() == 0) {
+    sendErrorResponse("export_failed", "Failed to create export");
+    return;
+  }
+
+  // Return the export as a downloadable file
+  g_server->sendHeader("Content-Disposition", "attachment; filename=\"tamapetchi_export.json\"");
+  g_server->sendHeader("Cache-Control", "no-cache");
+  g_server->send(200, "application/json", json);
+}
+
+void handleExportList() {
+  if (!g_server) return;
+
+  // Use DataExport module to get file list
+  String json = getExportFileListJson();
+  g_server->send(200, "application/json", json);
+}
+
+void handleExportDownload() {
+  if (!g_server) return;
+
+  String filename = g_server->arg("file");
+  if (filename.length() == 0) {
+    sendErrorResponse("missing_param", "Filename required (?file=export_N.json)");
+    return;
+  }
+
+  // Sanitize filename
+  if (filename.indexOf("..") >= 0 || filename.indexOf("/") >= 0) {
+    sendErrorResponse("invalid_filename", "Invalid filename");
+    return;
+  }
+
+  String path = "/exports/" + filename;
+  File file = StorageV2::open(path, "r");
+  if (!file) {
+    sendErrorResponse("file_not_found", "Export file not found");
+    return;
+  }
+
+  g_server->sendHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+  g_server->send(200, "application/json", file.readString());
+  file.close();
+}
+
+void handleExportDelete() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+
+  String body = g_server->arg("plain");
+  StaticJsonDocument<256> doc;
+  DeserializationError err = deserializeJson(doc, body);
+  if (err) {
+    sendErrorResponse(ERR_JSON_PARSE_FAIL, "Invalid JSON body");
+    return;
+  }
+
+  String filename = doc["filename"] | "";
+  if (filename.length() == 0) {
+    sendErrorResponse("missing_param", "Filename required in body");
+    return;
+  }
+
+  // Sanitize filename
+  if (filename.indexOf("..") >= 0 || filename.indexOf("/") >= 0) {
+    sendErrorResponse("invalid_filename", "Invalid filename");
+    return;
+  }
+
+  bool ok = deleteExportFile(filename);
+  if (ok) {
+    sendJsonResponse(true, "Export file deleted");
+  } else {
+    sendErrorResponse("delete_failed", "Failed to delete export file");
+  }
 }
 
 // ============================================================

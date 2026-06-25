@@ -103,4 +103,30 @@ void updateDayNightTheme();
 // Render weather overlay (call in display render loop)
 void renderWeatherOverlay();
 
+// ============================================================
+// Phase 24.3 completion: SNTP, ADC, brightness, LVGL observer
+// ============================================================
+
+// SNTP time sync
+void syncTimeFromNTP();
+
+// Ambient light sensor polling (ADC)
+void pollAmbientLightSensor();
+
+// Set display brightness (0-100), connects to DisplayDriver PWM
+void setDisplayBrightness(uint8_t level);
+
+// LVGL theme observer callback type
+typedef void (*ThemeChangeCallback)(DayNightTheme oldTheme, DayNightTheme newTheme);
+
+// Register a callback to be invoked when the theme changes
+void registerThemeChangeCallback(ThemeChangeCallback cb);
+
+// Apply current theme to LVGL screen background
+void applyThemeToLVGL();
+
+// Rain particle overlay control
+void startRainOverlay();
+void stopRainOverlay();
+
 #endif // DAY_NIGHT_THEME_H

@@ -1,6 +1,13 @@
 #include "DayNightTheme.h"
 #include "AppState.h"
+#include "drivers/DisplayDriver.h"
 #include <ArduinoJson.h>
+
+#ifdef ESP32
+#include <esp_sntp.h>
+#include <esp_wifi.h>
+#include <driver/adc.h>
+#endif
 
 // ============================================================
 // Theme color palettes
@@ -33,6 +40,178 @@ static DayNightState dnState = {
 static const unsigned long TRANSITION_DURATION_MS = 5000; // 5 seconds
 
 // ============================================================
+// Theme change observer pattern
+// ============================================================
+#define MAX_THEME_CALLBACKS 8
+static ThemeChangeCallback themeCallbacks[MAX_THEME_CALLBACKS];
+static uint8_t themeCallbackCount = 0;
+
+void registerThemeChangeCallback(ThemeChangeCallback cb) {
+    if (themeCallbackCount < MAX_THEME_CALLBACKS) {
+        themeCallbacks[themeCallbackCount++] = cb;
+    }
+}
+
+static void notifyThemeChange(DayNightTheme oldTheme, DayNightTheme newTheme) {
+    for (uint8_t i = 0; i < themeCallbackCount; i++) {
+        if (themeCallbacks[i]) {
+            themeCallbacks[i](oldTheme, newTheme);
+        }
+    }
+}
+
+// ============================================================
+// Rain particle overlay state
+// ============================================================
+#ifdef ESP32
+static bool rainActive = false;
+static uint32_t rainLastFrame = 0;
+#define RAIN_PARTICLE_COUNT 20
+struct RainParticle {
+    int16_t x;
+    int16_t y;
+    uint8_t speed; // 1-5
+};
+static RainParticle rainParticles[RAIN_PARTICLE_COUNT];
+#endif
+
+void startRainOverlay() {
+#ifdef ESP32
+    rainActive = true;
+    rainLastFrame = millis();
+    // Initialize particles at random positions across the top of screen
+    for (uint8_t i = 0; i < RAIN_PARTICLE_COUNT; i++) {
+        rainParticles[i].x = rand() % TFT_WIDTH;
+        rainParticles[i].y = rand() % TFT_HEIGHT;
+        rainParticles[i].speed = 1 + (rand() % 5);
+    }
+#endif
+}
+
+void stopRainOverlay() {
+#ifdef ESP32
+    rainActive = false;
+#endif
+}
+
+// ============================================================
+// LVGL Theme Application
+// ============================================================
+#ifdef ESP32
+#include <lvgl.h>
+#endif
+
+void applyThemeToLVGL() {
+#ifdef ESP32
+    ThemePalette pal = getCurrentPalette();
+    lv_color_t bgColor = lv_color_make((pal.bg_color >> 16) & 0xFF,
+                                        (pal.bg_color >> 8) & 0xFF,
+                                        pal.bg_color & 0xFF);
+
+    // Apply to current screen background
+    lv_obj_t *screen = lv_scr_act();
+    if (screen) {
+        lv_obj_set_style_bg_color(screen, bgColor, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+    }
+#endif
+    // No-op in non-ESP32 builds (native tests)
+}
+
+// ============================================================
+// SNTP Time Sync
+// ============================================================
+#ifdef ESP32
+static bool sntpInitialized = false;
+static void sntp_time_sync_cb(struct timeval *tv) {
+    if (tv) {
+        struct tm timeinfo;
+        localtime_r(&tv->tv_sec, &timeinfo);
+        uint16_t minutesSinceMidnight = timeinfo.tm_hour * 60 + timeinfo.tm_min;
+        updateThemeByTime(minutesSinceMidnight);
+        Serial.printf("[DayNightTheme] Time sync: %02d:%02d (theme=%d)\n",
+                       timeinfo.tm_hour, timeinfo.tm_min, timeToTheme(minutesSinceMidnight));
+    }
+}
+#endif
+
+void syncTimeFromNTP() {
+#ifdef ESP32
+    if (!sntpInitialized) {
+        esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        esp_sntp_setservername(0, "pool.ntp.org");
+        esp_sntp_setservername(1, "time.google.com");
+        esp_sntp_set_time_sync_cb(sntp_time_sync_cb);
+        esp_sntp_init();
+        sntpInitialized = true;
+        Serial.println("[DayNightTheme] SNTP initialized");
+    }
+
+    // Check if we have valid time
+    time_t now;
+    time(&now);
+    if (now < 1000000000) {
+        // Time not synced yet — default to day theme
+        updateThemeByTime(0);
+        Serial.println("[DayNightTheme] Waiting for NTP sync, defaulting to day theme");
+    } else {
+        struct tm timeinfo;
+        localtime_r(&now, &timeinfo);
+        uint16_t minutesSinceMidnight = timeinfo.tm_hour * 60 + timeinfo.tm_min;
+        updateThemeByTime(minutesSinceMidnight);
+    }
+#else
+    // Native/test stub: no NTP available, call with 0
+    updateThemeByTime(0);
+#endif
+}
+
+// ============================================================
+// Ambient Light Sensor ADC
+// ============================================================
+#ifdef ESP32
+#define AMBIENT_LIGHT_ADC_PIN 3  // GPIO3 (ADC1_CH2) — dedicated light sensor pin
+                                        // (BATTERY_ADC_PIN=1 is used for battery)
+#define AMBIENT_LIGHT_SAMPLES 4   // Oversampling for noise reduction
+#endif
+
+void pollAmbientLightSensor() {
+#ifdef ESP32
+    // Configure ADC for light sensor reading
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten((adc1_channel_t)(AMBIENT_LIGHT_ADC_PIN - 36), ADC_ATTEN_DB_11);
+
+    uint32_t adcSum = 0;
+    for (int i = 0; i < AMBIENT_LIGHT_SAMPLES; i++) {
+        adcSum += adc1_get_raw((adc1_channel_t)(AMBIENT_LIGHT_ADC_PIN - 36));
+    }
+    uint32_t adcAvg = adcSum / AMBIENT_LIGHT_SAMPLES;
+
+    // Map ADC 0-4095 to 0-100 percentage
+    uint8_t lightLevel = constrain(adcAvg * 100 / 4095, 0, 100);
+    setAmbientLightLevel(lightLevel);
+
+    // Auto-brightness: adjust display
+    if (dnState.autoBrightness) {
+        uint8_t brightness = calculateAutoBrightness();
+        setDisplayBrightness(brightness);
+        DisplayDriver::getInstance().setBrightness(brightness);
+    }
+#else
+    // Native/test stub: no-op
+    (void)0;
+#endif
+}
+
+// ============================================================
+// Display Brightness (connects to DisplayDriver)
+// ============================================================
+void setDisplayBrightness(uint8_t level) {
+    DisplayDriver::getInstance().setBrightness(level);
+    Serial.printf("[DayNightTheme] Brightness set to %d%%\n", level);
+}
+
+// ============================================================
 // Time-to-theme mapping
 // ============================================================
 static DayNightTheme timeToTheme(uint16_t minutes) {
@@ -58,25 +237,41 @@ void initDayNightTheme() {
     dnState.autoBrightness = true;
     dnState.autoTheme = true;
     dnState.transitionProgress = 1.0f;
-    
+
+    // Initialize DisplayDriver backlight
+    DisplayDriver::getInstance().begin();
+
+    // Initialize theme callbacks
+    themeCallbackCount = 0;
+
     Serial.println("[DayNightTheme] Initialized");
 }
 
 void updateThemeByTime(uint16_t minutesSinceMidnight) {
     DayNightTheme newTheme = timeToTheme(minutesSinceMidnight);
     if (newTheme != dnState.targetTheme) {
+        DayNightTheme oldTheme = dnState.targetTheme;
         dnState.targetTheme = newTheme;
         dnState.lastTransitionMs = millis();
         dnState.transitionProgress = 0.0f;
         Serial.printf("[DayNightTheme] Transitioning to theme %d\n", newTheme);
+
+        // Notify observers
+        notifyThemeChange(oldTheme, newTheme);
+
+        // Apply to LVGL
+        applyThemeToLVGL();
     }
 }
 
 void setTheme(DayNightTheme theme) {
     if (theme < THEME_COUNT && theme != dnState.targetTheme) {
+        DayNightTheme oldTheme = dnState.targetTheme;
         dnState.targetTheme = theme;
         dnState.lastTransitionMs = millis();
         dnState.transitionProgress = 0.0f;
+        notifyThemeChange(oldTheme, theme);
+        applyThemeToLVGL();
     }
 }
 
@@ -94,15 +289,15 @@ ThemePalette getCurrentPalette() {
         const ThemePalette &from = themePalettes[dnState.currentTheme];
         const ThemePalette &to = themePalettes[dnState.targetTheme];
         float t = dnState.transitionProgress;
-        
+
         ThemePalette result;
         // Simple linear interpolation for colors
         uint8_t r1 = (from.bg_color >> 16) & 0xFF, g1 = (from.bg_color >> 8) & 0xFF, b1 = from.bg_color & 0xFF;
         uint8_t r2 = (to.bg_color >> 16) & 0xFF, g2 = (to.bg_color >> 8) & 0xFF, b2 = to.bg_color & 0xFF;
-        result.bg_color = ((uint8_t)(r1 + (r2 - r1) * t) << 16) | 
-                          ((uint8_t)(g1 + (g2 - g1) * t) << 8) | 
+        result.bg_color = ((uint8_t)(r1 + (r2 - r1) * t) << 16) |
+                          ((uint8_t)(g1 + (g2 - g1) * t) << 8) |
                           (uint8_t)(b1 + (b2 - b1) * t);
-        
+
         result.text_color = from.text_color; // Keep text readable
         result.accent_color = from.accent_color;
         result.pet_color = from.pet_color;
@@ -120,6 +315,13 @@ ThemePalette getPaletteForTheme(DayNightTheme theme) {
 void setWeatherEffect(WeatherEffect effect) {
     dnState.currentWeather = effect;
     Serial.printf("[DayNightTheme] Weather set to %d\n", effect);
+
+    // Start/stop rain overlay
+    if (effect == WEATHER_RAIN) {
+        startRainOverlay();
+    } else {
+        stopRainOverlay();
+    }
 }
 
 WeatherEffect getCurrentWeatherEffect() {
@@ -178,10 +380,10 @@ String getDayNightStateJson() {
     doc["autoTheme"] = dnState.autoTheme;
     doc["transitioning"] = isTransitioning();
     doc["transitionProgress"] = dnState.transitionProgress;
-    
+
     ThemePalette pal = getCurrentPalette();
     doc["brightness"] = dnState.autoBrightness ? calculateAutoBrightness() : pal.brightness;
-    
+
     String output;
     serializeJson(doc, output);
     return output;
@@ -199,10 +401,55 @@ void updateDayNightTheme() {
     }
 }
 
+// ============================================================
+// Rain particle overlay rendering
+// ============================================================
 void renderWeatherOverlay() {
-    // Weather overlay rendering placeholder
-    // In full implementation, this would render rain/snow particles
-    // using LVGL animations on top of the current screen
-    // For now, this is a no-op stub
+#ifdef ESP32
+    if (dnState.currentWeather != WEATHER_RAIN || !rainActive) return;
+
+    uint32_t now = millis();
+    if (now - rainLastFrame < 50) return; // ~20fps
+    uint32_t dt = now - rainLastFrame;
+    rainLastFrame = now;
+
+    // Get LVGL screen for drawing
+    lv_obj_t *screen = lv_scr_act();
+    if (!screen) return;
+
+    // Draw rain particles as simple lines
+    lv_color_t rainColor = lv_color_make(150, 180, 255); // Light blue
+
+    for (uint8_t i = 0; i < RAIN_PARTICLE_COUNT; i++) {
+        // Update particle position based on speed and time delta
+        rainParticles[i].y += rainParticles[i].speed * dt / 50;
+        rainParticles[i].x += (rainParticles[i].speed - 2) * dt / 100; // Slight diagonal drift
+
+        // Wrap particle if it goes off screen
+        if (rainParticles[i].y >= TFT_HEIGHT) {
+            rainParticles[i].y = 0;
+            rainParticles[i].x = rand() % TFT_WIDTH;
+        }
+        if (rainParticles[i].x >= TFT_WIDTH) {
+            rainParticles[i].x = 0;
+        } else if (rainParticles[i].x < 0) {
+            rainParticles[i].x = TFT_WIDTH - 1;
+        }
+
+        // Draw raindrop as a short vertical line
+        lv_point_t points[2];
+        points[0].x = rainParticles[i].x;
+        points[0].y = rainParticles[i].y;
+        points[1].x = rainParticles[i].x;
+        points[1].y = rainParticles[i].y + 8;
+
+        lv_line_t *line = lv_line_create(screen);
+        lv_line_set_points(line, points, 2);
+        lv_obj_set_style_line_color(line, rainColor, LV_PART_MAIN);
+        lv_obj_set_style_line_width(line, 1, LV_PART_MAIN);
+    }
+#else
+    // Native/test stub: no-op
     (void)0;
+#endif
 }

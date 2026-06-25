@@ -98,6 +98,12 @@ void handleGetPetAIMemory();
 void handleExportFull();
 void handleImportSettings();
 
+// Phase 24.2: Data Export API routes
+void handleExportCreate();
+void handleExportList();
+void handleExportDownload();
+void handleExportDelete();
+
 // Phase 17.2: Voice Control
 void handleGetVoiceStatus();
 void handlePostVoiceCommand();
