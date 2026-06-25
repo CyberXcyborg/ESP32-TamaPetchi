@@ -124,6 +124,14 @@ float getTransitionProgress() { return 1.0f; }
 String getDayNightStateJson() { return "{\"currentTheme\":1,\"weather\":0,\"ambientLight\":50}"; }
 void updateDayNightTheme() {}
 void renderWeatherOverlay() {}
+void syncTimeFromNTP() {}
+void pollAmbientLightSensor() {}
+void setDisplayBrightness(uint8_t level) { (void)level; }
+typedef void (*ThemeChangeCallback)(DayNightTheme oldTheme, DayNightTheme newTheme);
+void registerThemeChangeCallback(ThemeChangeCallback cb) { (void)cb; }
+void applyThemeToLVGL() {}
+void startRainOverlay() {}
+void stopRainOverlay() {}
 
 // ============================================================
 // PluginV2 native stubs
