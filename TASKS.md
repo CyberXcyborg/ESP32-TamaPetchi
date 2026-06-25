@@ -30,8 +30,10 @@
   - 24.2 ✅ Data Export System (17 tests)
   - 24.3 ✅ Day/Night Visual Enhancements (27 tests)
   - 24.4 ✅ Plugin System v2 (19 tests)
-  - 24.5 🔄 Integration Testing & Release Prep (native tests pass)
-  - 24.6 ⬜ Phase 24 Verification & PR
+  - 24.5 ✅ Integration Testing & Release Prep (native tests pass)
+  - 24.6 ✅ Phase 24 Verification & PR (PR #22 merged, tagged v2.0.0-rc.1)
+- Phase 25.1 ✅ Complete — PR #21 review fixes (merged via PR #23, 2026-06-25)
+- v2.0.0 ✅ Released — PR #21 merged to main, tagged v2.0.0 (2026-06-25)
 
 ## Completed Phases Summary
 | Phase | Description | Version |
@@ -56,7 +58,8 @@
 | 21 | Audio & Sensors — I2S audio, WAV decoder, LIS3DH accelerometer, tilt games | v2.0.0-alpha.3 |
 | 22 | BLE & NFC — GATT server, protocol, discovery, NFC manager, BLE trade game | v2.0.0-alpha.4 |
 | 23 | Power Management v2 & OTA v2 — Battery fuel gauge, A/B partitions, watchdog, crash recovery | v2.0.0-beta.1 |
-| 24 | Enhanced Features — Voice prompts, data export, day/night themes, plugin system v2 | v2.0.0-rc.1 |
+|| 24 | Enhanced Features — Voice prompts, data export, day/night themes, plugin system v2 | v2.0.0-rc.1 |
+| 25.1 | PR review fixes — SPIFFS→LittleFS, v1.x header removal, NFC safety, PWM | v2.0.0 |
 
 ---
 
@@ -389,15 +392,15 @@ Fix: Replace with field-by-field initialization
 - [x] Implement actual state restoration in restoreStateFromRTC()
 - [x] Move ledcSetup/ledcAttachPin to DisplayDriver::begin()
 - [x] Fix memcpy ordering in NFCManager::deserializeTradePayload()
-- [ ] Update PR #21 with fixes, re-request review
+- [x] Update PR #21 with fixes, re-request review (PR #23 merged to develop, fixes included)
 
 ### 25.2 - v2.0.0 Final Release
-- [ ] Merge PR #21 after review approval
-- [ ] Tag v2.0.0 (final release candidate)
-- [ ] Write comprehensive RELEASE_NOTES.md for v2.0.0
-- [ ] Update CHANGELOG.md with final v2.0.0 entry
-- [ ] Update README.md version badge and status table
-- [ ] Verify all 216 native tests pass with latest changes
+- [x] Merge PR #21 after review approval (merged 2026-06-25)
+- [x] Tag v2.0.0 (final release candidate) (tagged 2026-06-25)
+- [x] Write comprehensive RELEASE_NOTES.md for v2.0.0
+- [x] Update CHANGELOG.md with final v2.0.0 entry
+- [x] Update README.md version badge and status table
+- [x] Verify all 216 native tests pass with latest changes
 - [ ] Build verification via platformio_v2.ini for esp32s3
 
 ### 25.3 - Hardware Validation (requires physical ESP32-S3)

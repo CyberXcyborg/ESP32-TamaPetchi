@@ -1,3 +1,28 @@
+## [2.0.0] - 2026-06-25
+
+### Release Highlights
+- Complete platform rewrite from Arduino to ESP-IDF/PlatformIO
+- LVGL 9.x graphics with color sprites and animation
+- I2S audio with WAV playback and voice prompts
+- BLE GATT server for wireless control and pet trading
+- NFC pet sharing via PN532
+- Advanced power management with light sleep
+- OTA v2 with A/B partitions and automatic rollback
+- Plugin system with sandboxed execution
+- 216 native tests across 30+ modules
+
+### Migrations
+- SPIFFS → LittleFS (all modules)
+- Arduino framework → ESP-IDF/PlatformIO
+- Monolithic .ino → modular src/ structure
+- SPI display direct → LVGL driver
+
+### Test Results
+- 216/216 native tests pass
+- Zero regressions from v1.8.0 test baseline
+
+---
+
 ## [2.0.0-rc.1] - 2026-06-24
 
 ### Added

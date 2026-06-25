@@ -3,6 +3,7 @@
 ![GitHub stars](https://img.shields.io/github/stars/CyberXcyborg/ESP32-TamaPetchi?style=social)
 ![License](https://img.shields.io/github/license/CyberXcyborg/ESP32-TamaPetchi)
 ![Last Commit](https://img.shields.io/github/last-commit/CyberXcyborg/ESP32-TamaPetchi)
+![Version](https://img.shields.io/badge/version-v2.0.0-blue)
 
 [Visit Website](https://cyberxcyborg.github.io/ESP32-TamaPetchi/)
 
@@ -82,12 +83,13 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 19 | ESP-IDF migration, LVGL display, touch input, LittleFS | ✅ v2.0.0-alpha.1 |
-| 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
-| 21 | I2S audio, WAV decoder, LIS3DH accelerometer, tilt games, sound packs | ✅ v2.0.0-alpha.3 |
-| 22 | BLE GATT server, NFC manager, BLE protocol, trade game | ✅ v2.0.0-alpha.4 |
-| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | ✅ v2.0.0-beta.1 |
-| 24 | Voice Prompts, Data Export, Day/Night Themes, Plugin System v2 | 🔶 v2.0.0-rc.1 (in progress) |
+|| 19 | ESP-IDF migration, LVGL display, touch input, LittleFS | ✅ v2.0.0-alpha.1 |
+|| 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
+|| 21 | I2S audio, WAV decoder, LIS3DH accelerometer, tilt games, sound packs | ✅ v2.0.0-alpha.3 |
+|| 22 | BLE GATT server, NFC manager, BLE protocol, trade game | ✅ v2.0.0-alpha.4 |
+|| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | ✅ v2.0.0-beta.1 |
+|| 24 | Voice Prompts, Data Export, Day/Night Themes, Plugin System v2 | ✅ v2.0.0-rc.1 |
+|| 25.1 | SPIFFS→LittleFS migration, v1.x header removal, review fixes | ✅ v2.0.0 |
 
 ### v2.0 Hardware Requirements (ESP32-S3)
 - **MCU**: ESP32-S3-WROOM-1 (dual-core, PSRAM recommended)
