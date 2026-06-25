@@ -41,17 +41,33 @@ struct PluginV2Metadata {
 struct PluginV2Runtime {
     bool enabled;
     bool active;
+    bool crashed;               // Set true if plugin crashed (auto-disabled)
     unsigned long lastTickMs;
     uint32_t totalTicks;
     uint32_t watchdogTriggers;
+    uint32_t crashCount;
     uint16_t memoryUsed;
 };
+
+// Plugin v2 callback types
+typedef void (*PluginTickCallback)(PluginEvent event);
+#ifdef ESP32
+typedef void (*PluginRenderCallback)(lv_obj_t *parent));
+#else
+// In native/test builds, lv_obj_t is not available; use void* as placeholder
+typedef void (*PluginRenderCallback)(void *parent);
+#endif
+typedef void (*PluginEventCallback)(PluginEvent event, int32_t data);
 
 // Plugin v2 entry
 struct PluginV2Entry {
     PluginV2Metadata metadata;
     PluginV2Runtime runtime;
     PluginInfo base;            // Legacy plugin info
+    // Callback pointers (nullptr = not set)
+    PluginTickCallback onTick;
+    PluginRenderCallback onRender;
+    PluginEventCallback onEvent;
 };
 
 // Initialize plugin v2 system
@@ -66,6 +82,13 @@ void savePluginsV2();
 // Register a plugin v2
 bool registerPluginV2(const PluginV2Metadata &metadata, PluginEvent event);
 
+// Register a plugin v2 with callbacks
+bool registerPluginV2WithCallbacks(const PluginV2Metadata &metadata,
+                                   PluginEvent event,
+                                   PluginTickCallback tickCb,
+                                   PluginRenderCallback renderCb,
+                                   PluginEventCallback eventCb);
+
 // Unregister a plugin v2
 bool unregisterPluginV2(const char *name);
 
@@ -75,6 +98,17 @@ bool disablePluginV2(const char *name);
 
 // Execute all plugins for a given event (with watchdog)
 void triggerPluginsV2(PluginEvent event);
+
+// Execute a specific plugin by name (with crash isolation)
+bool executePluginV2(const char *name, PluginEvent event);
+
+// Render a plugin's UI element using LVGL
+// Returns lv_obj_t* on ESP32, nullptr in native/test builds
+#ifdef ESP32
+lv_obj_t* renderPluginV2(const char *name, lv_obj_t *parent);
+#else
+void* renderPluginV2(const char *name, void *parent);
+#endif
 
 // Get plugin render data (for LVGL widgets)
 String getPluginRenderJson();
@@ -88,10 +122,33 @@ String getPluginStatusJson(const char *name);
 // Plugin sandbox: check memory limit
 bool checkPluginMemory(const char *name, uint16_t needed);
 
+// Plugin sandbox: enforce memory limit (disables plugin if over limit)
+bool enforcePluginMemory(const char *name, uint16_t needed);
+
 // Register built-in v2 plugins
 void registerBuiltInPluginsV2();
 
 // Task update (call in main loop)
 void updatePluginsV2();
+
+// Plugin upload/install flow
+// Accepts plugin metadata + bytecode/config JSON, stores in LittleFS, registers it
+bool uploadPluginV2(const char *jsonConfig, int len);
+
+// Plugin upload with full metadata
+bool uploadPluginV2(const PluginV2Metadata &metadata,
+                    const char *codeData, int codeLen,
+                    PluginTickCallback tickCb,
+                    PluginRenderCallback renderCb,
+                    PluginEventCallback eventCb);
+
+// Get the number of registered plugins
+uint8_t getPluginV2Count();
+
+// Get plugin entry by index (returns nullptr if out of range)
+const PluginV2Entry* getPluginV2ByIndex(uint8_t index);
+
+// Get plugin entry by name (returns nullptr if not found)
+const PluginV2Entry* getPluginV2ByName(const char *name);
 
 #endif // PLUGIN_V2_H
