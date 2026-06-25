@@ -372,3 +372,60 @@ Fix: Replace with field-by-field initialization
 3. Re-push after fix
 4. After approval: merge, tag v2.0.0-rc.1
 5. Begin Phase 25 planning
+
+---
+## Phase 25: Hardware Validation, Release Prep and v2.0.0 Release
+
+**Assigned:** TBD
+**Goal:** Complete hardware validation on real ESP32-S3, fix PR compilation issues, finalize v2.0.0 release, plan v2.1 roadmap
+**Priority:** Fix PR21 -> Hardware validation -> Release v2.0.0 -> Plan v2.1
+
+### 25.1 - Fix PR #21 Review Issues (HIGH PRIORITY)
+- [x] **CRITICAL:** Fix DataExport.cpp SPIFFS to LittleFS migration
+- [x] **CRITICAL:** Fix PluginV2.cpp SPIFFS to LittleFS migration
+- [x] **CRITICAL:** Fix VoicePrompts.cpp SPIFFS to LittleFS migration
+- [x] **CRITICAL:** Fix DataExport.cpp v1.x header references (Pet.h, Achievements.h, etc.)
+- [x] Fix integer division in PowerManager_v2::getEstimatedBatteryHoursV2()
+- [x] Implement actual state restoration in restoreStateFromRTC()
+- [x] Move ledcSetup/ledcAttachPin to DisplayDriver::begin()
+- [x] Fix memcpy ordering in NFCManager::deserializeTradePayload()
+- [ ] Update PR #21 with fixes, re-request review
+
+### 25.2 - v2.0.0 Final Release
+- [ ] Merge PR #21 after review approval
+- [ ] Tag v2.0.0 (final release candidate)
+- [ ] Write comprehensive RELEASE_NOTES.md for v2.0.0
+- [ ] Update CHANGELOG.md with final v2.0.0 entry
+- [ ] Update README.md version badge and status table
+- [ ] Verify all 216 native tests pass with latest changes
+- [ ] Build verification via platformio_v2.ini for esp32s3
+
+### 25.3 - Hardware Validation (requires physical ESP32-S3)
+- [ ] Flash v2.0.0 to physical ESP32-S3-DevKitC-1
+- [ ] Verify ST7789 TFT displays pet sprite correctly
+- [ ] Verify LVGL touch input works (XPT2046 calibration)
+- [ ] Test I2S audio output via MAX98357A
+- [ ] Test LIS3DH accelerometer readings
+- [ ] Test BLE advertising and connection
+- [ ] Test NFC tag read/write (PN532)
+- [ ] Test battery voltage reading accuracy
+- [ ] Measure actual power consumption in light sleep
+- [ ] Run 24h stability test with monitoring
+- [ ] Document hardware validation results in HARDWARE_VALIDATION.md
+
+### 25.4 - Performance and Memory Audit
+- [ ] Measure actual flash usage with v2.0.0 build
+- [ ] Measure actual RAM usage during runtime
+- [ ] Profile LVGL render time per frame
+- [ ] Verify PSRAM allocation for framebuffers
+- [ ] Test heap fragmentation over extended runtime
+- [ ] Optimize any bottlenecks found
+
+### 25.5 - v2.1 Planning
+- [ ] Review v2.0.0 stability data from hardware validation
+- [ ] Identify top feature requests from community
+- [ ] Evaluate ESP32-S3-BOX-3 as premium target
+- [ ] Research LVGL 9.x migration path (from 8.3.11)
+- [ ] Plan v2.1 roadmap document (V2_ROADMAP_V2.1.md)
+- [ ] Consider: Home Matter integration, AI voice, companion mobile app
+- [ ] Consider: Multi-pet households, cloud backup sync
