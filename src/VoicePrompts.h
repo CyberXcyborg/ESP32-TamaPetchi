@@ -8,6 +8,7 @@
 // Phase 24.1: Voice Prompts System
 // Pet "speaks" status updates via I2S audio (WAV clips).
 // Voice packs are collections of WAV files mapped to events.
+// Falls back to buzzer PWM tone when I2S is unavailable.
 // ============================================================
 
 #define VOICE_PACK_DIR      "/voice"
@@ -15,6 +16,12 @@
 #define MAX_VOICE_PACKS     4
 #define VOICE_PACK_NAME_LEN 32
 #define VOICE_MAX_CLIPS     16
+
+// Buzzer fallback configuration
+#define VOICE_BUZZER_PIN    2     // Default buzzer GPIO
+#define VOICE_BUZZER_CHANNEL 0    // LEDC channel for buzzer
+#define VOICE_BUZZER_FREQ   2000  // Default tone frequency (Hz)
+#define VOICE_BUZZER_DURATION 500 // Default buzzer duration (ms)
 
 // Voice clip events
 enum VoiceClipEvent {
@@ -43,6 +50,23 @@ struct VoiceConfig {
     bool enabled;
     uint8_t volume;         // 0-100
     char activePack[VOICE_PACK_NAME_LEN];
+    uint8_t buzzerPin;      // GPIO for buzzer fallback
+    bool i2sAvailable;      // Whether I2S initialized successfully
+};
+
+// Voice clip manifest entry (parsed from JSON)
+struct VoiceClipEntry {
+    char eventName[32];
+    char filename[48];
+    uint32_t durationMs;    // Duration in milliseconds
+};
+
+// Voice pack manifest (loaded from manifest.json)
+struct VoicePackManifest {
+    char name[VOICE_PACK_NAME_LEN];
+    char version[16];
+    VoiceClipEntry clips[VOICE_MAX_CLIPS];
+    uint8_t clipCount;
 };
 
 // Initialize voice prompts system
@@ -90,4 +114,13 @@ void voiceEvent(VoiceClipEvent event);
 // Task update (call in main loop)
 void updateVoicePrompts();
 
-#endif // VOICE_PROMPTS_H
+// Set buzzer pin for fallback
+void setBuzzerPin(uint8_t pin);
+
+// Get current buzzer pin
+uint8_t getBuzzerPin();
+
+// Check if I2S is available
+bool isI2SAvailable();
+
+#endif // VOICEPROMPTS_H

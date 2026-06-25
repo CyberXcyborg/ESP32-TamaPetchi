@@ -18,6 +18,9 @@ struct Achievement {};
 
 static bool g_stub_voice_enabled = true;
 static uint8_t g_stub_voice_volume = 70;
+static uint8_t g_stub_buzzer_pin = 2;
+static bool g_stub_i2s_available = false;
+static bool g_stub_voice_playing = false;
 static WeatherEffect g_stub_weather = WEATHER_NONE;
 static uint8_t g_stub_ambient = 50;
 static bool g_stub_auto_brightness = true;
@@ -25,8 +28,8 @@ static bool g_stub_auto_theme = true;
 
 void initVoicePrompts() { g_stub_voice_enabled = true; g_stub_voice_volume = 70; }
 bool playVoiceClip(VoiceClipEvent event) { (void)event; return g_stub_voice_enabled; }
-void stopVoiceClip() {}
-bool isVoicePlaying() { return false; }
+void stopVoiceClip() { g_stub_voice_playing = false; }
+bool isVoicePlaying() { return g_stub_voice_playing; }
 void setVoiceVolume(uint8_t vol) { g_stub_voice_volume = vol > 100 ? 100 : vol; }
 uint8_t getVoiceVolume() { return g_stub_voice_volume; }
 void setVoiceEnabled(bool enabled) { g_stub_voice_enabled = enabled; }
@@ -42,9 +45,13 @@ int getVoicePackList(VoicePackInfo *packs, int maxPacks) {
 }
 String getActiveVoicePack() { return "default"; }
 bool setActiveVoicePack(const String &name) { (void)name; return true; }
-String getVoiceConfigJson() { return "{\"enabled\":true,\"volume\":70,\"activePack\":\"default\"}"; }
+bool loadVoicePack(const String &name) { (void)name; return true; }
+String getVoiceConfigJson() { return "{\"enabled\":true,\"volume\":70,\"activePack\":\"default\",\"i2sAvailable\":false,\"buzzerPin\":2}"; }
 void voiceEvent(VoiceClipEvent event) { (void)event; }
 void updateVoicePrompts() {}
+void setBuzzerPin(uint8_t pin) { g_stub_buzzer_pin = pin; }
+uint8_t getBuzzerPin() { return g_stub_buzzer_pin; }
+bool isI2SAvailable() { return g_stub_i2s_available; }
 
 // ============================================================
 // DataExport native stubs
