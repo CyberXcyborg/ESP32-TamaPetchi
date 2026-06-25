@@ -1,7 +1,7 @@
 #include "VoicePrompts.h"
 #include "AppState.h"
 #include "WebHandlers.h"
-#include <SPIFFS.h>
+#include "Storage_v2.h"
 #include <ArduinoJson.h>
 
 // ============================================================
@@ -56,7 +56,8 @@ void initVoicePrompts() {
     strncpy(voiceConfig.activePack, "default", VOICE_PACK_NAME_LEN);
 
     // Ensure voice directory exists
-    if (!SPIFFS.exists(VOICE_PACK_DIR)) {
+    StorageV2::begin();
+    if (!StorageV2::exists(VOICE_PACK_DIR)) {
         Serial.println("[VoicePrompts] Voice directory not found — voice prompts disabled");
         return;
     }
@@ -70,12 +71,12 @@ void initVoicePrompts() {
 bool loadVoicePack(const String &name) {
     String manifestPath = String(VOICE_PACK_DIR) + "/" + name + "/manifest.json";
     
-    if (!SPIFFS.exists(manifestPath)) {
+    if (!StorageV2::exists(manifestPath)) {
         Serial.printf("[VoicePrompts] Pack manifest not found: %s\n", manifestPath.c_str());
         return false;
     }
 
-    File f = SPIFFS.open(manifestPath, "r");
+    File f = StorageV2::open(manifestPath, "r");
     if (!f) return false;
 
     // For now, we use the default clip mapping
@@ -101,7 +102,7 @@ bool playVoiceClip(VoiceClipEvent event) {
         }
     }
 
-    if (clipFile.length() == 0 || !SPIFFS.exists(clipFile)) {
+    if (clipFile.length() == 0 || !StorageV2::exists(clipFile)) {
         // Fallback: play a tone via buzzer
         Serial.printf("[VoicePrompts] Clip not found, using buzzer fallback for event %d\n", event);
         // Trigger buzzer melody as fallback
@@ -168,7 +169,7 @@ int getVoicePackList(VoicePackInfo *packs, int maxPacks) {
         count++;
     }
 
-    File dir = SPIFFS.open(VOICE_PACK_DIR);
+    File dir = StorageV2::open(VOICE_PACK_DIR);
     if (!dir) return count;
 
     File file = dir.openNextFile();

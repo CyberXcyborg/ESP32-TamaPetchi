@@ -12,10 +12,15 @@ class StorageV2 {
 public:
     static bool begin();
     static bool exists(const char *path);
+    static bool mkdir(const char *path);
     static String read(const char *path);
     static bool write(const char *path, const String &data);
+    static bool append(const char *path, const String &data);
     static bool remove(const char *path);
     static bool format();
+    
+    // File access (for directory listing, etc.)
+    static File open(const char *path, const char *mode = "r");
     
 private:
     static bool _mounted;

@@ -4,6 +4,7 @@
 
 #include "Storage_v2.h"
 #include <LittleFS.h>
+#include <FS.h>
 
 bool StorageV2::_mounted = false;
 
@@ -45,6 +46,25 @@ bool StorageV2::write(const char *path, const String &data) {
 bool StorageV2::remove(const char *path) {
     if (!_mounted) return false;
     return LittleFS.remove(path);
+}
+
+bool StorageV2::mkdir(const char *path) {
+    if (!_mounted) return false;
+    return LittleFS.mkdir(path);
+}
+
+bool StorageV2::append(const char *path, const String &data) {
+    if (!_mounted) return false;
+    File file = LittleFS.open(path, "a");
+    if (!file) return false;
+    size_t written = file.print(data);
+    file.close();
+    return written == data.length();
+}
+
+File StorageV2::open(const char *path, const char *mode) {
+    if (!_mounted) return File();
+    return LittleFS.open(path, mode);
 }
 
 bool StorageV2::format() {

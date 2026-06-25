@@ -61,7 +61,13 @@ bool DisplayDriver::begin() {
     
     _ready = true;
     DEBUG_PRINTLN("[Display] LVGL 9.x display initialized successfully");
-    
+
+    // Initialize backlight — run once to avoid reconfiguring PWM channel on every brightness change
+    if (TFT_PIN_BL >= 0) {
+        ledcSetup(0, 5000, 8);
+        ledcAttachPin(TFT_PIN_BL, 0);
+    }
+
     return _ready;
 }
 
@@ -78,9 +84,8 @@ void DisplayDriver::lvFlushCb(lv_disp_t *disp, const lv_area_t *area, uint8_t *p
 }
 
 void DisplayDriver::setBrightness(uint8_t level) {
+    // ledcSetup/ledcAttachPin called once in begin() — no need to reconfigure
     if (TFT_PIN_BL >= 0) {
-        ledcSetup(0, 5000, 8);
-        ledcAttachPin(TFT_PIN_BL, 0);
         ledcWrite(0, level);
     }
 }
