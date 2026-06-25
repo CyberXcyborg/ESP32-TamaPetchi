@@ -160,7 +160,7 @@ void initPluginV2() {
     weatherMeta.memoryLimit = 512;
     weatherMeta.watchdogMs = 5000;
     registerPluginV2(weatherMeta, PLUGIN_EVENT_ON_TICK);
-    
+
     PluginV2Metadata ageMeta;
     memset(&ageMeta, 0, sizeof(ageMeta));
     strncpy(ageMeta.name, "pet_age_display", 32);
@@ -175,15 +175,27 @@ void initPluginV2() {
 void loadPluginsV2() {}
 void savePluginsV2() {}
 bool registerPluginV2(const PluginV2Metadata &metadata, PluginEvent event) {
+    return registerPluginV2WithCallbacks(metadata, event, nullptr, nullptr, nullptr);
+}
+bool registerPluginV2WithCallbacks(const PluginV2Metadata &metadata,
+                                   PluginEvent event,
+                                   PluginTickCallback tickCb,
+                                   PluginRenderCallback renderCb,
+                                   PluginEventCallback eventCb) {
     if (g_v2_count >= PLUGIN_V2_MAX_PLUGINS) return false;
     PluginV2Entry &entry = g_v2_registry[g_v2_count];
     memcpy(&entry.metadata, &metadata, sizeof(PluginV2Metadata));
     entry.runtime.enabled = true;
     entry.runtime.active = false;
+    entry.runtime.crashed = false;
     entry.runtime.lastTickMs = 0;
     entry.runtime.totalTicks = 0;
     entry.runtime.watchdogTriggers = 0;
+    entry.runtime.crashCount = 0;
     entry.runtime.memoryUsed = 0;
+    entry.onTick = tickCb;
+    entry.onRender = renderCb;
+    entry.onEvent = eventCb;
     strncpy(entry.base.name, metadata.name, 32);
     strncpy(entry.base.version, metadata.version, 16);
     strncpy(entry.base.description, metadata.description, 64);
@@ -208,6 +220,7 @@ bool enablePluginV2(const char *name) {
     for (uint8_t i = 0; i < g_v2_count; i++) {
         if (strcmp(g_v2_registry[i].metadata.name, name) == 0) {
             g_v2_registry[i].runtime.enabled = true;
+            g_v2_registry[i].runtime.crashed = false;
             return true;
         }
     }
@@ -222,7 +235,36 @@ bool disablePluginV2(const char *name) {
     }
     return false;
 }
-void triggerPluginsV2(PluginEvent event) { (void)event; }
+void triggerPluginsV2(PluginEvent event) {
+    // Iterate and call tick callbacks for enabled plugins
+    for (uint8_t i = 0; i < g_v2_count; i++) {
+        PluginV2Entry &entry = g_v2_registry[i];
+        if (!entry.runtime.enabled) continue;
+        if (entry.runtime.crashed) continue;
+        if (!(entry.metadata.capabilities & PLUGIN_CAP_TICK)) continue;
+        if (entry.onTick) {
+            entry.onTick(event);
+        }
+        entry.runtime.totalTicks++;
+    }
+}
+bool executePluginV2(const char *name, PluginEvent event) {
+    for (uint8_t i = 0; i < g_v2_count; i++) {
+        if (strcmp(g_v2_registry[i].metadata.name, name) == 0) {
+            if (!g_v2_registry[i].runtime.enabled) return false;
+            if (g_v2_registry[i].onEvent) {
+                g_v2_registry[i].onEvent(event, 0);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+void* renderPluginV2(const char *name, void *parent) {
+    (void)name;
+    (void)parent;
+    return nullptr;
+}
 String getPluginRenderJson() { return "{\"plugins\":[]}"; }
 String getPluginsV2Json() {
     // Return a simple JSON with plugin names
@@ -239,6 +281,54 @@ bool checkPluginMemory(const char *name, uint16_t needed) {
         }
     }
     return false;
+}
+bool enforcePluginMemory(const char *name, uint16_t needed) {
+    for (uint8_t i = 0; i < g_v2_count; i++) {
+        if (strcmp(g_v2_registry[i].metadata.name, name) == 0) {
+            PluginV2Entry &entry = g_v2_registry[i];
+            if ((entry.runtime.memoryUsed + needed) > entry.metadata.memoryLimit) {
+                entry.runtime.enabled = false;
+                entry.runtime.crashed = true;
+                entry.runtime.crashCount++;
+                entry.runtime.watchdogTriggers++;
+                return false;
+            }
+            entry.runtime.memoryUsed += needed;
+            return true;
+        }
+    }
+    return false;
+}
+bool uploadPluginV2(const char *jsonConfig, int len) {
+    (void)jsonConfig;
+    (void)len;
+    return false;
+}
+bool uploadPluginV2(const PluginV2Metadata &metadata,
+                    const char *codeData, int codeLen,
+                    PluginTickCallback tickCb,
+                    PluginRenderCallback renderCb,
+                    PluginEventCallback eventCb) {
+    (void)metadata;
+    (void)codeData;
+    (void)codeLen;
+    (void)tickCb;
+    (void)renderCb;
+    (void)eventCb;
+    return false;
+}
+uint8_t getPluginV2Count() { return g_v2_count; }
+const PluginV2Entry* getPluginV2ByIndex(uint8_t index) {
+    if (index >= g_v2_count) return nullptr;
+    return &g_v2_registry[index];
+}
+const PluginV2Entry* getPluginV2ByName(const char *name) {
+    for (uint8_t i = 0; i < g_v2_count; i++) {
+        if (strcmp(g_v2_registry[i].metadata.name, name) == 0) {
+            return &g_v2_registry[i];
+        }
+    }
+    return nullptr;
 }
 void registerBuiltInPluginsV2() {}
 void updatePluginsV2() {}
