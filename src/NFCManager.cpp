@@ -6,6 +6,7 @@
 #include "NFCManager.h"
 #include "config_v2.h"
 #include <Wire.h>
+#include <cstring>
 
 // ============================================================
 // PN532 Constants
@@ -99,6 +100,8 @@ bool NFCManager::serializeTradePayload(const NFCTradePayload &payload, uint8_t *
 }
 
 bool NFCManager::deserializeTradePayload(const uint8_t *data, uint16_t len, NFCTradePayload &payload) {
+  // Zero-initialize to avoid uninitialized fields from variable-length input
+  memset(&payload, 0, sizeof(NFCTradePayload));
   if (len < sizeof(NFCTradePayload)) return false;
   memcpy(&payload, data, sizeof(NFCTradePayload));
   // Validate magic
@@ -402,6 +405,8 @@ bool NFCManager::serializeTradePayload(const NFCTradePayload &payload, uint8_t *
 }
 
 bool NFCManager::deserializeTradePayload(const uint8_t *data, uint16_t len, NFCTradePayload &payload) {
+  // Zero-initialize to avoid uninitialized fields from variable-length input
+  memset(&payload, 0, sizeof(NFCTradePayload));
   if (len < sizeof(NFCTradePayload)) return false;
   memcpy(&payload, data, sizeof(NFCTradePayload));
   if (strncmp(payload.magic, "TAMA", 4) != 0) return false;

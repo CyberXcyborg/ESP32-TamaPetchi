@@ -1,11 +1,8 @@
 #include "DataExport.h"
-#include "Pet.h"
-#include "Achievements.h"
-#include "Stats.h"
-#include "Backup.h"
 #include "AppState.h"
 #include "WebHandlers.h"
-#include <SPIFFS.h>
+#include "Storage_v2.h"
+#include "Pet_v2.h"
 #include <ArduinoJson.h>
 
 // ============================================================
@@ -38,8 +35,9 @@ void initDataExport() {
     dataExportInitialized = true;
     
     // Ensure export directory exists
-    if (!SPIFFS.exists("/exports")) {
-        SPIFFS.mkdir("/exports");
+    StorageV2::begin();
+    if (!StorageV2::exists("/exports")) {
+        StorageV2::mkdir("/exports");
     }
     
     Serial.println("[DataExport] Initialized");
@@ -50,20 +48,28 @@ String createDataExportJson() {
         initDataExport();
     }
 
-    // Use existing backup system as base with real pet data, then extend
-    String baseBackup = createBackupJson(AppState::getInstance().pet);
-    
-    // Parse and enhance with additional data
+    // Build export JSON from real pet data via AppState
     DynamicJsonDocument doc(3072);
-    DeserializationError err = deserializeJson(doc, baseBackup);
-    
-    if (err) {
-        // If backup fails, create minimal export
-        doc.clear();
-        doc["version"] = DATA_EXPORT_VERSION;
-        doc["timestamp"] = millis();
-        doc["format"] = "json";
-    }
+    doc["version"] = DATA_EXPORT_VERSION;
+    doc["timestamp"] = millis();
+    doc["format"] = "json";
+
+    // Use real pet data from AppState (v2.0 PetEngine)
+    const PetEngine &pet = AppState::getInstance().pet;
+    const PetData &petData = pet.getData();
+
+    JsonObject petObj = doc.createNestedObject("pet");
+    petObj["name"] = petData.name;
+    petObj["stage"] = petData.stage;
+    petObj["state"] = petData.state;
+    petObj["hunger"] = petData.hunger;
+    petObj["happiness"] = petData.happiness;
+    petObj["energy"] = petData.energy;
+    petObj["cleanliness"] = petData.cleanliness;
+    petObj["health"] = petData.health;
+    petObj["age"] = petData.age_minutes / 60;  // hours
+    petObj["generation"] = petData.generation;
+    petObj["alive"] = pet.isAlive();
 
     // Add export metadata
     doc["exportVersion"] = DATA_EXPORT_VERSION;
@@ -177,11 +183,10 @@ int importDataExport(const String &json) {
     DeserializationError err = deserializeJson(doc, json);
     if (err) return EXPORT_ERR_INVALID_FORMAT;
 
-    // Use existing backup restore logic
-    Pet pet;
-    int restoreResult = restoreBackupJson(json, pet);
-    if (restoreResult != 0) {
-        lastExportError = "Restore failed: " + String(restoreResult);
+    // Restore pet state via PetEngine fromJson
+    PetEngine &pet = AppState::getInstance().pet;
+    if (!pet.fromJson(json)) {
+        lastExportError = "PetEngine fromJson failed";
         return EXPORT_ERR_STORAGE;
     }
 
@@ -193,7 +198,7 @@ String getExportFileListJson() {
     DynamicJsonDocument doc(512);
     JsonArray list = doc.createNestedArray("exports");
 
-    File dir = SPIFFS.open("/exports");
+    File dir = StorageV2::open("/exports");
     if (dir) {
         File file = dir.openNextFile();
         while (file) {
@@ -212,8 +217,8 @@ String getExportFileListJson() {
 
 bool deleteExportFile(const String &filename) {
     String path = "/exports/" + filename;
-    if (SPIFFS.exists(path)) {
-        return SPIFFS.remove(path);
+    if (StorageV2::exists(path)) {
+        return StorageV2::remove(path);
     }
     return false;
 }

@@ -1,6 +1,6 @@
 #include "PluginV2.h"
 #include "AppState.h"
-#include <SPIFFS.h>
+#include "Storage_v2.h"
 #include <ArduinoJson.h>
 
 // ============================================================
@@ -44,9 +44,9 @@ void initPluginV2() {
 }
 
 void loadPluginsV2() {
-    if (!SPIFFS.exists("/plugins_v2.json")) return;
+    if (!StorageV2::exists("/plugins_v2.json")) return;
     
-    File f = SPIFFS.open("/plugins_v2.json", "r");
+    File f = StorageV2::open("/plugins_v2.json", "r");
     if (!f) return;
     
     DynamicJsonDocument doc(1024);
@@ -82,7 +82,7 @@ void savePluginsV2() {
         obj["enabled"] = pluginRegistry[i].runtime.enabled;
     }
     
-    File f = SPIFFS.open("/plugins_v2.json", "w");
+    File f = StorageV2::open("/plugins_v2.json", "w");
     if (f) {
         serializeJson(doc, f);
         f.close();

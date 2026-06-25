@@ -118,7 +118,8 @@ int getEstimatedBatteryHoursV2() {
   int currentPct = getBatteryPercentV2();
   if (currentPct < 0) return -1;
 
-  return currentPct / drainPerHour;
+  // Use float division for accurate estimate (avoids integer truncation)
+  return (int)((float)currentPct / (float)drainPerHour);
 }
 
 // ============================================================
@@ -335,22 +336,23 @@ void saveStateToRTC(const PetEngine &pet) {
 bool restoreStateFromRTC(PetEngine &pet) {
   if (!validateRTCPetState(g_rtcPetState)) return false;
 
-  // Restore vital stats (but not name — that comes from LittleFS)
-  PetData data = pet.getData();
-  data.hunger = g_rtcPetState.hunger;
-  data.happiness = g_rtcPetState.happiness;
-  data.energy = g_rtcPetState.energy;
-  data.cleanliness = g_rtcPetState.cleanliness;
-  data.health = g_rtcPetState.health;
-  data.stage = g_rtcPetState.stage;
-  data.state = g_rtcPetState.state;
-  data.age_minutes = g_rtcPetState.age_minutes;
-  data.birth_timestamp = g_rtcPetState.birth_timestamp;
+  // Build JSON from RTC state and restore via PetEngine::fromJson
+  // This restores vital stats (but not name — that comes from LittleFS)
+  StaticJsonDocument<256> doc;
+  doc["name"] = pet.getData().name;  // Preserve current name
+  doc["hunger"] = g_rtcPetState.hunger;
+  doc["happiness"] = g_rtcPetState.happiness;
+  doc["energy"] = g_rtcPetState.energy;
+  doc["cleanliness"] = g_rtcPetState.cleanliness;
+  doc["health"] = g_rtcPetState.health;
+  doc["age_minutes"] = g_rtcPetState.age_minutes;
+  doc["stage"] = g_rtcPetState.stage;
+  doc["state"] = g_rtcPetState.state;
+  doc["generation"] = pet.getData().generation;  // Preserve current generation
 
-  // Note: Direct write not possible since getData() returns const ref.
-  // This is conceptual — in practice, re-create from JSON or use setter.
-  // For now, this function signals that state is available.
-  return true;
+  String json;
+  serializeJson(doc, json);
+  return pet.fromJson(json);
 }
 
 void clearRTCState() {
