@@ -2,6 +2,7 @@
 #include "AppState_v2.h"
 #include "Storage_v2.h"
 #include "Pet_v2.h"
+using namespace PetV2;
 #include <ArduinoJson.h>
 
 

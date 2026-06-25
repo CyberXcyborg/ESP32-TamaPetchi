@@ -11,6 +11,7 @@
 #include "config_v2.h"
 #include "AppState_v2.h"
 #include "Pet_v2.h"
+using namespace PetV2;
 #include "Storage_v2.h"
 #include "DisplayDriver.h"
 

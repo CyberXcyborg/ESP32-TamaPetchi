@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include "Pet_v2.h"
 
+using namespace PetV2;
 
 // Global application state singleton
 class AppStateV2 {

@@ -1,7 +1,7 @@
 // ============================================================
 // Pet_v2.h — Minimal Pet Engine for v2.0 Foundation
-// PetStage/PetState enums are prefixed (PET_STAGE_*, PET_STATE_*)
-// to avoid conflict with v1 Pet.h which defines unscoped BABY/CHILD/etc.
+// All types wrapped in namespace PetV2 to avoid conflicts
+// with v1 Pet.h (which defines unscoped PetStage/PetState enums)
 // ============================================================
 
 #ifndef PET_V2_H
@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+
+namespace PetV2 {
 
 enum PetStage {
     PET_STAGE_BABY = 0,
@@ -72,5 +74,7 @@ private:
     void evolve();
     uint8_t get_decay_mult() const;
 };
+
+} // namespace PetV2
 
 #endif // PET_V2_H
