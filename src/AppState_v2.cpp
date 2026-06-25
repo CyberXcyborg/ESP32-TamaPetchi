@@ -5,6 +5,7 @@
 #include "AppState_v2.h"
 #include <esp_system.h>
 
+
 AppStateV2::AppStateV2()
     : wifiConnected(false)
     , bleConnected(false)

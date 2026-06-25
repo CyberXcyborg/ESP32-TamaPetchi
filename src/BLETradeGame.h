@@ -18,6 +18,7 @@
 #include "Pet_v2.h"
 #include "AppState_v2.h"
 
+
 // Trade session states
 enum BLETradeState {
   BLE_TRADE_IDLE = 0,

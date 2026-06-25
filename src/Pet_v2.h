@@ -1,5 +1,7 @@
 // ============================================================
 // Pet_v2.h — Minimal Pet Engine for v2.0 Foundation
+// PetStage/PetState enums are prefixed (PET_STAGE_*, PET_STATE_*)
+// to avoid conflict with v1 Pet.h which defines unscoped BABY/CHILD/etc.
 // ============================================================
 
 #ifndef PET_V2_H
@@ -7,9 +9,6 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
-
-// Pet stages (v2 — wrapped in namespace to avoid conflict with v1 Pet.h)
-namespace PetV2 {
 
 enum PetStage {
     PET_STAGE_BABY = 0,
@@ -19,7 +18,6 @@ enum PetStage {
     PET_STAGE_COUNT
 };
 
-// Pet state flags
 enum PetState {
     PET_STATE_IDLE = 0,
     PET_STATE_EATING,
@@ -46,38 +44,33 @@ struct PetData {
 class PetEngine {
 public:
     PetEngine();
-    
+
     void init();
-    void update();  // Called every PET_UPDATE_INTERVAL
-    
-    // Actions
+    void update();
+
     void feed();
     void play();
     void clean();
     void sleep();
     void wake();
     void heal();
-    
-    // Getters
+
     const PetData& getData() const { return _data; }
     uint8_t getStage() const { return _data.stage; }
     uint8_t getHealth() const { return _data.health; }
     bool isAlive() const { return _data.health > 0; }
     bool isSleeping() const { return _data.state == PET_STATE_SLEEPING; }
-    
-    // Serialization
+
     String toJson() const;
     bool fromJson(const String &json);
-    
+
 private:
     PetData _data;
-    
+
     void decay_stats();
     void check_health();
     void evolve();
     uint8_t get_decay_mult() const;
 };
-
-} // namespace PetV2
 
 #endif // PET_V2_H

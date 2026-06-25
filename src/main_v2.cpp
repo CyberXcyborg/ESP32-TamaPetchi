@@ -14,7 +14,6 @@
 #include "Storage_v2.h"
 #include "DisplayDriver.h"
 
-using namespace PetV2;
 #include "TouchDriver.h"
 #include "HAL_v2.h"
 

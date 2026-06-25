@@ -5,6 +5,8 @@
 #include "Pet_v2.h"
 #include <ArduinoJson.h>
 
+using namespace PetV2;
+
 PetEngine::PetEngine() {
     memset(&_data, 0, sizeof(PetData));
 }
