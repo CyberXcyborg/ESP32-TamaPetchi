@@ -5,7 +5,6 @@
 
 #include "BLEProtocol.h"
 #include "AppState_v2.h"
-#include "Pet.h"
 #include "config_v2.h"
 #include <ArduinoJson.h>
 

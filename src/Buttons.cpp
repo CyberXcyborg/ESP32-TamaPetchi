@@ -1,4 +1,7 @@
 #include "Buttons.h"
+
+#ifndef DISABLE_BUTTONS
+
 #include "Storage.h"
 #include "config.h"
 #include <SPIFFS.h>
@@ -187,3 +190,5 @@ bool isFactoryResetPressed() {
   // Button held for full duration — confirm factory reset
   return true;
 }
+
+#endif // DISABLE_BUTTONS

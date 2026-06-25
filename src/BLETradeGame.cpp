@@ -18,10 +18,8 @@
 
 #if !defined(UNIT_TEST) && defined(CHIP_ESP32_S3)
 // ESP32: Include actual pet system
-#include "Pet.h"
 #include <ArduinoJson.h>
 using namespace PetV2;
-extern Pet g_pet;
 #endif
 
 BLETradeGame::BLETradeGame()

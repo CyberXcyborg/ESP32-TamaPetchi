@@ -11,7 +11,7 @@
 #include "config_v2.h"
 
 #ifdef ESP32
-#include <ledc.h>
+#include <esp32-hal-ledc.h>
 #endif
 
 // ============================================================

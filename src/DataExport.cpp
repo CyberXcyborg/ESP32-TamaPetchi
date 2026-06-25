@@ -219,8 +219,8 @@ String getExportFileListJson() {
 
 bool deleteExportFile(const String &filename) {
     String path = "/exports/" + filename;
-    if (StorageV2::exists(path)) {
-        return StorageV2::remove(path);
+    if (StorageV2::exists(path.c_str())) {
+        return StorageV2::remove(path.c_str());
     }
     return false;
 }

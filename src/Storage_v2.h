@@ -7,6 +7,7 @@
 #define STORAGE_V2_H
 
 #include <Arduino.h>
+#include <FS.h>
 
 class StorageV2 {
 public:
