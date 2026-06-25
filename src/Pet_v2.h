@@ -8,7 +8,9 @@
 #include <Arduino.h>
 #include "config_v2.h"
 
-// Pet stages
+// Pet stages (v2 — wrapped in namespace to avoid conflict with v1 Pet.h)
+namespace PetV2 {
+
 enum PetStage {
     PET_STAGE_BABY = 0,
     PET_STAGE_CHILD,
@@ -75,5 +77,7 @@ private:
     void evolve();
     uint8_t get_decay_mult() const;
 };
+
+} // namespace PetV2
 
 #endif // PET_V2_H

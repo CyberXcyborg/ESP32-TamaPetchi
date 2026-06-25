@@ -7,6 +7,8 @@
 
 #include <Arduino.h>
 #include "config_v2.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 class HAL_V2 {
 public:
@@ -48,6 +50,7 @@ public:
     
 private:
     static bool _initialized;
+    static SemaphoreHandle_t _spiMutex;
 };
 
 #endif // HAL_V2_H

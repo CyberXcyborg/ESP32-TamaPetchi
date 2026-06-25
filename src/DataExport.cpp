@@ -1,6 +1,5 @@
 #include "DataExport.h"
-#include "AppState.h"
-#include "WebHandlers.h"
+#include "AppState_v2.h"
 #include "Storage_v2.h"
 #include "Pet_v2.h"
 #include <ArduinoJson.h>
@@ -54,8 +53,8 @@ String createDataExportJson() {
     doc["timestamp"] = millis();
     doc["format"] = "json";
 
-    // Use real pet data from AppState (v2.0 PetEngine)
-    const PetEngine &pet = AppState::getInstance().pet;
+    // Use real pet data from AppStateV2 (v2.0 PetEngine)
+    const PetEngine &pet = AppStateV2::getInstance().pet;
     const PetData &petData = pet.getData();
 
     JsonObject petObj = doc.createNestedObject("pet");
@@ -114,17 +113,18 @@ String createDataExportJson() {
 }
 
 String createMinimalExportJson() {
-    // Minimal export for BLE (small payload) — uses real pet data from AppState
+    // Minimal export for BLE (small payload) — uses PetEngine only (v2.0)
     DynamicJsonDocument doc(512);
     doc["v"] = DATA_EXPORT_VERSION;
     doc["t"] = millis();
 
-    const Pet &pet = AppState::getInstance().pet;
-    doc["pn"] = pet.name;
-    doc["ps"] = pet.stage;
-    doc["ph"] = pet.happiness;
-    doc["pg"] = pet.generation;
-    doc["pa"] = pet.age;
+    const PetEngine &pet = AppStateV2::getInstance().pet;
+    const PetData &petData = pet.getData();
+    doc["pn"] = petData.name;
+    doc["ps"] = petData.stage;
+    doc["ph"] = petData.happiness;
+    doc["pg"] = petData.generation;
+    doc["pa"] = petData.age_minutes / 60;
 
     String output;
     serializeJson(doc, output);
@@ -184,7 +184,7 @@ int importDataExport(const String &json) {
     if (err) return EXPORT_ERR_INVALID_FORMAT;
 
     // Restore pet state via PetEngine fromJson
-    PetEngine &pet = AppState::getInstance().pet;
+    PetEngine &pet = AppStateV2::getInstance().pet;
     if (!pet.fromJson(json)) {
         lastExportError = "PetEngine fromJson failed";
         return EXPORT_ERR_STORAGE;
