@@ -7,26 +7,22 @@
 #include <esp_sleep.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 bool HAL_V2::_initialized = false;
-
-#ifdef ESP32
 SemaphoreHandle_t HAL_V2::_spiMutex = NULL;
-#endif
 
 bool HAL_V2::begin() {
     if (_initialized) return true;
     
-    // Create SPI mutex
-    #ifdef ESP32
-    _spiMutex = xSemaphoreCreateMutex();
-    if (_spiMutex == NULL) {
-        return false;
-    }
-    #endif
-    
     // Initialize SPI
     SPI.begin(TFT_PIN_SCLK, -1, TFT_PIN_MOSI, -1);
+    
+    // Create SPI mutex for thread-safe display/touch bus access
+    if (_spiMutex == NULL) {
+        _spiMutex = xSemaphoreCreateMutex();
+    }
     
     // Initialize I2C (for touch, accelerometer, NFC)
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
@@ -52,20 +48,18 @@ uint16_t HAL_V2::analogRead(uint8_t pin) {
 }
 
 void HAL_V2::spiBegin() {
+    if (_spiMutex != NULL) {
+        xSemaphoreTake(_spiMutex, portMAX_DELAY);
+    }
     SPI.begin();
 }
 
 uint8_t HAL_V2::spiTransfer(uint8_t data) {
-    #ifdef ESP32
+    uint8_t result = SPI.transfer(data);
     if (_spiMutex != NULL) {
-        if (xSemaphoreTake(_spiMutex, portMAX_DELAY) == pdTRUE) {
-            uint8_t result = SPI.transfer(data);
-            xSemaphoreGive(_spiMutex);
-            return result;
-        }
+        xSemaphoreGive(_spiMutex);
     }
-    #endif
-    return SPI.transfer(data);
+    return result;
 }
 
 void HAL_V2::i2cBegin() {

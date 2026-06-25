@@ -1,9 +1,9 @@
 #include "DataExport.h"
+#include "AppState_v2.h"
 #include "Storage_v2.h"
 #include "Pet_v2.h"
 #include <ArduinoJson.h>
 
-using namespace PetV2;
 
 // ============================================================
 // Module-level state
@@ -13,52 +13,8 @@ static uint32_t lastExportTimestamp = 0;
 static String lastExportError;
 
 // ============================================================
-// NVS/export metadata persistence
-// ============================================================
-#define EXPORT_META_NAMESPACE "export_meta"
-#define EXPORT_META_KEY "last_export"
-#define EXPORT_META_KEY_COUNT "export_count"
-#define MAX_EXPORT_FILES 10
-
-struct ExportMetadata {
-    uint32_t timestamp;
-    uint32_t petChecksum;
-    uint32_t fullChecksum;
-    char filename[32];
-};
-
-static uint32_t g_exportCount = 0;
-
-static void saveExportMetadata(const ExportMetadata &meta) {
-#ifdef ESP32
-    Preferences prefs;
-    prefs.begin(EXPORT_META_NAMESPACE, false);
-    prefs.putUInt(EXPORT_META_KEY, meta.timestamp);
-    prefs.putUInt(EXPORT_META_KEY "_chk", meta.petChecksum);
-    prefs.putUInt(EXPORT_META_KEY "_full_chk", meta.fullChecksum);
-    prefs.putUInt(EXPORT_META_KEY_COUNT, g_exportCount);
-    prefs.end();
-#else
-    (void)meta;
-#endif
-}
-
-static ExportMetadata loadExportMetadata() {
-    ExportMetadata meta = {0};
-#ifdef ESP32
-    Preferences prefs;
-    prefs.begin(EXPORT_META_NAMESPACE, true);
-    meta.timestamp = prefs.getUInt(EXPORT_META_KEY, 0);
-    meta.petChecksum = prefs.getUInt(EXPORT_META_KEY "_chk", 0);
-    meta.fullChecksum = prefs.getUInt(EXPORT_META_KEY "_full_chk", 0);
-    g_exportCount = prefs.getUInt(EXPORT_META_KEY_COUNT, 0);
-    prefs.end();
-#endif
-    return meta;
-}
-
-// ============================================================
 // CRC32 checksum calculation
+// Uses CRC32 for speed; sufficient for integrity checking
 // ============================================================
 static uint32_t crc32_bytes(const uint8_t *data, size_t len) {
     uint32_t crc = 0xFFFFFFFF;
@@ -77,16 +33,13 @@ static uint32_t crc32_bytes(const uint8_t *data, size_t len) {
 
 void initDataExport() {
     dataExportInitialized = true;
-
+    
     // Ensure export directory exists
     StorageV2::begin();
     if (!StorageV2::exists("/exports")) {
         StorageV2::mkdir("/exports");
     }
-
-    // Load persisted metadata
-    loadExportMetadata();
-
+    
     Serial.println("[DataExport] Initialized");
 }
 
@@ -95,36 +48,35 @@ String createDataExportJson() {
         initDataExport();
     }
 
-    // Build export JSON from PetEngine/PetData (v2.0 types)
-    // Note: In production, this would access a global PetEngine instance.
-    // For now, construct a template with placeholder pet data that gets
-    // filled by the caller's PetEngine via updatePetDataInExport().
-    DynamicJsonDocument doc(DATA_EXPORT_MAX_SIZE);
+    // Build export JSON from real pet data via AppState
+    DynamicJsonDocument doc(3072);
     doc["version"] = DATA_EXPORT_VERSION;
     doc["timestamp"] = millis();
     doc["format"] = "json";
 
-    // Pet section — uses PetData fields
-    // In a full implementation, these would be filled from global PetEngine
-    JsonObject petObj = doc.createNestedObject("pet");
-    petObj["name"] = "Tama";
-    petObj["stage"] = PET_STAGE_BABY;
-    petObj["state"] = PET_STATE_IDLE;
-    petObj["hunger"] = 50;
-    petObj["happiness"] = 50;
-    petObj["energy"] = 100;
-    petObj["cleanliness"] = 80;
-    petObj["health"] = 80;
-    petObj["age"] = 0;  // hours
-    petObj["generation"] = 1;
-    petObj["alive"] = true;
+    // Use real pet data from AppStateV2 (v2.0 PetEngine)
+    const PetEngine &pet = AppStateV2::getInstance().pet;
+    const PetData &petData = pet.getData();
 
-    // Export metadata
+    JsonObject petObj = doc.createNestedObject("pet");
+    petObj["name"] = petData.name;
+    petObj["stage"] = petData.stage;
+    petObj["state"] = petData.state;
+    petObj["hunger"] = petData.hunger;
+    petObj["happiness"] = petData.happiness;
+    petObj["energy"] = petData.energy;
+    petObj["cleanliness"] = petData.cleanliness;
+    petObj["health"] = petData.health;
+    petObj["age"] = petData.age_minutes / 60;  // hours
+    petObj["generation"] = petData.generation;
+    petObj["alive"] = pet.isAlive();
+
+    // Add export metadata
     doc["exportVersion"] = DATA_EXPORT_VERSION;
     doc["exportTimestamp"] = millis();
     doc["deviceId"] = "tamapetchi_v2";
 
-    // Settings section
+    // Add settings section if not present
     if (!doc.containsKey("settings")) {
         JsonObject settings = doc.createNestedObject("settings");
         settings["soundEnabled"] = true;
@@ -132,7 +84,7 @@ String createDataExportJson() {
         settings["theme"] = "auto";
     }
 
-    // Voice config
+    // Add voice config
     JsonObject voice = doc.createNestedObject("voice");
     voice["enabled"] = true;
     voice["volume"] = 70;
@@ -145,45 +97,35 @@ String createDataExportJson() {
     doc["petChecksum"] = petChecksum;
 
     // Full checksum
+    String fullJson;
+    serializeJson(doc, fullJson);
+    // Remove the full_checksum field itself from checksum calculation
     doc.remove("fullChecksum");
     String checkJson;
     serializeJson(doc, checkJson);
     uint32_t fullChecksum = crc32_bytes((const uint8_t*)checkJson.c_str(), checkJson.length());
     doc["fullChecksum"] = fullChecksum;
 
-    // Persist metadata to NVS
-    ExportMetadata meta;
-    meta.timestamp = millis();
-    meta.petChecksum = petChecksum;
-    meta.fullChecksum = fullChecksum;
-    snprintf(meta.filename, sizeof(meta.filename), "export_%lu.json", millis());
-    saveExportMetadata(meta);
-    g_exportCount++;
-
-    // Also save to filesystem
     String output;
     serializeJson(doc, output);
-
-    String path = "/exports/" + String(meta.filename);
-    StorageV2::write(path, output);
-
+    
     lastExportTimestamp = millis();
     return output;
 }
 
 String createMinimalExportJson() {
-    // Minimal export for BLE (small payload) — uses real pet data from AppState (v2 PetEngine)
+    // Minimal export for BLE (small payload) — uses PetEngine only (v2.0)
     DynamicJsonDocument doc(512);
     doc["v"] = DATA_EXPORT_VERSION;
     doc["t"] = millis();
 
-    const PetEngine &pet = AppState::getInstance().pet;
+    const PetEngine &pet = AppStateV2::getInstance().pet;
     const PetData &petData = pet.getData();
     doc["pn"] = petData.name;
     doc["ps"] = petData.stage;
     doc["ph"] = petData.happiness;
     doc["pg"] = petData.generation;
-    doc["pa"] = petData.age_minutes;
+    doc["pa"] = petData.age_minutes / 60;
 
     String output;
     serializeJson(doc, output);
@@ -197,7 +139,7 @@ String createDataExportWithChecksum() {
 }
 
 int verifyDataExport(const String &json) {
-    DynamicJsonDocument doc(DATA_EXPORT_MAX_SIZE);
+    DynamicJsonDocument doc(3072);
     DeserializationError err = deserializeJson(doc, json);
     if (err) return EXPORT_ERR_INVALID_FORMAT;
 
@@ -238,13 +180,18 @@ int importDataExport(const String &json) {
     int verifyResult = verifyDataExport(json);
     if (verifyResult != EXPORT_OK) return verifyResult;
 
-    DynamicJsonDocument doc(DATA_EXPORT_MAX_SIZE);
+    DynamicJsonDocument doc(3072);
     DeserializationError err = deserializeJson(doc, json);
     if (err) return EXPORT_ERR_INVALID_FORMAT;
 
-    // Restore pet state — in production, this would call AppState::getInstance().pet.fromJson(json)
-    // For now, we successfully validated the structure
-    Serial.println("[DataExport:importDataExport] Import structure validated OK");
+    // Restore pet state via PetEngine fromJson
+    PetEngine &pet = AppStateV2::getInstance().pet;
+    if (!pet.fromJson(json)) {
+        lastExportError = "PetEngine fromJson failed";
+        return EXPORT_ERR_STORAGE;
+    }
+
+    Serial.println("[DataExport] Import successful");
     return EXPORT_OK;
 }
 
@@ -259,16 +206,10 @@ String getExportFileListJson() {
             JsonObject item = list.createNestedObject();
             item["name"] = String(file.name());
             item["size"] = file.size();
-            item["timestamp"] = 0; // TODO: extract from filename
             file = dir.openNextFile();
         }
         dir.close();
     }
-
-    // Include last export metadata from NVS
-    ExportMetadata meta = loadExportMetadata();
-    doc["lastExportTimestamp"] = meta.timestamp;
-    doc["exportCount"] = g_exportCount;
 
     String output;
     serializeJson(doc, output);
@@ -288,7 +229,7 @@ uint32_t calculateExportChecksum(const String &json) {
 }
 
 void registerDataExportRoutes() {
-    // Routes are registered in WebHandlers via the new export endpoints
+    // Routes are registered in WebHandlers.cpp
     // This function is called during setup
     Serial.println("[DataExport] Routes registered");
 }

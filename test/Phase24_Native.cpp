@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstring>
 
+// Forward declarations
 // Forward declarations for types needed by stubs
 struct Pet {};
 struct GameStats {};

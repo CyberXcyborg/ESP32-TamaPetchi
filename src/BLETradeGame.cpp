@@ -15,6 +15,7 @@
 #include "BLETradeGame.h"
 #include "config_v2.h"
 
+
 #if !defined(UNIT_TEST) && defined(CHIP_ESP32_S3)
 // ESP32: Include actual pet system
 #include "Pet.h"

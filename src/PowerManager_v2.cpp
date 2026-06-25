@@ -2,7 +2,6 @@
 #include "Pet.h"
 #include <ArduinoJson.h>
 
-using namespace PetV2;
 
 #if !defined(UNIT_TEST) && !defined(__linux__) && !defined(__APPLE__)
 #include <WiFi.h>
