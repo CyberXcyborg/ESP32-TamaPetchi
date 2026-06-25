@@ -346,6 +346,10 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/plugins/enable", HTTP_POST, handleEnablePlugin);
   server.on("/api/plugins/disable", HTTP_POST, handleDisablePlugin);
   server.on("/api/plugins/delete", HTTP_POST, handleDeletePlugin);
+
+  // Phase 20.4: LVGL-compatible API endpoints
+  server.on("/api/sprites", HTTP_GET, handleGetSprites);
+  server.on("/api/screen", HTTP_GET, handleGetScreenState);
 }
 
 // ============================================================
@@ -1815,4 +1819,68 @@ void handleDeletePlugin() {
   } else {
     sendErrorResponse(ERR_PARAM_INVALID, "Plugin not found");
   }
+}
+
+// ============================================================
+// Phase 20.4: LVGL-compatible API Endpoints
+// ============================================================
+
+void handleGetSprites() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+  
+  StaticJsonDocument<1024> doc;
+  JsonArray sprites = doc.createNestedArray("sprites");
+  
+  // List available sprite sets
+  const char* sprite_sets[] = {"baby_idle", "baby_eat", "baby_sleep", "baby_happy",
+                                 "child_idle", "child_eat", "child_play", "child_sleep", "child_sick",
+                                 "adult_idle", "adult_eat", "adult_play", "adult_sleep", "adult_sick", "adult_evolve"};
+  
+  for (int i = 0; i < 15; i++) {
+    JsonObject sprite = sprites.createNestedObject();
+    sprite["name"] = sprite_sets[i];
+    sprite["path"] = String("/sprites/") + sprite_sets[i] + ".spr";
+    sprite["frames"] = 8;  // Default, varies per animation
+    sprite["size"] = 64;   // 64x64
+    sprite["format"] = "spr_v1";
+  }
+  
+  doc["count"] = 15;
+  doc["format"] = "spr_v1";
+  doc["color_depth"] = 4;  // 4-bit palette
+  
+  String result;
+  serializeJson(doc, result);
+  g_server->send(200, "application/json", result);
+}
+
+void handleGetScreenState() {
+  if (!g_server) return;
+  if (!checkRateLimit(g_server->client().remoteIP().toString())) {
+    sendErrorResponse(ERR_RATE_LIMIT, "Too many requests", 429);
+    return;
+  }
+  
+  StaticJsonDocument<512> doc;
+  doc["screen"] = "MainPet";  // Current screen name
+  doc["pet_state"] = APP_STATE.pet.isAlive ? "alive" : "dead";
+  doc["pet_stage"] = APP_STATE.pet.stage;
+  doc["pet_name"] = APP_STATE.pet.name;
+  
+  JsonObject stats = doc.createNestedObject("stats");
+  stats["hunger"] = APP_STATE.pet.hunger;
+  stats["happiness"] = APP_STATE.pet.happiness;
+  stats["energy"] = APP_STATE.pet.energy;
+  stats["health"] = APP_STATE.pet.health;
+  
+  doc["uptime"] = millis() / 1000;
+  doc["free_heap"] = ESP.getFreeHeap();
+  
+  String result;
+  serializeJson(doc, result);
+  g_server->send(200, "application/json", result);
 }

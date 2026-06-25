@@ -64,6 +64,61 @@ This is a virtual pet project for ESP32, inspired by the Tamagotchi generation. 
 - 🎨 **Pre-compressed Web UI**: Gzip-compressed SPIFFS assets (124KB → 21KB)
 - 💾 **CRC32 Backup Verification**: Checksum-protected backup/restore with validation endpoint
 - ♿ **Enhanced Accessibility**: Screen reader support, WCAG 2.1 AA compliance, semantic HTML roles
+- 🎨 **LVGL Color UI** (v2.0): 240x240 TFT display with LVGL graphics library, color sprites, animations
+- 🖼️ **Color Sprite System**: 4-bit palette (16 colors) with RLE compression, 96 animation frames
+- 🎬 **Animation Engine**: Play/pause/stop/loop, state machine, cross-fade transitions
+- 📱 **Touch Input**: XPT2046 resistive touch with LVGL indev driver
+- 🎮 **LVGL Game Screens**: Memory game (4x4 grid), Reaction time game, Tilt game (placeholder)
+- ⚙️ **LVGL Settings**: Toggle switches, sliders, language selector, factory reset dialog
+- 🔄 **LVGL OTA Screen**: Progress bar, status labels, reboot countdown
+- 📊 **Screen Manager**: Stack-based navigation with slide/fade transitions
+- 🌐 **v2.0 REST API**: /api/sprites, /api/screen for LVGL-compatible web dashboard
+- 🎙️ **Voice Prompts** (v2.0): Pet speaks status updates via I2S audio (happy, sad, hungry, greeting, level-up)
+- 📤 **Data Export** (v2.0): Full state export via BLE or web UI with CRC32 integrity verification
+- 🌅 **Day/Night Visual Themes** (v2.0): Dynamic backgrounds with smooth transitions, weather overlays (rain, snow, sunshine)
+- 🔌 **Plugin System v2** (v2.0): Sandboxed plugins with watchdog timers, LVGL-based UI rendering
+
+## v2.0 Development Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 19 | ESP-IDF migration, LVGL display, touch input, LittleFS | ✅ v2.0.0-alpha.1 |
+| 20 | Sprite system, animation engine, UI framework, screen migration | ✅ v2.0.0-alpha.2 |
+| 21 | I2S audio, WAV decoder, LIS3DH accelerometer, tilt games, sound packs | ✅ v2.0.0-alpha.3 |
+| 22 | BLE GATT server, NFC manager, BLE protocol, trade game | ✅ v2.0.0-alpha.4 |
+| 23 | Power Management v2, OTA v2 (A/B partitions, signature verify) | ✅ v2.0.0-beta.1 |
+| 24 | Voice Prompts, Data Export, Day/Night Themes, Plugin System v2 | 🔶 v2.0.0-rc.1 (in progress) |
+
+### v2.0 Hardware Requirements (ESP32-S3)
+- **MCU**: ESP32-S3-WROOM-1 (dual-core, PSRAM recommended)
+- **Display**: 240x240 ST7789 TFT (SPI)
+- **Touch**: FT6336U capacitive touch (I2C)
+- **Audio**: I2S DAC (GPIO 25/26/26) + speaker
+- **Accelerometer**: LIS3DH (I2C, addr 0x18)
+- **NFC**: Adafruit PN532 (I2C, addr 0x24)
+- **BLE**: Built-in (NimBLE stack)
+- **Battery**: LiPo 3.7V → voltage divider → GPIO 14 (ADC)
+- **Buttons**: GPIO 0 (boot), GPIO 47/48 (user buttons)
+
+### v2.0 Pinout
+| Function | GPIO | Notes |
+|----------|------|-------|
+| TFT MOSI | 11 | SPI data |
+| TFT SCK | 12 | SPI clock |
+| TFT CS | 10 | Chip select |
+| TFT DC | 9 | Data/command |
+| TFT RST | 13 | Reset |
+| Touch SDA | 4 | I2C data |
+| Touch SCL | 5 | I2C clock |
+| I2S BCLK | 25 | Audio bit clock |
+| I2S LRC | 26 | Audio LR clock |
+| I2S DIN | 27 | Audio data out |
+| LIS3DH INT1 | 38 | Accelerometer interrupt |
+| PN532 IRQ | 39 | NFC interrupt |
+| Battery ADC | 14 | Voltage divider (100K/100K) |
+| Button 1 | 47 | User button |
+| Button 2 | 48 | User button |
+| RGB LED | 48 | WS2812 (shared with Button 2) |
 
 
 ## Why This Hits Different
@@ -242,7 +297,9 @@ When a feature is disabled, inline stubs ensure the code compiles without requir
 || GET | `/api/provisioning/deviceid` | Get unique device ID |
 || GET | `/api/ota/delta/status` | Get OTA delta status |
 || POST | `/api/ota/delta/check` | Check manifest for available delta |
-|| POST | `/api/ota/delta` | Upload and apply delta patch |
+||| POST | `/api/ota/delta` | Upload and apply delta patch |
+| GET | `/api/sprites` | List all loaded sprites with metadata |
+| GET | `/api/screen` | Get current screen name and pet state JSON |
 
 ### WebSocket
 Connect to `ws://<esp32-ip>:81` for real-time updates. The server broadcasts:
@@ -303,7 +360,7 @@ Quick start:
 
 - **Batch Flash**: `python3 scripts/flash-batch.py --all` — flash multiple ESP32 devices
 - **24h Simulation**: `python3 scripts/simulate-24h.py` — run health checks and metrics
-- **Unit Tests**: `pio test -e native` — 152 tests covering pet logic, API, achievements, backup/restore
+- **Unit Tests**: `pio test -e native` — 216 tests covering pet logic, API, achievements, backup/restore, sprites, animations, screen management
 
 ## Support the Project
 

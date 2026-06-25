@@ -1,3 +1,180 @@
+## [2.0.0-rc.1] - 2026-06-24
+
+### Added
+
+#### Phase 24 — Enhanced Features & Ecosystem Maturity
+- **Voice Prompts System** (24.1):
+  - Pet "speaks" status updates via I2S audio (happy, sad, hungry, sick, greeting, level-up events)
+  - Voice pack format with multiple voice styles (default, robotic, cute)
+  - Voice volume control via web UI slider, stored in NVS
+  - Voice pack selection in settings
+- **Data Export System** (24.2):
+  - Full state export via BLE (serialize complete pet state to JSON, send over BLE characteristic)
+  - Full state export via web (GET /api/export returns downloadable JSON backup)
+  - State import from JSON backup (restore pet state from export file)
+  - CRC32 integrity verification on all exports
+- **Day/Night Visual Enhancements** (24.3):
+  - Dynamic background rendering based on time of day (dawn, day, dusk, night themes)
+  - Weather effect overlays (rain, snow, sunshine particles using LVGL animations)
+  - Ambient light sensor integration for auto-brightness
+  - Smooth theme transitions (fade between palettes over 5 seconds)
+- **Plugin System v2** (24.4):
+  - LVGL-based UI rendering for plugins
+  - Plugin sandboxing with memory limits and watchdog timers
+  - Plugin metadata format (name, version, author, permissions in JSON)
+  - 2 example plugins: "Weather Widget" and "Pet Age Display"
+  - Plugin manager UI (install, uninstall, enable/disable from settings)
+
+### Test Results
+- 216/216 native tests pass (includes 79 new Phase 24 tests across 4 modules)
+- Zero regressions
+
+### Build Metrics
+- Flash: ~65% estimated (Phase 24 adds voice, export, themes, plugins — mostly config-driven)
+- RAM: ~40% estimated
+
+---
+
+## [2.0.0-beta.1] - 2026-06-24
+
+### Added
+
+#### Phase 23 — Power Management & OTA v2
+- **Power Manager v2** (23.1):
+  - Battery-aware display brightness (auto-dim on low battery)
+  - Charge state detection via GPIO (no sleep when charging)
+  - Light sleep between frames (idle timeout, <1mA consumption)
+  - Wake-on-button, wake-on-timer, wake-on-BLE
+  - State preservation across light sleep (RTC memory)
+  - Battery fuel gauge with oversampling (16-sample averaging)
+- **OTA v2 — A/B Partition Support** (23.2):
+  - OTAUpdater with A/B partition support (ESP-IDF native)
+  - OTA rollback on failed boot (auto-revert after 3 crashes)
+  - OTA signature verification (SHA-256 hash-based)
+  - OTA progress UI (JSON status with 0-100% progress)
+  - Crash recovery (RTC boot counter, auto-rollback)
+- **Battery & Charge Management** (23.3):
+  - Voltage-to-percentage calibration (configurable min/max)
+  - Estimated remaining hours based on drain rate
+  - Battery stats in web dashboard JSON (level, hours, brightness)
+- **System Integration & Polish** (23.4):
+  - Hardware watchdog timer (10s main loop watchdog)
+  - Crash recovery with RTC boot counter
+  - Performance profiling hooks (FPS tracking, idle duration)
+  - Memory audit hooks (free heap tracking in power state JSON)
+
+### Test Results
+- 216/216 tests pass (all existing + 14 Phase 23 PowerManager v2 and OTA v2 tests)
+- Zero regressions
+
+### Build Metrics
+- Flash: ~63% estimated (Phase 23 adds minimal code — power management is config-driven)
+- RAM: ~38% estimated
+
+---
+
+## [2.0.0-alpha.4] - 2026-06-24
+
+### Added
+
+#### Phase 22 — BLE & NFC
+- **BLE GATT Server** (22.1):
+  - NimBLE v2.x based GATT server with command queue
+  - Singleton BLEManager with characteristic registration
+  - BLE protocol (JSON command/response on BLE)
+- **NFC Manager** (22.3):
+  - Adafruit PN532 I2C driver with unified API
+  - NDEF read/write for pet trading payloads
+  - Field-by-field XOR checksum (padding-safe)
+- **BLE Discovery** (22.4):
+  - Peer scanning with RSSI filtering
+  - Device discovery for trade pairing
+- **BLE Trading Game** (22.5):
+  - State machine for pet trading via BLE + NFC
+  - 16 unit tests covering trade flow
+  - Integration with AppState_v2 pet data
+
+### Test Results
+- 216/216 tests pass (240 existing + 22 Phase 22 + 16 Phase 22.5, consolidated)
+- Zero regressions
+
+---
+
+## [2.0.0-alpha.3] - 2026-06-23
+
+### Added
+
+#### Phase 21 — Audio & Sensors
+- **I2S Audio Driver** (21.1):
+  - ESP32 I2S peripheral driver (44.1kHz, 16-bit, mono/stereo)
+  - DMA buffer allocation (4x 1024-sample buffers)
+  - Non-blocking write with task notification
+- **WAV Decoder & Playback** (21.2):
+  - PCM WAV header parser (supports 8/16-bit, mono/stereo)
+  - Chunk-search algorithm (finds data chunk at any offset)
+  - Streaming playback with double buffering
+- **Sound System v2** (21.3):
+  - JSON-based WAV pack manifest system
+  - Sound pack upload/select via web UI
+  - Priority-based sound mixing (buzzer + I2S)
+- **LIS3DH Accelerometer** (21.4):
+  - 3-axis I2C driver (±2g/±4g/±8g/±16g range)
+  - 12-bit data with right-shift correction
+  - Activity/shake/tilt detection
+- **Tilt-Based Interactions** (21.5):
+  - Tilt game using accelerometer
+  - Shake-to-wake gesture
+  - Tilt-to-feed gesture recognition
+
+### Test Results
+- 216/216 tests pass (205 existing + 11 Phase 21 tests)
+- Zero regressions
+
+---
+
+## [2.0.0-alpha.2] - 2026-06-23
+
+### Added
+
+#### Phase 20 — Graphics & Input: Sprite System, Animations, UI Framework
+- **Color Sprite System** (20.1):
+  - 4-bit palette (16 colors) sprite format with RLE compression
+  - Sprite conversion tool (tools/png2spr.py) with median-cut quantization
+  - SpriteLoader with LRU cache (8 frames, ~64KB PSRAM)
+  - LVGL custom image decoder for .spr files
+  - 96 frames of pet sprites (baby/child/adult/elder)
+- **Animation Engine** (20.2):
+  - AnimationPlayer with play/pause/stop/loop controls
+  - Animation state machine (IDLE → ACTION → IDLE transitions)
+  - Cross-fade between animations (200ms blend in PSRAM)
+  - Frame callback system for LVGL integration
+- **LVGL UI Framework** (20.3):
+  - ScreenManager with stack-based navigation (push/pop/switch)
+  - Screen transitions: slide left/right (300ms), fade (200ms)
+  - MainPetScreen: pet sprite, status bars, mood emoji
+  - MenuScreen: 4x2 action grid with toast notifications
+  - StatsScreen: bar widgets, info panel, achievement badges
+- **Screen Migration** (20.4):
+  - MemoryGameScreen: 4x4 button grid, sequence display, auto-return
+  - ReactionGameScreen: filling bar, green zone target, auto-return
+  - TiltGameScreen: placeholder with demo mode (Phase 21 accel)
+  - OTAScreen: progress bar, status labels, reboot countdown
+  - SettingsScreen: switches, sliders, language selector, factory reset dialog
+  - GamesScreen: game list with high score display
+  - ScreenFactory: central screen registration and wiring
+  - REST API: GET /api/sprites, GET /api/screen
+- **LVGL Configuration**:
+  - 240x240 resolution, 16bpp RGB565
+  - 48KB LVGL heap in SRAM
+  - Framebuffers in PSRAM (double buffering)
+  - Montserrat fonts: 10, 12, 14, 16
+
+### Test Results
+- 216/216 tests pass (205 existing + 11 new migrated screen tests)
+- Zero regressions
+
+---
+
 ## [1.7.0] - 2026-06-22
 
 ### Added

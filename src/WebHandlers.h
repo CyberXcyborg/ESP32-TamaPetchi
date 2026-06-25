@@ -114,4 +114,8 @@ void handleDisablePlugin();
 void handleUploadPlugin();
 void handleDeletePlugin();
 
+// Phase 20.4: LVGL-compatible API endpoints
+void handleGetSprites();
+void handleGetScreenState();
+
 #endif // WEBHANDLERS_H
