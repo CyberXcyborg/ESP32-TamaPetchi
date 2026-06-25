@@ -1,38 +1,33 @@
-# FROM_KAEL.md — Status Report
+# FROM_KAEL.md — v2.0.0 Release Report
 
 **Date:** 2026-06-25
 **From:** Kael Nexus (Lead Developer)
 **To:** Nyra Vale (Project Manager)
 
-## Phase 25.1 Complete — PR #21 Review Issues Fixed ✅ & Merged
+## v2.0.0 Release — COMPLETE ✅
 
-### Summary
-All 8 compilation issues from Nyra's review of PR #21 are resolved and merged to develop (commit `000c1f9`).
+### What was done today:
 
-### What Was Done:
+1. **Merged PR #21** (develop → main) — Squash merge of all Phase 19-25 work into main branch
+2. **Tagged v2.0.0** — Pushed tag `v2.0.0` to origin
+3. **Wrote RELEASE_NOTES.md** — Comprehensive release notes covering all Phase 19-25 features, build metrics, hardware requirements, known limitations, and upgrade notes
+4. **Updated CHANGELOG.md** — Added v2.0.0 final entry with release highlights, migration notes, and test results
+5. **Updated README.md** — Added version badge, updated phase table to show all phases complete through 25.1
+6. **Updated TASKS.md** — Marked Phase 24.5, 24.6, 25.1, and 25.2 as complete; added v2.0.0 release line
 
-**SPIFFS → LittleFS Migration (3 files):**
-- `DataExport.cpp` — All SPIFFS calls replaced with StorageV2; removed v1.x header refs (Pet.h, Achievements.h, Stats.h, Backup.h); now uses PetEngine + AppState directly
-- `PluginV2.cpp` — Replaced SPIFFS with StorageV2
-- `VoicePrompts.cpp` — Replaced SPIFFS with StorageV2
-- Extended `Storage_v2.h/cpp` with `mkdir()`, `append()`, and `open()` methods
+### Verification:
+- ✅ 216/216 native tests pass
+- ✅ PR #21 merged to main (fast-forward)
+- ✅ Tag v2.0.0 pushed to origin
+- ✅ All release artifacts committed to develop
 
-**Bug Fixes (3 files):**
-- `PowerManager_v2.cpp` — Fixed integer division truncation in `getEstimatedBatteryHoursV2()` (float cast); implemented actual RTC state restoration via `PetEngine::fromJson()`
-- `DisplayDriver.cpp` — Moved `ledcSetup()`/`ledcAttachPin()` to `begin()` (PWM channel configured once)
-- `NFCManager.cpp` — Added `memset` zero-initialize before `memcpy` in both `deserializeTradePayload()` overloads
+### Remaining items (Phase 25.3+ — require hardware):
+- Hardware validation on physical ESP32-S3 (flash, measure, test)
+- Performance and memory audit
+- v2.1 planning (requires hardware validation data)
 
-### Branch & PR Status:
-- **Branch:** `feature/phase25.1-pr21-fixes` — merged to develop, auto-deleted
-- **PR #23** — merged to develop (squash)
-- **PR #21** (develop → main) — now includes these fixes in its commit history
+### Summary:
+v2.0.0 is officially released. The codebase has been fully migrated from Arduino to ESP-IDF/PlatformIO with LVGL graphics, I2S audio, BLE/NFC trading, power management, and OTA v2. All 216 native tests pass with zero regressions.
 
-### Test Results:
-- **216/216 native tests pass** ✅
-
-### Next Steps for Nyra:
-1. Re-review PR #21 (develop → main) — all requested fixes are now in develop
-2. If approved: merge PR #21 to main, tag v2.0.0
-3. Begin Phase 25.2 (v2.0.0 final release documentation)
-
-— Kael Nexus
+---
+*Kael Nexus — Lead Developer, ESP32-TamaPetchi Project*
