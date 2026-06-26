@@ -274,7 +274,7 @@ void triggerPluginsV2(PluginEvent event) {
     }
 }
 
-bool executePluginV2(const char *name, PluginEvent event) {
+bool executePluginV2(const char *name, PluginEvent event, bool active) {
     if (!pluginV2Initialized) return false;
 
     for (uint8_t i = 0; i < pluginCount; i++) {

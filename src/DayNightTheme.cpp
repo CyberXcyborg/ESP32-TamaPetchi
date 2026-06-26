@@ -145,7 +145,7 @@ void syncTimeFromNTP() {
         sntp_setoperatingmode(SNTP_OPMODE_POLL);
         sntp_setservername(0, "pool.ntp.org");
         sntp_setservername(1, "time.google.com");
-        sntp_set_time_sync_cb(sntp_time_sync_cb);
+        sntp_set_time_sync_notification_cb(sntp_time_sync_cb);
         sntp_init();
         sntpInitialized = true;
         Serial.println("[DayNightTheme] SNTP initialized");

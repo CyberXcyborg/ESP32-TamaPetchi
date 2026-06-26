@@ -2,7 +2,7 @@
 #include "Pet.h"
 #include <ArduinoJson.h>
 
-using namespace PetV2;
+namespace PV2 = PetV2;
 
 
 #if !defined(UNIT_TEST) && !defined(__linux__) && !defined(__APPLE__)
@@ -163,7 +163,7 @@ void applyBatteryBrightness() {
 // ============================================================
 // Sleep Management
 // ============================================================
-bool shouldSleepV2(const PetEngine &pet, uint32_t idleTimeMs) {
+bool shouldSleepV2(const PV2::PetEngine &pet, uint32_t idleTimeMs) {
   if (!pet.isAlive()) return false;
   if (isChargingV2()) return false;  // Don't sleep while charging
   if (idleTimeMs < IDLE_TIMEOUT_MS) return false;
@@ -321,8 +321,8 @@ static bool validateRTCPetState(const RTCPetState &s) {
   return (calcPetStateChecksum(s) == s.checksum);
 }
 
-void saveStateToRTC(const PetEngine &pet) {
-  const PetData &data = pet.getData();
+void saveStateToRTC(const PV2::PetEngine &pet) {
+  const PetV2::PetData &data = pet.getData();
   g_rtcPetState.magic = RTC_PET_MAGIC;
   g_rtcPetState.hunger = data.hunger;
   g_rtcPetState.happiness = data.happiness;
@@ -336,7 +336,7 @@ void saveStateToRTC(const PetEngine &pet) {
   g_rtcPetState.checksum = calcPetStateChecksum(g_rtcPetState);
 }
 
-bool restoreStateFromRTC(PetEngine &pet) {
+bool restoreStateFromRTC(PV2::PetEngine &pet) {
   if (!validateRTCPetState(g_rtcPetState)) return false;
 
   // Build JSON from RTC state and restore via PetEngine::fromJson
@@ -403,7 +403,7 @@ bool isWatchdogTriggered() {
 // ============================================================
 // Main Loop Handler (Phase 23)
 // ============================================================
-void handlePowerManagerV2(PetEngine &pet, uint32_t currentMillis) {
+void handlePowerManagerV2(PV2::PetEngine &pet, uint32_t currentMillis) {
   // Feed watchdog every tick
   feedWatchdog();
 
@@ -444,7 +444,7 @@ void handlePowerManagerV2(PetEngine &pet, uint32_t currentMillis) {
 // ============================================================
 // JSON Helpers
 // ============================================================
-String getBatteryJsonV2(const PetEngine &pet) {
+String getBatteryJsonV2(const PV2::PetEngine &pet) {
   StaticJsonDocument<256> doc;
   int pct = getBatteryPercentV2();
   doc["batteryLevel"] = pct;
@@ -486,7 +486,7 @@ String getSleepModeJsonV2() {
   return result;
 }
 
-String getPowerStateJson(const PetEngine &pet) {
+String getPowerStateJson(const PV2::PetEngine &pet) {
   StaticJsonDocument<512> doc;
   doc["battery"] = getBatteryJsonV2(pet);
   doc["sleep"] = getSleepModeJsonV2();

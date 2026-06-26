@@ -65,7 +65,7 @@ private:
         uint32_t accumulated_ms;
         AnimCompleteCallback on_complete;
         AnimFrameCallback on_frame;
-        lv_timer_t *timer;
+        struct _lv_timer_t *timer;
     };
     
     static PlayerSlot _players[ANIM_MAX_PLAYERS];

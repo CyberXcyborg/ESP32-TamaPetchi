@@ -5,6 +5,9 @@
 #include "AnimationPlayer.h"
 #include "animations.h"
 
+// Forward declaration to avoid including lv_timer_private.h
+struct _lv_timer_t;
+
 // Static members
 AnimationPlayer::PlayerSlot AnimationPlayer::_players[ANIM_MAX_PLAYERS];
 AnimationPlayer::AnimStateCallback AnimationPlayer::_state_cb;
@@ -36,7 +39,7 @@ uint8_t AnimationPlayer::play(const AnimDefinition *anim,
     
     // Create LVGL timer for this animation
     uint16_t period = getFrameDuration(anim, 0);
-    slot->timer = lv_timer_create(onTimerTick, period, slot);
+    slot->timer = lv_timer_create(onTimerTick, period, nullptr);
     lv_timer_set_repeat_count(slot->timer, 1);  // One-shot, we manage repeats
     
     // Fire initial frame callback
@@ -173,7 +176,14 @@ AnimationPlayer::PlayerSlot* AnimationPlayer::findFreeSlot() {
 }
 
 void AnimationPlayer::onTimerTick(lv_timer_t *timer) {
-    PlayerSlot *slot = (PlayerSlot*)timer->user_data;
+    // Find the slot from the timer's user_data (stored as void* at creation)
+    PlayerSlot *slot = nullptr;
+    for (int i = 0; i < ANIM_MAX_PLAYERS; i++) {
+        if (_players[i].in_use && _players[i].timer == timer) {
+            slot = &_players[i];
+            break;
+        }
+    }
     if (!slot || !slot->in_use) return;
     
     advanceFrame(slot);

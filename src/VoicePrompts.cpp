@@ -248,7 +248,7 @@ void initVoicePrompts() {
 bool loadVoicePack(const String &name) {
     String manifestPath = String(VOICE_PACK_DIR) + "/" + name + "/manifest.json";
 
-    if (!StorageV2::exists(manifestPath)) {
+    if (!StorageV2::exists(manifestPath.c_str())) {
         Serial.printf("[VoicePrompts] Pack manifest not found: %s\n", manifestPath.c_str());
         // Use default clips as fallback
         manifestLoaded = false;

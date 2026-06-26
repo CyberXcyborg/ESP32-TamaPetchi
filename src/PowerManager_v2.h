@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include "Pet_v2.h"
-using namespace PetV2;
 #include "config_v2.h"
 
 
@@ -43,7 +42,7 @@ enum WakeIntervalV2 {
 
 // --- Initialization ---
 void setupPowerManagerV2();
-void handlePowerManagerV2(PetEngine &pet, uint32_t currentMillis);
+void handlePowerManagerV2(PetV2::PetEngine &pet, uint32_t currentMillis);
 
 // --- Battery (enhanced with oversampling) ---
 int  getBatteryPercentV2();           // 0-100 with oversampling, or -1
@@ -61,7 +60,7 @@ uint8_t getBrightnessForBattery();    // Returns 0-100 based on battery level
 void applyBatteryBrightness();
 
 // --- Sleep management ---
-bool shouldSleepV2(const PetEngine &pet, uint32_t idleTimeMs);
+bool shouldSleepV2(const PetV2::PetEngine &pet, uint32_t idleTimeMs);
 void enterLightSleepV2(uint32_t durationMs = 0);
 void enterDeepSleepV2(uint32_t durationMs = 0);
 void setSleepModeV2(SleepModeV2 mode);
@@ -75,8 +74,8 @@ bool wasDeepSleepWakeV2();
 uint32_t getWakeupCause();
 
 // --- State preservation (RTC memory) ---
-void saveStateToRTC(const PetEngine &pet);
-bool restoreStateFromRTC(PetEngine &pet);
+void saveStateToRTC(const PetV2::PetEngine &pet);
+bool restoreStateFromRTC(PetV2::PetEngine &pet);
 void clearRTCState();
 
 // --- Idle tracking ---
@@ -93,9 +92,9 @@ void feedWatchdog();
 bool isWatchdogTriggered();
 
 // --- JSON for web API ---
-String getBatteryJsonV2(const PetEngine &pet);
+String getBatteryJsonV2(const PetV2::PetEngine &pet);
 String getSleepModeJsonV2();
-String getPowerStateJson(const PetEngine &pet);
+String getPowerStateJson(const PetV2::PetEngine &pet);
 
 // --- Compatibility wrappers (Phase 13.5) ---
 // Note: v1 Pet compatibility functions are in PowerManager_v2.cpp only

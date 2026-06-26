@@ -1,6 +1,7 @@
 #include "WebHandlers.h"
 #include "Pet.h"
 #include "Storage.h"
+#include "Storage_v2.h"
 #include "Achievements.h"
 #include "config.h"
 #include "MultiPet.h"
@@ -13,6 +14,7 @@
 #include "i18n.h"
 #include "OTARollback.h"
 #include "SoundPack.h"
+#include "DataExport.h"
 #include "PetTrade.h"
 #include "Community.h"   // Phase 13.3: Community features
 #include "Provisioning.h" // Phase 13.4: Manufacturing & Provisioning

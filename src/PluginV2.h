@@ -52,7 +52,8 @@ struct PluginV2Runtime {
 // Plugin v2 callback types
 typedef void (*PluginTickCallback)(PluginEvent event);
 #ifdef ESP32
-typedef void (*PluginRenderCallback)(lv_obj_t *parent));
+#include <lvgl.h>
+typedef void (*PluginRenderCallback)(lv_obj_t *parent);
 #else
 // In native/test builds, lv_obj_t is not available; use void* as placeholder
 typedef void (*PluginRenderCallback)(void *parent);
@@ -100,7 +101,7 @@ bool disablePluginV2(const char *name);
 void triggerPluginsV2(PluginEvent event);
 
 // Execute a specific plugin by name (with crash isolation)
-bool executePluginV2(const char *name, PluginEvent event);
+bool executePluginV2(const char *name, PluginEvent event, bool active = true);
 
 // Render a plugin's UI element using LVGL
 // Returns lv_obj_t* on ESP32, nullptr in native/test builds
