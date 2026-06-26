@@ -276,13 +276,19 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/settings/factory-reset", HTTP_POST, handleFactoryReset);
 
   // Phase 11.1: OTA rollback routes
+#ifndef DISABLE_OTA_ROLLBACK
   registerRollbackRoutes();
+#endif
 
   // Phase 11.3: Sound pack routes
+#ifndef DISABLE_SOUND_PACKS
   registerSoundPackRoutes();
+#endif
 
   // Phase 11.4: Pet trade routes
+#ifndef DISABLE_MQTT
   registerTradeRoutes();
+#endif
 
   // Phase 12.1: Achievements 2.0 progress
   server.on("/api/achievements/progress", HTTP_GET, handleGetAchievementsProgress);
@@ -323,7 +329,9 @@ void registerHandlers(WebServer &server, Pet &pet) {
   server.on("/api/pets/ai/memory", HTTP_GET, handleGetPetAIMemory);
 
   // Phase 16.2: HA config endpoint
+#ifndef DISABLE_MQTT
   registerHARoutes(server);
+#endif
 
   // Phase 16.5: Data export & import
   server.on("/api/export/full", HTTP_GET, handleExportFull);
@@ -1692,7 +1700,7 @@ void handleExportDownload() {
   }
 
   String path = "/exports/" + filename;
-  File file = StorageV2::open(path, "r");
+  File file = StorageV2::open(path.c_str(), "r");
   if (!file) {
     sendErrorResponse("file_not_found", "Export file not found");
     return;

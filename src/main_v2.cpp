@@ -147,10 +147,12 @@ static void ui_update_stats() {
 // ============================================================
 // LVGL Tick Timer
 // ============================================================
-
+// LVGL tick timer — only needed when LV_TICK_CUSTOM is 0
+#ifndef LV_TICK_CUSTOM
 static void lv_tick_cb(void *arg) {
     lv_tick_inc(LVGL_TICK_PERIOD_MS);
 }
+#endif
 
 // ============================================================
 // Setup & Loop
